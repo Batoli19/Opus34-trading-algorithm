@@ -47,6 +47,9 @@ class TradeMemory:
     
     # Execution
     entry_time: datetime
+    order_ticket: Optional[int] = None
+    deal_ticket: Optional[int] = None
+    position_id: Optional[int] = None
     
     # Outcome (filled after trade closes)
     exit_price: Optional[float] = None
@@ -76,6 +79,9 @@ class TradingMemoryDB:
         CREATE TABLE IF NOT EXISTS trades (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             ticket INTEGER UNIQUE,
+            order_ticket INTEGER,
+            deal_ticket INTEGER,
+            position_id INTEGER,
             symbol TEXT,
             direction TEXT,
             setup_type TEXT,
@@ -137,7 +143,27 @@ class TradingMemoryDB:
         """)
         
         self.conn.commit()
+        self._ensure_columns()
         logger.info(f"✅  Memory database initialized: {self.db_path}")
+
+    def _ensure_columns(self):
+        """Backfill newer identifier columns for existing databases."""
+        cursor = self.conn.cursor()
+        cursor.execute("PRAGMA table_info(trades)")
+        cols = {row[1] for row in cursor.fetchall()}
+
+        if "order_ticket" not in cols:
+            cursor.execute("ALTER TABLE trades ADD COLUMN order_ticket INTEGER")
+        if "deal_ticket" not in cols:
+            cursor.execute("ALTER TABLE trades ADD COLUMN deal_ticket INTEGER")
+        if "position_id" not in cols:
+            cursor.execute("ALTER TABLE trades ADD COLUMN position_id INTEGER")
+
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_position_id ON trades(position_id)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_order_ticket ON trades(order_ticket)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_deal_ticket ON trades(deal_ticket)")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_outcome_exit_time ON trades(outcome, exit_time)")
+        self.conn.commit()
     
     # ── Record Trade Entry ────────────────────────────────────────────────────
     def record_entry(self, trade: TradeMemory):
@@ -146,14 +172,16 @@ class TradingMemoryDB:
         
         cursor.execute("""
         INSERT INTO trades (
-            ticket, symbol, direction, setup_type,
+            ticket, order_ticket, deal_ticket, position_id,
+            symbol, direction, setup_type,
             entry_price, sl_price, tp_price, lot_size,
             htf_bias, kill_zone, spread_pips,
             reason, conditions_met, expected_outcome, confidence_input,
             entry_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
-            trade.ticket, trade.symbol, trade.direction, trade.setup_type,
+            trade.ticket, trade.order_ticket, trade.deal_ticket, trade.position_id,
+            trade.symbol, trade.direction, trade.setup_type,
             trade.entry_price, trade.sl_price, trade.tp_price, trade.lot_size,
             trade.htf_bias, trade.kill_zone, trade.spread_pips,
             trade.reason, "|".join(trade.conditions_met), trade.expected_outcome,
@@ -164,43 +192,71 @@ class TradingMemoryDB:
         logger.info(f"📝  Recorded entry: {trade.setup_type} {trade.symbol} #{trade.ticket}")
     
     # ── Record Trade Exit ─────────────────────────────────────────────────────
-    def record_exit(self, ticket: int, exit_price: float, pnl: float,
+    def record_exit(self,
+                    ticket: Optional[int] = None,
+                    order_ticket: Optional[int] = None,
+                    deal_ticket: Optional[int] = None,
+                    position_id: Optional[int] = None,
+                    exit_price: float = 0.0,
+                    pnl: float = 0.0,
+                    exit_time: Optional[datetime] = None,
                     stop_hit_reason: Optional[str] = None,
                     tp_hit_reason: Optional[str] = None,
-                    lessons: Optional[str] = None):
-        """Record trade exit and analysis"""
+                    lessons: Optional[str] = None) -> bool:
+        """Record trade exit and analysis. Returns True when a row was updated."""
         cursor = self.conn.cursor()
-        
-        # Determine outcome
+
         if pnl > 0:
             outcome = "WIN"
         elif pnl < 0:
             outcome = "LOSS"
         else:
             outcome = "BREAKEVEN"
-        
+
+        trade_row = self._resolve_open_trade_for_exit(
+            position_id=position_id,
+            order_ticket=order_ticket,
+            ticket=ticket,
+            deal_ticket=deal_ticket,
+        )
+        if not trade_row:
+            logger.warning(
+                f"No open trade matched for exit "
+                f"(position_id={position_id}, order={order_ticket}, ticket={ticket}, deal={deal_ticket})"
+            )
+            return False
+
+        trade_id = trade_row["id"]
+        trade_ticket = trade_row["ticket"]
+        resolved_exit_time = exit_time or datetime.utcnow()
+
         cursor.execute("""
         UPDATE trades
         SET exit_price = ?, exit_time = ?, pnl = ?, outcome = ?,
-            stop_hit_reason = ?, tp_hit_reason = ?, lessons_learned = ?
-        WHERE ticket = ?
-        """, (exit_price, datetime.utcnow(), pnl, outcome,
-              stop_hit_reason, tp_hit_reason, lessons, ticket))
-        
+            stop_hit_reason = ?, tp_hit_reason = ?, lessons_learned = ?,
+            deal_ticket = COALESCE(?, deal_ticket),
+            order_ticket = COALESCE(?, order_ticket),
+            position_id = COALESCE(?, position_id)
+        WHERE id = ?
+        """, (
+            exit_price, resolved_exit_time, pnl, outcome,
+            stop_hit_reason, tp_hit_reason, lessons,
+            deal_ticket, order_ticket, position_id,
+            trade_id
+        ))
         self.conn.commit()
-        
-        # Update setup performance
-        cursor.execute("SELECT setup_type FROM trades WHERE ticket = ?", (ticket,))
-        result = cursor.fetchone()
-        if result:
-            setup_type = result[0]
+
+        setup_type = trade_row["setup_type"]
+        if setup_type:
             self._update_setup_performance(setup_type)
-            
-            # Record stop hit pattern if applicable
             if outcome == "LOSS" and stop_hit_reason:
                 self._record_stop_pattern(setup_type, stop_hit_reason)
-        
-        logger.info(f"📝  Recorded exit: #{ticket} | {outcome} | P&L: {pnl:+.2f}")
+
+        logger.info(
+            f"📝  Recorded exit: #{trade_ticket} | {outcome} | P&L: {pnl:+.2f} "
+            f"| pos={position_id} order={order_ticket} deal={deal_ticket}"
+        )
+        return True
     
     # ── Update Setup Performance ──────────────────────────────────────────────
     def _update_setup_performance(self, setup_type: str):
@@ -392,7 +448,8 @@ class TradingMemoryDB:
         cursor = self.conn.cursor()
         
         cursor.execute("""
-        SELECT ticket, symbol, setup_type, direction, outcome, pnl,
+        SELECT ticket, order_ticket, deal_ticket, position_id,
+               symbol, setup_type, direction, outcome, pnl,
                reason, expected_outcome, stop_hit_reason, lessons_learned,
                entry_time
         FROM trades
@@ -405,19 +462,188 @@ class TradingMemoryDB:
         for row in cursor.fetchall():
             trades.append({
                 'ticket': row[0],
-                'symbol': row[1],
-                'setup': row[2],
-                'direction': row[3],
-                'outcome': row[4],
-                'pnl': row[5],
-                'reason': row[6],
-                'expected': row[7],
-                'stop_reason': row[8],
-                'lessons': row[9],
-                'time': row[10]
+                'order_ticket': row[1],
+                'deal_ticket': row[2],
+                'position_id': row[3],
+                'symbol': row[4],
+                'setup': row[5],
+                'direction': row[6],
+                'outcome': row[7],
+                'pnl': row[8],
+                'reason': row[9],
+                'expected': row[10],
+                'stop_reason': row[11],
+                'lessons': row[12],
+                'time': row[13]
             })
         
         return trades
+
+    def _parse_db_datetime(self, value) -> Optional[datetime]:
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        text = str(value).strip()
+        if not text:
+            return None
+        try:
+            return datetime.fromisoformat(text.replace("Z", "+00:00")).replace(tzinfo=None)
+        except Exception:
+            pass
+        for fmt in ("%Y-%m-%d %H:%M:%S.%f", "%Y-%m-%d %H:%M:%S"):
+            try:
+                return datetime.strptime(text, fmt)
+            except Exception:
+                continue
+        return None
+
+    def _resolve_open_trade_for_exit(self,
+                                     position_id: Optional[int] = None,
+                                     order_ticket: Optional[int] = None,
+                                     ticket: Optional[int] = None,
+                                     deal_ticket: Optional[int] = None) -> Optional[Dict]:
+        cursor = self.conn.cursor()
+
+        lookup_chain = [
+            ("position_id", position_id),
+            ("order_ticket", order_ticket),
+            ("ticket", ticket),
+            ("deal_ticket", deal_ticket),
+        ]
+        for col, value in lookup_chain:
+            if value is None:
+                continue
+            cursor.execute(f"""
+            SELECT id, ticket, symbol, direction, setup_type,
+                   entry_price, sl_price, tp_price,
+                   position_id, order_ticket, deal_ticket
+            FROM trades
+            WHERE outcome IS NULL AND {col} = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """, (value,))
+            row = cursor.fetchone()
+            if row:
+                return {
+                    "id": row[0],
+                    "ticket": row[1],
+                    "symbol": row[2],
+                    "direction": row[3],
+                    "setup_type": row[4],
+                    "entry_price": row[5],
+                    "sl_price": row[6],
+                    "tp_price": row[7],
+                    "position_id": row[8],
+                    "order_ticket": row[9],
+                    "deal_ticket": row[10],
+                    "matched_by": col,
+                }
+        return None
+
+    def find_open_trade_for_exit(self,
+                                 position_id: Optional[int] = None,
+                                 order_ticket: Optional[int] = None,
+                                 ticket: Optional[int] = None,
+                                 deal_ticket: Optional[int] = None) -> Optional[Dict]:
+        return self._resolve_open_trade_for_exit(
+            position_id=position_id,
+            order_ticket=order_ticket,
+            ticket=ticket,
+            deal_ticket=deal_ticket,
+        )
+
+    def get_closed_trades_between(self, start_utc: datetime, end_utc: datetime) -> List[Dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("""
+        SELECT ticket, order_ticket, deal_ticket, position_id, symbol, setup_type,
+               outcome, pnl, entry_time, exit_time, exit_price
+        FROM trades
+        WHERE outcome IS NOT NULL AND exit_time IS NOT NULL
+        ORDER BY exit_time DESC
+        """)
+
+        rows = []
+        for row in cursor.fetchall():
+            exit_time = self._parse_db_datetime(row[9])
+            if not exit_time:
+                continue
+            if not (start_utc <= exit_time < end_utc):
+                continue
+            rows.append({
+                "ticket": row[0],
+                "order_ticket": row[1],
+                "deal_ticket": row[2],
+                "position_id": row[3],
+                "symbol": row[4],
+                "setup_type": row[5],
+                "outcome": row[6],
+                "pnl": float(row[7] or 0.0),
+                "entry_time": str(row[8]) if row[8] is not None else None,
+                "exit_time": exit_time.isoformat(),
+                "exit_price": float(row[10] or 0.0),
+            })
+        return rows
+
+    def get_daily_summary(self, start_utc: datetime, end_utc: datetime) -> Dict:
+        trades = self.get_closed_trades_between(start_utc, end_utc)
+        pnls = [float(t["pnl"]) for t in trades]
+        wins = [p for p in pnls if p > 0]
+        losses = [p for p in pnls if p < 0]
+
+        trades_count = len(trades)
+        wins_count = len(wins)
+        losses_count = len(losses)
+        daily_pnl = sum(pnls)
+        win_rate = (wins_count / trades_count * 100.0) if trades_count else 0.0
+        gross_profit = sum(wins)
+        gross_loss = abs(sum(losses))
+        profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else (float("inf") if gross_profit > 0 else 0.0)
+        avg_pnl = (daily_pnl / trades_count) if trades_count else 0.0
+
+        return {
+            "trades_today_count": trades_count,
+            "wins_today_count": wins_count,
+            "losses_today_count": losses_count,
+            "daily_pnl": round(daily_pnl, 2),
+            "win_rate": round(win_rate, 2),
+            "profit_factor": round(profit_factor, 4) if profit_factor != float("inf") else "inf",
+            "avg_pnl": round(avg_pnl, 2),
+        }
+
+    def get_trade_counts(self) -> Dict:
+        cursor = self.conn.cursor()
+        cursor.execute("SELECT COUNT(*) FROM trades")
+        total = int(cursor.fetchone()[0] or 0)
+        cursor.execute("SELECT COUNT(*) FROM trades WHERE outcome IS NOT NULL")
+        closed = int(cursor.fetchone()[0] or 0)
+        return {"total_trades": total, "closed_trades": closed}
+
+    def get_last_trades_raw(self, limit: int = 5) -> List[Dict]:
+        cursor = self.conn.cursor()
+        cursor.execute("""
+        SELECT id, ticket, order_ticket, deal_ticket, position_id, symbol, setup_type,
+               outcome, pnl, entry_time, exit_time
+        FROM trades
+        ORDER BY id DESC
+        LIMIT ?
+        """, (limit,))
+        items = []
+        for row in cursor.fetchall():
+            items.append({
+                "id": row[0],
+                "ticket": row[1],
+                "order_ticket": row[2],
+                "deal_ticket": row[3],
+                "position_id": row[4],
+                "symbol": row[5],
+                "setup_type": row[6],
+                "outcome": row[7],
+                "pnl": row[8],
+                "entry_time": str(row[9]) if row[9] is not None else None,
+                "exit_time": str(row[10]) if row[10] is not None else None,
+            })
+        return items
     
     def close(self):
         """Close database connection"""

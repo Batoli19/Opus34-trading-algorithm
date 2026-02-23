@@ -5,6 +5,7 @@ from pathlib import Path
 from config_loader import load_config
 from news_filter import NewsFilter
 from bot_engine import TradingEngine
+from api_server import DashboardAPI
 
 logger = logging.getLogger("MAIN")
 
@@ -30,6 +31,14 @@ async def main():
     news = NewsFilter(news_cfg)
 
     engine = TradingEngine(cfg, news, shutdown)
+    api_cfg = cfg.get("api", {})
+    api_host = api_cfg.get("host", "127.0.0.1")
+    api_port = int(api_cfg.get("port", 5000))
+
+    api = DashboardAPI(engine=engine, host=api_host, port=api_port)
+    api.run_async()
+    logger.info(f"Dashboard API running at http://{api_host}:{api_port}")
+
     await engine.run()
 
 

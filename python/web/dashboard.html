@@ -16,6 +16,101 @@
        PREMIUM FINTECH THEME (Light: white/green, Dark: black/green)
     ───────────────────────────────────────────────────────────── */
 
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    
+    .ai-badge.learning {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+      border: 1px solid rgba(59,130,246,0.25);
+      color: var(--blue);
+    }
+    
+    .ai-badge.enabled {
+      background: linear-gradient(135deg, rgba(19,211,142,0.15), rgba(19,211,142,0.05));
+      border: 1px solid rgba(19,211,142,0.25);
+      color: var(--green);
+    }
+    
+    .ai-badge.disabled {
+      background: linear-gradient(135deg, rgba(255,77,109,0.15), rgba(255,77,109,0.05));
+      border: 1px solid rgba(255,77,109,0.25);
+      color: var(--red);
+    }
+    
+    .confidence-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    
+    .confidence-bar > div {
+      height: 100%;
+      transition: width 350ms ease;
+      background: linear-gradient(90deg, var(--green), rgba(59,130,246,0.7));
+    }
+    
+    .confidence-bar.low > div {
+      background: linear-gradient(90deg, var(--red), var(--amber));
+    }
+    
+    .setup-row {
+      display: grid;
+      grid-template-columns: 110px 80px 100px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    
+    .setup-row:last-child { border-bottom: none; }
+    
+    .setup-name {
+      font-weight: 800;
+      color: var(--text);
+    }
+    
+    .setup-trades {
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+    
+    .setup-conf {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+    
+    .brain-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--blue);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    .reason-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
     :root {
       --radius-xl: 22px;
       --radius-lg: 16px;
@@ -607,6 +702,21 @@
           </div>
         </div>
 
+        <!-- AI Setup Performance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <div class="kicker">AI Brain</div>
+              <div class="main">Setup Performance & Learning</div>
+            </div>
+            <div class="badge" id="setupBadge">Tracking —</div>
+          </div>
+
+          <div class="card-body" id="setupPerformance">
+            <div class="empty">AI memory initializing...</div>
+          </div>
+        </div>
+
         <!-- Open positions -->
         <div class="card">
           <div class="card-header">
@@ -753,11 +863,12 @@
 
 <script>
   // ─────────────────────────────────────────────────────────────
-  // CONFIG
+  // CONFIG (FIXED: same-origin)
   // ─────────────────────────────────────────────────────────────
-  const API_BASE = "http://127.0.0.1:5000"; // change if needed
+  const API_BASE = "";                 // ✅ FIXED (served by Flask)
   const SSE_URL  = `${API_BASE}/api/stream`;
   const SHUT_URL = `${API_BASE}/api/shutdown`;
+  const STATUS_URL = `${API_BASE}/api/status`;
 
   // you can map your risk config here for UI visuals (we’ll wire real config later)
   const UI_LIMITS = {
@@ -770,23 +881,55 @@
   // STATE (matches your engine.get_status() shape)
   // ─────────────────────────────────────────────────────────────
   let state = {
-    server_time: null,
+    timestamp: null,
     account: { balance: 0, equity: 0, profit: 0, currency: "USD" },
     stats: { trades: 0, wins: 0, losses: 0, winrate: 0, total_pnl: 0, daily_pnl: 0, avg_win: 0, avg_loss: 0, expectancy: 0, daily_trades: 0 },
     positions: [],
     trade_log: [],
     upcoming_news: [],
     pair_biases: {},
-    pair_performance: null,      // optional: if you add later in get_status()
-    setup_performance: null,     // optional: from analyzer/memory
+    setup_performance: null,
     equity_history: []
   };
+  let lastDataAt = 0;
+  let lastStatusFetchAt = 0;
 
   // Keep a small equity curve in browser
   function pushEquity(eq) {
     if (!Number.isFinite(eq)) return;
     state.equity_history.push(eq);
     if (state.equity_history.length > 120) state.equity_history.shift();
+  }
+
+  function applySnapshot(data) {
+    state = {
+      ...state,
+      ...data,
+      account: data.account || state.account,
+      stats: data.stats || state.stats,
+      positions: Array.isArray(data.positions) ? data.positions : [],
+      trade_log: Array.isArray(data.trade_log) ? data.trade_log : [],
+      upcoming_news: Array.isArray(data.upcoming_news) ? data.upcoming_news : [],
+      pair_biases: data.pair_biases || state.pair_biases,
+      setup_performance: data.setup_performance ?? state.setup_performance
+    };
+    lastDataAt = Date.now();
+    pushEquity(Number(state.account?.equity));
+    render();
+  }
+
+  async function fetchStatusSnapshot() {
+    const now = Date.now();
+    if (now - lastStatusFetchAt < 1200) return;
+    lastStatusFetchAt = now;
+    const res = await fetch(STATUS_URL, { cache: "no-store" });
+    if (!res.ok) {
+      throw new Error(`status ${res.status}`);
+    }
+    const data = await res.json();
+    if (data && !data.error) {
+      applySnapshot(data);
+    }
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -812,7 +955,6 @@
     root.setAttribute("data-theme", next);
     try { localStorage.setItem("ict_theme", next); } catch {}
     toast("Theme switched", next === "dark" ? "Dark mode enabled" : "Light mode enabled");
-    // refresh chart colors
     refreshChartTheme();
   });
 
@@ -827,6 +969,10 @@
   // CHART
   // ─────────────────────────────────────────────────────────────
   const ctx = document.getElementById("equityChart").getContext("2d");
+
+  function getCss(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
 
   function chartColors() {
     const isDark = document.body.getAttribute("data-theme") === "dark";
@@ -920,10 +1066,6 @@
     const v = Number(n);
     if (!Number.isFinite(v)) return "—";
     return v.toFixed(1) + "%";
-  }
-
-  function getCss(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
   }
 
   function toast(title, sub) {
@@ -1042,53 +1184,29 @@
       }).join("");
     }
 
-    // Trade log
+    // Trade log (basic)
     const log = Array.isArray(state.trade_log) ? state.trade_log : [];
     document.getElementById("logBadge").textContent = `${log.length} recent`;
-    const logList = document.getElementById("logList");
-    if (!log.length) {
-      logList.innerHTML = `<div class="empty">No trades logged yet</div>`;
-    } else {
-      logList.innerHTML = log.slice().reverse().slice(0, 8).map(t => {
-        const pnl = Number(t.pnl ?? 0);
-        const pnlCls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "";
-        const side = (t.type || "").toUpperCase();
-        return `
-          <div class="news-item" style="grid-template-columns:10px 1fr">
-            <div class="impact ${pnl > 0 ? "LOW" : pnl < 0 ? "HIGH" : "MEDIUM"}"></div>
-            <div>
-              <div class="news-title">
-                <span class="pair">${t.symbol || "—"}</span>
-                <span class="setup" style="margin-left:8px">${t.setup || "—"}</span>
-                <span style="margin-left:8px" class="${side === "BUY" ? "tag-buy" : "tag-sell"}"><strong>${side}</strong></span>
-              </div>
-              <div class="news-meta">
-                ${t.time || ""} • Lot: ${Number(t.lot ?? 0).toFixed(2)}
-                ${t.pnl !== undefined ? ` • <span class="${pnlCls}">${pnl >= 0 ? "+" : ""}${money(pnl)}</span>` : ""}
-              </div>
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
 
-    // Edge widgets (best pair/setup) — uses optional fields if you add them later
-    // For now we infer from trade_log quickly (simple MVP)
+    // Edge widgets (infer from log)
     const { bestPair, bestPairMeta, bestSetup, bestSetupMeta } = inferEdgeFromLog(log);
     document.getElementById("topPair").textContent = bestPair || "—";
     document.getElementById("topPairMeta").textContent = bestPairMeta || "Waiting for data…";
     document.getElementById("topSetup").textContent = bestSetup || "—";
     document.getElementById("topSetupMeta").textContent = bestSetupMeta || "Waiting for data…";
-
     document.getElementById("edgeBadge").textContent = log.length ? "Updated" : "Learning…";
 
     // Chart update
     updateChart();
+
+    // ✅ FIXED: These were defined but never called
+    renderSetupPerformance();
+    renderEnhancedTradeLog();
+    updateAIStatus();
   }
 
   function inferEdgeFromLog(log) {
     if (!Array.isArray(log) || log.length < 3) return {};
-    // group by symbol and setup; use pnl if present, else count
     const pairMap = new Map();
     const setupMap = new Map();
 
@@ -1096,7 +1214,6 @@
       const sym = t.symbol || "UNKNOWN";
       const setup = t.setup || "UNKNOWN";
       const pnl = Number(t.pnl ?? 0);
-
       pairMap.set(sym, (pairMap.get(sym) || 0) + pnl);
       setupMap.set(setup, (setupMap.get(setup) || 0) + pnl);
     }
@@ -1153,6 +1270,7 @@
 
     es.onopen = () => {
       setConn(true, "LIVE");
+      lastDataAt = Date.now();
       toast("Connected", "Streaming bot data via SSE");
     };
 
@@ -1165,31 +1283,15 @@
           console.warn("[SSE] error:", data.error);
           return;
         }
-
-        // Assign & normalize
-        state = {
-          ...state,
-          ...data,
-          account: data.account || state.account,
-          stats: data.stats || state.stats,
-          positions: Array.isArray(data.positions) ? data.positions : [],
-          trade_log: Array.isArray(data.trade_log) ? data.trade_log : [],
-          upcoming_news: Array.isArray(data.upcoming_news) ? data.upcoming_news : [],
-          pair_biases: data.pair_biases || state.pair_biases
-        };
-
-        // Keep local equity curve
-        pushEquity(Number(state.account?.equity));
-
-        render();
+        applySnapshot(data);
       } catch (e) {
         console.warn("[SSE] parse fail:", e);
       }
     };
 
     es.onerror = () => {
-      // browser auto-retries, we just reflect state
       setConn(false, "RETRYING");
+      fetchStatusSnapshot().catch((err) => console.warn("[status] fetch fail:", err));
     };
   }
 
@@ -1208,14 +1310,123 @@
   });
 
   // ─────────────────────────────────────────────────────────────
+  // AI RENDERERS (kept your logic, but cleaned output HTML so it displays)
+  // ─────────────────────────────────────────────────────────────
+  function renderSetupPerformance() {
+    const setupPerf = state.setup_performance;
+    const container = document.getElementById("setupPerformance");
+
+    // Accept either list or object
+    let arr = setupPerf;
+    if (setupPerf && !Array.isArray(setupPerf) && typeof setupPerf === "object") {
+      // convert object map -> array
+      arr = Object.keys(setupPerf).map(k => ({ setup: k, ...setupPerf[k] }));
+    }
+
+    if (!Array.isArray(arr) || arr.length === 0) {
+      container.innerHTML = `<div class="empty">No setup data yet — AI is learning from your first trades</div>`;
+      document.getElementById("setupBadge").textContent = "Waiting for data...";
+      return;
+    }
+
+    const enabledCount = arr.filter(s => s.enabled !== false).length;
+    document.getElementById("setupBadge").textContent = `${enabledCount}/${arr.length} active`;
+
+    container.innerHTML = arr.map(setup => {
+      const name = setup.setup || setup.name || "Unknown";
+      const conf = Number(setup.confidence ?? setup.conf ?? 0);
+      const trades = Number(setup.trades ?? setup.count ?? 0);
+      const enabled = setup.enabled !== false;
+
+      const statusBadge = trades < 50
+        ? { cls: "learning", txt: `Learning (${trades}/50)` }
+        : enabled
+          ? { cls: "enabled", txt: "✓ Active" }
+          : { cls: "disabled", txt: "✗ Disabled" };
+
+      const low = conf < 60 ? " low" : "";
+
+      return `
+        <div class="setup-row">
+          <div class="setup-name">${name}</div>
+          <div class="setup-trades">${trades} trades</div>
+          <div class="setup-conf">
+            <span class="brain-pulse"></span>
+            <span>${conf.toFixed(0)}%</span>
+          </div>
+          <div>
+            <span class="ai-badge ${statusBadge.cls}">${statusBadge.txt}</span>
+            <div class="confidence-bar${low}">
+              <div style="width:${Math.max(0, Math.min(100, conf))}%"></div>
+            </div>
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderEnhancedTradeLog() {
+    const log = Array.isArray(state.trade_log) ? state.trade_log : [];
+    document.getElementById("logBadge").textContent = `${log.length} logged`;
+
+    const logList = document.getElementById("logList");
+
+    if (!log.length) {
+      logList.innerHTML = `<div class="empty">No trades logged yet</div>`;
+      return;
+    }
+
+    logList.innerHTML = log.slice().reverse().slice(0, 6).map(t => {
+      const pnl = Number(t.pnl ?? t.profit ?? 0);
+      const pnlCls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "";
+      const side = (t.type || t.direction || "").toUpperCase();
+      const setup = t.setup || t.setup_type || "—";
+      const lot = Number(t.lot ?? t.volume ?? 0);
+      const time = t.time || t.entry_time || "";
+
+      const reasoning = t.reason || t.reasoning || "";
+
+      return `
+        <div class="news-item" style="grid-template-columns:10px 1fr">
+          <div class="impact ${pnl > 0 ? "LOW" : pnl < 0 ? "HIGH" : "MEDIUM"}"></div>
+          <div>
+            <div class="news-title">
+              <span class="pair">${t.symbol || "—"}</span>
+              <span class="setup" style="margin-left:8px">${setup}</span>
+              <span style="margin-left:8px" class="${side === "BUY" ? "tag-buy" : "tag-sell"}"><strong>${side}</strong></span>
+            </div>
+            <div class="news-meta">
+              ${time} • Lot: ${lot.toFixed(2)}
+              ${Number.isFinite(pnl) ? ` • <span class="${pnlCls}">${pnl >= 0 ? "+" : ""}${money(pnl)}</span>` : ""}
+            </div>
+            ${reasoning ? `<div class="reason-box">🧠 ${reasoning}</div>` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function updateAIStatus() {
+    // placeholder (future)
+  }
+
+  // ─────────────────────────────────────────────────────────────
   // INIT
   // ─────────────────────────────────────────────────────────────
   function init() {
-    // If you start with no equity history, seed it with 0 so chart doesn’t break
     state.equity_history = [];
     refreshChartTheme();
     render();
+    fetchStatusSnapshot().catch((err) => console.warn("[status] initial fetch fail:", err));
     startSSE();
+
+    setInterval(() => {
+      const ageMs = Date.now() - lastDataAt;
+      if (!lastDataAt || ageMs > 6000) {
+        setConn(false, "STALE");
+        fetchStatusSnapshot().catch((err) => console.warn("[status] stale fetch fail:", err));
+      }
+    }, 3000);
   }
 
   init();

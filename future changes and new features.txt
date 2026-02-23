@@ -37,3 +37,21 @@ Report metrics by setup type:
 win rate, expectancy, avg RR, max DD
 
 Kill any setup that’s negative expectancy 
+
+
+
+Option A (recommended): Basket lock = “Close ALL positions when net PnL hits +$300”
+
+This is the only way to guarantee you “secured” that $300.
+
+Rule
+
+If total open PnL >= +300, immediately close all open positions (winners + losers).
+
+Then pause re-entry for a cooldown or until a fresh signal forms.
+
+Why it works
+
+It truly locks the net profit.
+
+It prevents the “winners closed / losers left to bleed” problem

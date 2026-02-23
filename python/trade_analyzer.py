@@ -13,7 +13,9 @@ Add this to bot_engine as a background task.
 import asyncio
 import logging
 from datetime import datetime
-from typing import Set
+from typing import Dict, Optional, Set
+
+import MetaTrader5 as mt5
 
 logger = logging.getLogger("ANALYZER")
 
@@ -24,20 +26,37 @@ class TradeAnalyzer:
         self.mt5 = engine.mt5
         self.memory = engine.memory
         self.brain = engine.brain
-        self._analyzed_tickets: Set[int] = set()
+        self._analyzed_keys: Set[str] = set()
     
     async def run(self):
         """Background loop that analyzes closed trades"""
         logger.info("🔬  Trade Analyzer started")
+        self.engine.analyzer_running = True
         
         while not self.engine.shutdown.is_set():
             try:
+                self.engine.analyzer_last_tick = datetime.utcnow()
                 await self.analyze_recent_closes()
             except Exception as e:
                 logger.error(f"Analyzer error: {e}", exc_info=True)
             
             # Check every 30 seconds
             await asyncio.sleep(30)
+
+        self.engine.analyzer_running = False
+
+    def _deal_key(self, mt5_trade: Dict) -> str:
+        return (
+            f"pos:{mt5_trade.get('position_id')}|"
+            f"ord:{mt5_trade.get('order_ticket')}|"
+            f"deal:{mt5_trade.get('deal_ticket')}"
+        )
+
+    def _is_exit_deal(self, mt5_trade: Dict) -> bool:
+        deal_entry = mt5_trade.get("entry")
+        if deal_entry is None:
+            return True
+        return deal_entry == mt5.DEAL_ENTRY_OUT
     
     async def analyze_recent_closes(self):
         """Find and analyze recently closed trades"""
@@ -45,41 +64,35 @@ class TradeAnalyzer:
         today_trades = self.mt5.get_today_trades()
         
         for mt5_trade in today_trades:
-            ticket = mt5_trade["ticket"]
+            if not self._is_exit_deal(mt5_trade):
+                continue
+            deal_key = self._deal_key(mt5_trade)
             
             # Skip if already analyzed
-            if ticket in self._analyzed_tickets:
+            if deal_key in self._analyzed_keys:
                 continue
             
-            # Get the trade record from memory database
-            cursor = self.memory.conn.cursor()
-            cursor.execute("""
-            SELECT ticket, symbol, direction, setup_type, entry_price, sl_price, tp_price,
-                   htf_bias, kill_zone, spread_pips, reason, conditions_met, expected_outcome,
-                   outcome, exit_price
-            FROM trades
-            WHERE ticket = ?
-            """, (ticket,))
-            
-            record = cursor.fetchone()
+            record = self.memory.find_open_trade_for_exit(
+                position_id=mt5_trade.get("position_id"),
+                order_ticket=mt5_trade.get("order_ticket"),
+                ticket=mt5_trade.get("order_ticket"),
+                deal_ticket=mt5_trade.get("deal_ticket"),
+            )
             
             if not record:
-                # Trade not in our memory - might be manual or from before bot started
                 continue
             
-            # Check if already closed in memory
-            if record[13]:  # outcome field
-                self._analyzed_tickets.add(ticket)
-                continue
-            
-            # This is a newly closed trade - analyze it!
-            await self._analyze_closed_trade(ticket, mt5_trade, record)
-            self._analyzed_tickets.add(ticket)
+            await self._analyze_closed_trade(mt5_trade, record)
+            self._analyzed_keys.add(deal_key)
     
-    async def _analyze_closed_trade(self, ticket: int, mt5_trade: dict, db_record: tuple):
+    async def _analyze_closed_trade(self, mt5_trade: dict, db_record: Dict):
         """Deep analysis of a closed trade"""
-        symbol = db_record[1]
-        setup_type = db_record[3]
+        ticket = db_record["ticket"]
+        symbol = db_record.get("symbol")
+        setup_type = db_record.get("setup_type")
+        if not symbol or not setup_type:
+            logger.warning(f"Analyzer skipped incomplete DB record: {db_record}")
+            return
         
         # Get M5 candles for analysis
         candles_m5 = self.mt5.get_candles(symbol, "M5", 50)
@@ -88,11 +101,11 @@ class TradeAnalyzer:
         trade_record = {
             'ticket': ticket,
             'symbol': symbol,
-            'direction': db_record[2],
+            'direction': db_record.get("direction"),
             'setup_type': setup_type,
-            'entry_price': db_record[4],
-            'sl_price': db_record[5],
-            'tp_price': db_record[6],
+            'entry_price': db_record.get("entry_price"),
+            'sl_price': db_record.get("sl_price"),
+            'tp_price': db_record.get("tp_price"),
             'exit_price': mt5_trade['price'],
             'outcome': None  # Will be determined
         }
@@ -102,13 +115,36 @@ class TradeAnalyzer:
         
         # Record the exit in memory
         pnl = mt5_trade['profit']
-        self.memory.record_exit(
+        exit_time_raw = mt5_trade.get("time")
+        exit_time = None
+        if isinstance(exit_time_raw, str):
+            try:
+                exit_time = datetime.fromisoformat(exit_time_raw.replace("Z", "+00:00")).replace(tzinfo=None)
+            except Exception:
+                exit_time = None
+
+        updated = self.memory.record_exit(
+            position_id=mt5_trade.get("position_id"),
+            order_ticket=mt5_trade.get("order_ticket"),
+            deal_ticket=mt5_trade.get("deal_ticket"),
             ticket=ticket,
             exit_price=mt5_trade['price'],
             pnl=pnl,
+            exit_time=exit_time,
             stop_hit_reason=analysis['stop_hit_reason'],
             tp_hit_reason=analysis['tp_hit_reason'],
             lessons=analysis['lessons_learned']
+        )
+        if not updated:
+            return
+        logger.info(
+            "EXIT_RECORDED: symbol=%s position_id=%s order=%s deal=%s pnl=%+.2f outcome=%s",
+            symbol,
+            mt5_trade.get("position_id"),
+            mt5_trade.get("order_ticket"),
+            mt5_trade.get("deal_ticket"),
+            pnl,
+            "WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN",
         )
         
         # Log the learning

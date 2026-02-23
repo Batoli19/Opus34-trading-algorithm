@@ -16,6 +16,101 @@
        PREMIUM FINTECH THEME (Light: white/green, Dark: black/green)
     ───────────────────────────────────────────────────────────── */
 
+    .ai-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+    }
+    
+    .ai-badge.learning {
+      background: linear-gradient(135deg, rgba(59,130,246,0.15), rgba(59,130,246,0.05));
+      border: 1px solid rgba(59,130,246,0.25);
+      color: var(--blue);
+    }
+    
+    .ai-badge.enabled {
+      background: linear-gradient(135deg, rgba(19,211,142,0.15), rgba(19,211,142,0.05));
+      border: 1px solid rgba(19,211,142,0.25);
+      color: var(--green);
+    }
+    
+    .ai-badge.disabled {
+      background: linear-gradient(135deg, rgba(255,77,109,0.15), rgba(255,77,109,0.05));
+      border: 1px solid rgba(255,77,109,0.25);
+      color: var(--red);
+    }
+    
+    .confidence-bar {
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.06);
+      overflow: hidden;
+      margin-top: 6px;
+    }
+    
+    .confidence-bar > div {
+      height: 100%;
+      transition: width 350ms ease;
+      background: linear-gradient(90deg, var(--green), rgba(59,130,246,0.7));
+    }
+    
+    .confidence-bar.low > div {
+      background: linear-gradient(90deg, var(--red), var(--amber));
+    }
+    
+    .setup-row {
+      display: grid;
+      grid-template-columns: 110px 80px 100px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+    
+    .setup-row:last-child { border-bottom: none; }
+    
+    .setup-name {
+      font-weight: 800;
+      color: var(--text);
+    }
+    
+    .setup-trades {
+      font-family: var(--font-mono);
+      color: var(--muted);
+    }
+    
+    .setup-conf {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-family: var(--font-mono);
+      font-weight: 700;
+    }
+    
+    .brain-pulse {
+      width: 8px;
+      height: 8px;
+      border-radius: 99px;
+      background: var(--blue);
+      animation: pulse 2s infinite ease-in-out;
+    }
+    
+    .reason-box {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      margin-top: 8px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
     :root {
       --radius-xl: 22px;
       --radius-lg: 16px;
@@ -606,7 +701,20 @@
             </div>
           </div>
         </div>
+<!-- AI Setup Performance -->
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">
+              <div class="kicker">AI Brain</div>
+              <div class="main">Setup Performance & Learning</div>
+            </div>
+            <div class="badge" id="setupBadge">Tracking —</div>
+          </div>
 
+          <div class="card-body" id="setupPerformance">
+            <div class="empty">AI memory initializing...</div>
+          </div>
+        </div>
         <!-- Open positions -->
         <div class="card">
           <div class="card-header">
@@ -1206,6 +1314,108 @@
       toast("Shutdown error", String(e));
     }
   });
+  
+  function renderSetupPerformance() {
+    const setupPerf = state.setup_performance;
+    const container = document.getElementById("setupPerformance");
+    
+    if (!Array.isArray(setupPerf) || setupPerf.length === 0) {
+      container.innerHTML = `No setup data yet — AI is learning from your first trades`;
+      document.getElementById("setupBadge").textContent = "Waiting for data...";
+      return;
+    }
+    
+    const enabledCount = setupPerf.filter(s => s.enabled).length;
+    const totalCount = setupPerf.length;
+    
+    document.getElementById("setupBadge").textContent = `${enabledCount}/${totalCount} active`;
+    
+    container.innerHTML = setupPerf.map(setup => {
+      const conf = Number(setup.confidence || 0);
+      const trades = Number(setup.trades || 0);
+      const enabled = setup.enabled !== false;
+      
+      const statusBadge = trades < 50 
+        ? `Learning (${trades}/50)`
+        : enabled
+          ? `✓ Active`
+          : `✗ Disabled`;
+      
+      const confColor = conf >= 60 ? '' : ' low';
+      
+      return `
+        
+          ${setup.setup || 'Unknown'}
+          ${trades} trades
+          
+            ${conf.toFixed(0)}%
+          
+          
+            ${statusBadge}
+            
+              
+            
+          
+        
+      `;
+    }).join('');
+  }
+  
+  function renderEnhancedTradeLog() {
+    const log = Array.isArray(state.trade_log) ? state.trade_log : [];
+    document.getElementById("logBadge").textContent = `${log.length} logged`;
+    
+    const logList = document.getElementById("logList");
+    
+    if (!log.length) {
+      logList.innerHTML = `No trades logged yet`;
+      return;
+    }
+    
+    logList.innerHTML = log.slice().reverse().slice(0, 6).map(t => {
+      const pnl = Number(t.pnl ?? 0);
+      const pnlCls = pnl > 0 ? "pos" : pnl < 0 ? "neg" : "";
+      const side = (t.type || "").toUpperCase();
+      const outcome = t.outcome || "OPEN";
+      
+      const impactClass = outcome === "WIN" ? "LOW" : outcome === "LOSS" ? "HIGH" : "MEDIUM";
+      
+      const reasoning = t.reason ? `
+        
+          AI Analysis:
+          ${t.reason}
+          ${t.lessons ? `💡 ${t.lessons}` : ''}
+        
+      ` : '';
+      
+      return `
+        
+          
+          
+            
+              ${t.symbol || "—"}
+              ${t.setup || "—"}
+              ${side}
+            
+            
+              ${t.time || ""} • ${Number(t.lot ?? 0).toFixed(2)} lots
+              ${t.pnl !== undefined ? ` • ${pnl >= 0 ? "+" : ""}${money(pnl)}` : ""}
+              ${outcome !== "OPEN" ? ` • ${outcome}` : ""}
+            
+            ${reasoning}
+          
+        
+      `;
+    }).join("");
+  }
+  
+  function updateAIStatus() {
+    const setupPerf = state.setup_performance || [];
+    const totalTrades = setupPerf.reduce((sum, s) => sum + (s.trades || 0), 0);
+    
+    // You can add an AI status indicator if you want
+    // For now, this function is ready for future expansion
+  }
 
   // ─────────────────────────────────────────────────────────────
   // INIT

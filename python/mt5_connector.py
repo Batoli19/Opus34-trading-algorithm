@@ -172,8 +172,10 @@ class MT5Connector:
             return None
 
         ticket = result.order
+        deal_ticket = getattr(result, "deal", None)
+        position_id = getattr(result, "position", None) or ticket
         logger.info(f"✅  ORDER PLACED | {order_type} {volume} {symbol} | "
-                    f"Price: {result.price} | Ticket: {ticket}")
+                    f"Price: {result.price} | Ticket: {ticket} | Deal: {deal_ticket} | Position: {position_id}")
         
         # Now add SL/TP via modify
         if sl > 0 or tp > 0:
@@ -186,6 +188,9 @@ class MT5Connector:
         
         return {
             "ticket":  ticket,
+            "order_ticket": ticket,
+            "deal_ticket": deal_ticket,
+            "position_id": position_id,
             "symbol":  symbol,
             "type":    order_type,
             "volume":  volume,
@@ -278,16 +283,26 @@ class MT5Connector:
         history = mt5.history_deals_get(today, datetime.utcnow())
         if history is None:
             return []
-        return [
-            {
-                "ticket": d.ticket,
-                "symbol": d.symbol,
-                "type":   "BUY" if d.type == mt5.DEAL_TYPE_BUY else "SELL",
-                "volume": d.volume,
-                "price":  d.price,
-                "profit": d.profit,
-                "time":   datetime.utcfromtimestamp(d.time),
-            }
-            for d in history
-            if d.magic == 20250101
-        ]
+        trades = []
+        for d in history:
+            if d.magic != 20250101:
+                continue
+            deal_type = "BUY" if d.type == mt5.DEAL_TYPE_BUY else "SELL"
+            position_id = getattr(d, "position_id", None) or getattr(d, "position", None)
+            deal_entry = getattr(d, "entry", None)
+            trades.append(
+                {
+                    "deal_ticket": d.ticket,
+                    "ticket": d.ticket,
+                    "order_ticket": getattr(d, "order", None),
+                    "position_id": position_id,
+                    "symbol": d.symbol,
+                    "type": deal_type,
+                    "entry": deal_entry,
+                    "volume": d.volume,
+                    "price": d.price,
+                    "profit": d.profit,
+                    "time": datetime.utcfromtimestamp(d.time).isoformat(),
+                }
+            )
+        return trades
