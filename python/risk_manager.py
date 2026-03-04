@@ -32,11 +32,14 @@ class RiskManager:
         self.mode_cd_cfg = self.mode_cfg.get("cooldown", {})
         self.exec_cfg = config.get("execution", {})
         self.prop_cfg = self.exec_cfg.get("prop", {}) if isinstance(self.exec_cfg.get("prop", {}), dict) else {}
+        self.guard_cfg = config.get("prop_guardrails", {}) if isinstance(config.get("prop_guardrails", {}), dict) else {}
+        self.corr_cfg = config.get("correlation", {}) if isinstance(config.get("correlation", {}), dict) else {}
         self.journal: list[TradeRecord] = []
 
         self._today: date = datetime.utcnow().date()
         self._daily_pnl: float = 0.0
         self._daily_trades: int = 0
+        self._processed_closes_today: set[int] = set()
 
         self._pause_until: Optional[datetime] = None
         self._lock_reason: str = ""
@@ -51,6 +54,17 @@ class RiskManager:
         self._recent_losses_global: list[datetime] = []
         self._global_throttle_until: Optional[datetime] = None
         self._consecutive_losses: int = 0
+
+        self._start_day_balance: Optional[float] = None
+        self._start_day_equity: Optional[float] = None
+        self._start_day_ref: Optional[float] = None
+        self._start_day_floor: Optional[float] = None
+
+        self._thesis_loss_events: dict[str, list[datetime]] = {}
+        self._thesis_cooldown_until: dict[str, datetime] = {}
+        self._thesis_risk_scale_until: dict[str, datetime] = {}
+        self._symbol_dir_block_until: dict[tuple[str, str], datetime] = {}
+        self._symbol_dir_block_setup_id: dict[tuple[str, str], str] = {}
 
         self._equity_peak: Optional[float] = None
         self._last_drawdown_pct: float = 0.0
@@ -79,6 +93,7 @@ class RiskManager:
             self._today = today
             self._daily_pnl = 0.0
             self._daily_trades = 0
+            self._processed_closes_today.clear()
             self._pause_until = None
             self._lock_reason = ""
             self._require_new_setup = False
@@ -91,6 +106,15 @@ class RiskManager:
             self._recent_losses_global.clear()
             self._global_throttle_until = None
             self._consecutive_losses = 0
+            self._start_day_balance = None
+            self._start_day_equity = None
+            self._start_day_ref = None
+            self._start_day_floor = None
+            self._thesis_loss_events.clear()
+            self._thesis_cooldown_until.clear()
+            self._thesis_risk_scale_until.clear()
+            self._symbol_dir_block_until.clear()
+            self._symbol_dir_block_setup_id.clear()
             self._equity_peak = None
             self._last_drawdown_pct = 0.0
             self._prop_daily_lock_until = None
@@ -122,9 +146,208 @@ class RiskManager:
         profile = str(self.exec_cfg.get("profile", "normal")).strip().upper()
         return profile == "PROP_CHALLENGE" and bool(self.prop_cfg.get("enabled", False))
 
+    def _guardrails_enabled(self) -> bool:
+        return bool(self.guard_cfg.get("enabled", False)) or self._is_prop_mode()
+
+    def _daily_profit_lock_pct(self) -> float:
+        if "daily_profit_lock_pct" in self.guard_cfg:
+            return float(self.guard_cfg.get("daily_profit_lock_pct", 0.0) or 0.0)
+        return float(self.prop_cfg.get("daily_profit_lock_pct", 0.0) or 0.0)
+
+    def _daily_loss_cap_pct(self) -> float:
+        if "daily_loss_cap_pct" in self.guard_cfg:
+            return float(self.guard_cfg.get("daily_loss_cap_pct", 0.0) or 0.0)
+        if self._is_prop_mode():
+            return float(self.prop_cfg.get("max_daily_loss_pct", self.cfg.get("max_daily_loss_pct", 0.0)) or 0.0)
+        return float(self.cfg.get("max_daily_loss_pct", 0.0) or 0.0)
+
+    def _loss_streak_limit(self) -> int:
+        if "loss_streak_limit" in self.guard_cfg:
+            return int(self.guard_cfg.get("loss_streak_limit", 0) or 0)
+        if self._is_prop_mode():
+            return int(self.prop_cfg.get("max_consecutive_losses_stop", 0) or 0)
+        return int(self.cfg.get("max_consecutive_losses", 0) or 0)
+
+    def _loss_streak_pause_minutes(self) -> int:
+        if "pause_minutes_on_streak" in self.guard_cfg:
+            return int(self.guard_cfg.get("pause_minutes_on_streak", 0) or 0)
+        if self._is_prop_mode():
+            return int(self.prop_cfg.get("loss_pause_minutes", 0) or 0)
+        return int(self.cfg.get("loss_streak_cooldown_minutes", 0) or 0)
+
+    def _stop_for_day_on_streak(self) -> bool:
+        if "stop_for_day_on_streak" in self.guard_cfg:
+            return bool(self.guard_cfg.get("stop_for_day_on_streak", False))
+        return bool(self.prop_cfg.get("stop_for_day_on_loss_streak", True))
+
     def _end_of_day_utc(self, now: Optional[datetime] = None) -> datetime:
         ref = now or self._now()
         return ref.replace(hour=23, minute=59, second=59, microsecond=0)
+
+    def _close_all_on_daily_loss_breach(self) -> bool:
+        return bool(self.guard_cfg.get("close_all_on_daily_loss_breach", True))
+
+    def _ensure_day_reference(self, balance: float, equity: Optional[float], now: datetime) -> None:
+        if self._start_day_ref is not None and self._start_day_floor is not None:
+            return
+        bal = float(balance)
+        eq = float(equity if equity is not None else bal)
+        self._start_day_balance = bal
+        self._start_day_equity = eq
+        self._start_day_ref = max(self._start_day_balance, self._start_day_equity)
+        loss_pct = self._daily_loss_cap_pct()
+        self._start_day_floor = self._start_day_ref * (1.0 - (loss_pct / 100.0))
+        logger.warning(
+            "DAY_REF_SET ts=%s start_day_balance=%.2f start_day_equity=%.2f start_day_ref=%.2f "
+            "daily_loss_cap_pct=%.2f start_day_floor=%.2f",
+            now.isoformat(),
+            self._start_day_balance,
+            self._start_day_equity,
+            self._start_day_ref,
+            loss_pct,
+            self._start_day_floor,
+        )
+
+    def _normalize_direction(self, direction: str) -> str:
+        d = str(direction or "").strip().upper()
+        if d in ("BUY", "LONG"):
+            return "BUY"
+        if d in ("SELL", "SHORT"):
+            return "SELL"
+        return ""
+
+    def _trade_thesis(self, symbol: str, direction: str) -> str:
+        sym = str(symbol or "").upper().strip()
+        side = self._normalize_direction(direction)
+        if not sym or side not in ("BUY", "SELL"):
+            return "OTHER"
+
+        thesis_groups = self.corr_cfg.get("thesis_groups", {})
+        if isinstance(thesis_groups, dict):
+            sym_cfg = thesis_groups.get(sym, {})
+            if isinstance(sym_cfg, dict):
+                mapped = sym_cfg.get(side)
+                if mapped:
+                    val = str(mapped).strip().upper()
+                    if val in ("USD_LONG", "USD_SHORT", "OTHER"):
+                        return val
+
+        if sym.startswith("USD") and len(sym) == 6:
+            return "USD_LONG" if side == "BUY" else "USD_SHORT"
+        if sym.endswith("USD") and len(sym) == 6:
+            return "USD_SHORT" if side == "BUY" else "USD_LONG"
+        return "OTHER"
+
+    def _pair_key(self, a: str, b: str) -> tuple[str, str]:
+        s1 = str(a or "").upper().strip()
+        s2 = str(b or "").upper().strip()
+        return tuple(sorted((s1, s2)))
+
+    def _dangerous_corr_pairs(self) -> set[tuple[str, str]]:
+        default_pairs = [
+            ("EURUSD", "GBPUSD"),
+            ("EURUSD", "USDCHF"),
+            ("GBPUSD", "USDCHF"),
+        ]
+        if "dangerous_pairs" in self.corr_cfg:
+            raw = self.corr_cfg.get("dangerous_pairs", [])
+            out: set[tuple[str, str]] = set()
+            if isinstance(raw, list):
+                for item in raw:
+                    if isinstance(item, (list, tuple)) and len(item) >= 2:
+                        out.add(self._pair_key(item[0], item[1]))
+            return out
+
+        raw = default_pairs
+        out: set[tuple[str, str]] = set()
+        if isinstance(raw, list):
+            for item in raw:
+                if isinstance(item, (list, tuple)) and len(item) >= 2:
+                    out.add(self._pair_key(item[0], item[1]))
+        return out
+
+    def _medium_corr_scales(self) -> dict[tuple[str, str], float]:
+        default_map = {
+            ("EURUSD", "AUDUSD"): 0.65,
+            ("GBPUSD", "AUDUSD"): 0.80,
+        }
+        raw = self.corr_cfg.get("medium_pair_scale", default_map)
+        out: dict[tuple[str, str], float] = {}
+        if isinstance(raw, dict):
+            for k, v in raw.items():
+                scale = max(0.0, min(1.0, float(v or 1.0)))
+                if isinstance(k, str):
+                    parts = [x.strip().upper() for x in k.replace("/", "|").split("|") if x.strip()]
+                    if len(parts) >= 2:
+                        out[self._pair_key(parts[0], parts[1])] = scale
+                elif isinstance(k, (list, tuple)) and len(k) >= 2:
+                    out[self._pair_key(k[0], k[1])] = scale
+        if not out:
+            for (a, b), s in default_map.items():
+                out[self._pair_key(a, b)] = max(0.0, min(1.0, float(s)))
+        return out
+
+    def _same_usd_thesis_direction(self, sym_a: str, dir_a: str, sym_b: str, dir_b: str) -> bool:
+        ta = self._trade_thesis(sym_a, dir_a)
+        tb = self._trade_thesis(sym_b, dir_b)
+        return ta in ("USD_LONG", "USD_SHORT") and ta == tb
+
+    def _single_loss_risk_scale(self) -> float:
+        return max(0.0, min(1.0, float(self.corr_cfg.get("single_loss_risk_scale", 0.5) or 0.5)))
+
+    def _single_loss_risk_scale_seconds(self) -> int:
+        return int(self.corr_cfg.get("single_loss_risk_scale_seconds", 3600) or 3600)
+
+    def get_trade_thesis(self, symbol: str, direction: str) -> str:
+        return self._trade_thesis(symbol, direction)
+
+    def estimate_used_risk_pct(self, confidence: float = 0.0, rr: float = 0.0, risk_scale: float = 1.0) -> float:
+        return float(self._used_risk_pct(confidence=confidence, rr=rr, risk_scale=risk_scale))
+
+    def correlation_risk_scale(self, symbol: str, direction: str, open_positions: list) -> tuple[float, str]:
+        if not bool(self.corr_cfg.get("enabled", False)):
+            return 1.0, "THESIS=OTHER CORR_DECISION=OK PAIR_TRIGGER=OFF"
+        sym = str(symbol or "").upper()
+        side = self._normalize_direction(direction)
+        if not sym or side not in ("BUY", "SELL"):
+            return 1.0, "THESIS=OTHER CORR_DECISION=OK PAIR_TRIGGER=INVALID"
+
+        thesis = self._trade_thesis(sym, side)
+        if thesis not in ("USD_LONG", "USD_SHORT"):
+            return 1.0, "THESIS=OTHER CORR_DECISION=OK PAIR_TRIGGER=NON_USD"
+
+        scale = 1.0
+        triggers: list[str] = []
+        med = self._medium_corr_scales()
+        for p in open_positions or []:
+            p_sym = str((p or {}).get("symbol", "")).upper()
+            p_side = self._normalize_direction((p or {}).get("type", ""))
+            if not p_sym or p_side not in ("BUY", "SELL"):
+                continue
+            if not self._same_usd_thesis_direction(sym, side, p_sym, p_side):
+                continue
+            key = self._pair_key(sym, p_sym)
+            pair_scale = med.get(key)
+            if pair_scale is not None and pair_scale < scale:
+                scale = pair_scale
+                triggers.append(f"{key[0]}<->{key[1]}")
+
+        scale_until = self._thesis_risk_scale_until.get(thesis)
+        if scale_until and self._now() < scale_until:
+            thesis_scale = self._single_loss_risk_scale()
+            if thesis_scale < scale:
+                scale = thesis_scale
+                if "THESIS_LOSS_SCALE" not in triggers:
+                    triggers.append("THESIS_LOSS_SCALE")
+
+        scale = max(0.0, min(1.0, scale))
+        decision = "SCALE" if scale < 1.0 else "OK"
+        pair_trigger = ",".join(triggers) if triggers else "NONE"
+        detail = f"THESIS={thesis} CORR_DECISION={decision} PAIR_TRIGGER={pair_trigger}"
+        return scale, detail
+
+    def should_close_all_on_daily_loss_breach(self) -> bool:
+        return self._close_all_on_daily_loss_breach()
 
     def _used_risk_pct(self, confidence: float = 0.0, rr: float = 0.0, risk_scale: float = 1.0) -> float:
         scale = max(0.0, min(1.0, float(risk_scale)))
@@ -180,9 +403,24 @@ class RiskManager:
         outcome: Optional[str],
         pnl: float,
         exit_time: Optional[datetime] = None,
+        ticket: Optional[int] = None,
+        direction: str = "",
+        setup_id: str = "",
     ):
         self._check_reset()
         now = exit_time or self._now()
+        if ticket is not None:
+            try:
+                t = int(ticket)
+            except Exception:
+                t = None
+            if t is None:
+                logger.warning(f"DUP_CLOSE_IGNORED ticket_invalid={ticket} symbol={symbol} pnl={float(pnl):+.2f}")
+            else:
+                if t in self._processed_closes_today:
+                    logger.warning(f"DUP_CLOSE_IGNORED ticket={t} symbol={symbol} pnl={float(pnl):+.2f}")
+                    return
+                self._processed_closes_today.add(t)
         out = self._derive_outcome(outcome, pnl)
         sym = str(symbol or "").upper()
         if not sym:
@@ -217,9 +455,54 @@ class RiskManager:
             glb_loss_seconds = int(self.mode_cd_cfg.get("global_after_loss_seconds", 0))
             if glb_loss_seconds > 0 and len(self._recent_losses_global) >= 2:
                 self._global_throttle_until = now + timedelta(seconds=glb_loss_seconds)
+
+            side = self._normalize_direction(direction)
+            if side in ("BUY", "SELL"):
+                key = (sym, side)
+                block_seconds = int(self.mode_cd_cfg.get("after_loss_seconds", 0) or 0)
+                if block_seconds > 0:
+                    self._symbol_dir_block_until[key] = now + timedelta(seconds=block_seconds)
+                    self._symbol_dir_block_setup_id[key] = str(setup_id or "").strip()
+
+            if bool(self.corr_cfg.get("enabled", False)):
+                thesis = self._trade_thesis(sym, direction)
+                if thesis in ("USD_LONG", "USD_SHORT"):
+                    self._thesis_loss_events.setdefault(thesis, []).append(now)
+                    window_seconds = int(self.corr_cfg.get("loss_window_seconds", 3600) or 3600)
+                    self._prune(self._thesis_loss_events[thesis], window_seconds, now)
+                    loss_count = len(self._thesis_loss_events[thesis])
+                    single_scale = self._single_loss_risk_scale()
+                    single_scale_seconds = self._single_loss_risk_scale_seconds()
+                    if loss_count >= 1 and single_scale < 1.0 and single_scale_seconds > 0:
+                        scale_until = now + timedelta(seconds=single_scale_seconds)
+                        self._thesis_risk_scale_until[thesis] = scale_until
+                        logger.warning(
+                            "THESIS_RISK_SCALE_SET thesis=%s losses=%s window_seconds=%s risk_scale=%.2f until=%s",
+                            thesis,
+                            loss_count,
+                            window_seconds,
+                            single_scale,
+                            scale_until.isoformat(),
+                        )
+                    if loss_count >= 2:
+                        cool_seconds = int(self.corr_cfg.get("cooldown_seconds_after_thesis_loss", 1800) or 1800)
+                        until = now + timedelta(seconds=max(0, cool_seconds))
+                        self._thesis_cooldown_until[thesis] = until
+                        self._thesis_risk_scale_until.pop(thesis, None)
+                        logger.warning(
+                            "THESIS_COOLDOWN_SET thesis=%s losses=%s window_seconds=%s until=%s",
+                            thesis,
+                            loss_count,
+                            window_seconds,
+                            until.isoformat(),
+                        )
         elif out == "WIN":
             self._consecutive_losses = 0
             self._loss_cooldown_until_by_symbol.pop(sym, None)
+            if bool(self.corr_cfg.get("enabled", False)):
+                thesis = self._trade_thesis(sym, direction)
+                if thesis in ("USD_LONG", "USD_SHORT"):
+                    self._thesis_risk_scale_until.pop(thesis, None)
         else:
             self._consecutive_losses = 0
 
@@ -230,15 +513,17 @@ class RiskManager:
                 self._pause_until = now + timedelta(minutes=streak_cd_minutes)
                 self._lock_reason = f"LOSS_STREAK_{self._consecutive_losses}"
 
-        if self._is_prop_mode():
+        if self._guardrails_enabled():
             pause_n = int(self.prop_cfg.get("max_consecutive_losses_pause", 0))
-            pause_minutes = int(self.prop_cfg.get("loss_pause_minutes", 0))
-            stop_n = int(self.prop_cfg.get("max_consecutive_losses_stop", 0))
-            stop_for_day = bool(self.prop_cfg.get("stop_for_day_on_loss_streak", True))
+            pause_minutes = self._loss_streak_pause_minutes()
+            stop_n = self._loss_streak_limit()
+            stop_for_day = self._stop_for_day_on_streak()
             if stop_n > 0 and self._consecutive_losses >= stop_n and stop_for_day:
                 self._prop_stop_for_day_until = self._end_of_day_utc(now)
                 self._prop_daily_lock_until = self._prop_stop_for_day_until
             elif pause_n > 0 and self._consecutive_losses >= pause_n and pause_minutes > 0:
+                self._prop_loss_pause_until = now + timedelta(minutes=pause_minutes)
+            elif stop_n > 0 and self._consecutive_losses >= stop_n and pause_minutes > 0:
                 self._prop_loss_pause_until = now + timedelta(minutes=pause_minutes)
 
     def should_cooldown(self, symbol: str) -> tuple[bool, str, int]:
@@ -292,6 +577,7 @@ class RiskManager:
         account_balance: float,
         setup_id: str = "",
         symbol: str = "",
+        direction: str = "",
         equity: Optional[float] = None,
         current_daily_pnl: Optional[float] = None,
         confidence: float = 0.0,
@@ -303,18 +589,40 @@ class RiskManager:
         if setup_id:
             self._last_seen_setup_id = setup_id
 
+        now = self._now()
+        self._ensure_day_reference(account_balance, equity, now)
+
+        if self._guardrails_enabled():
+            max_loss_pct = self._daily_loss_cap_pct()
+            if (
+                max_loss_pct > 0
+                and equity is not None
+                and self._start_day_floor is not None
+                and self._start_day_ref is not None
+            ):
+                eq = float(equity)
+                if eq <= self._start_day_floor:
+                    self._prop_stop_for_day_until = self._end_of_day_utc(now)
+                    self._prop_daily_lock_until = self._prop_stop_for_day_until
+                    reason = (
+                        "MAX_DAILY_LOSS_EQUITY "
+                        f"eq={eq:.2f} floor={self._start_day_floor:.2f} ref={self._start_day_ref:.2f} "
+                        f"pct={max_loss_pct:.2f} close_all={int(self._close_all_on_daily_loss_breach())}"
+                    )
+                    logger.error(reason)
+                    return False, reason
+
         daily_profit_target = float(self.cfg.get("daily_profit_target_usd", 1000.0))
         if daily_profit_target > 0 and self._daily_pnl >= daily_profit_target:
             return False, f"Daily profit target hit: {self._daily_pnl:+.2f} / {daily_profit_target:+.2f}"
 
-        now = self._now()
         if self._pause_until is not None and now < self._pause_until:
             return False, f"LOSS_STREAK_COOLDOWN until={self._pause_until.isoformat()}"
 
         if self._global_throttle_until is not None and now < self._global_throttle_until:
             return False, f"GLOBAL_LOSS_THROTTLE until={self._global_throttle_until.isoformat()}"
 
-        if self._is_prop_mode():
+        if self._guardrails_enabled():
             if self._prop_stop_for_day_until is not None and now < self._prop_stop_for_day_until:
                 return False, f"LOSS_STREAK_STOP_DAY until={self._prop_stop_for_day_until.isoformat()}"
             if self._prop_loss_pause_until is not None and now < self._prop_loss_pause_until:
@@ -329,6 +637,96 @@ class RiskManager:
                 logger.info(f"New setup detected ({setup_id}) lifting new-setup gate.")
                 self._require_new_setup = False
                 self._blocked_setup_id = ""
+
+        sym = str(symbol or "").upper()
+        side = self._normalize_direction(direction)
+        if sym and side in ("BUY", "SELL"):
+            key = (sym, side)
+            block_until = self._symbol_dir_block_until.get(key)
+            blocked_setup = self._symbol_dir_block_setup_id.get(key, "")
+            if block_until and now < block_until:
+                rem = self._seconds_remaining(block_until, now)
+                return (
+                    False,
+                    "REENTRY_DIR_COOLDOWN "
+                    f"symbol={sym} direction={side} until={block_until.isoformat()} "
+                    f"remaining={rem}s setup_id={setup_id or '-'} blocked_setup_id={blocked_setup or '-'}",
+                )
+            if blocked_setup:
+                if not setup_id or setup_id == blocked_setup:
+                    return (
+                        False,
+                        "REENTRY_SETUP_BLOCK "
+                        f"symbol={sym} direction={side} setup_id={setup_id or '-'} "
+                        f"blocked_setup_id={blocked_setup}",
+                    )
+                logger.info(
+                    "REENTRY_SETUP_NEW symbol=%s direction=%s old_setup_id=%s new_setup_id=%s",
+                    sym,
+                    side,
+                    blocked_setup,
+                    setup_id,
+                )
+                self._symbol_dir_block_setup_id.pop(key, None)
+
+        candidate_thesis = self._trade_thesis(sym, side)
+        if bool(self.corr_cfg.get("enabled", False)) and candidate_thesis in ("USD_LONG", "USD_SHORT"):
+            th_cd_until = self._thesis_cooldown_until.get(candidate_thesis)
+            if th_cd_until and now < th_cd_until:
+                rem = self._seconds_remaining(th_cd_until, now)
+                return (
+                    False,
+                    "THESIS_COOLDOWN "
+                    f"THESIS={candidate_thesis} CORR_DECISION=BLOCK PAIR_TRIGGER=THESIS_COOLDOWN "
+                    f"until={th_cd_until.isoformat()} remaining={rem}",
+                )
+
+            same = 0
+            opp = 0
+            opposite = "USD_SHORT" if candidate_thesis == "USD_LONG" else "USD_LONG"
+            for p in open_positions or []:
+                p_sym = str((p or {}).get("symbol", "")).upper()
+                p_side = self._normalize_direction((p or {}).get("type", ""))
+                if self._same_usd_thesis_direction(sym, side, p_sym, p_side):
+                    pair_key = self._pair_key(sym, p_sym)
+                    if pair_key in self._dangerous_corr_pairs():
+                        return (
+                            False,
+                            "CORR_BLOCK_DANGEROUS "
+                            f"THESIS={candidate_thesis} CORR_DECISION=BLOCK "
+                            f"PAIR_TRIGGER={pair_key[0]}<->{pair_key[1]}",
+                        )
+                p_thesis = self._trade_thesis(p_sym, p_side)
+                if p_thesis == candidate_thesis:
+                    same += 1
+                elif p_thesis == opposite:
+                    opp += 1
+
+            max_usd_short_open = int(self.corr_cfg.get("max_usd_short_open", 0) or 0)
+            if candidate_thesis == "USD_SHORT" and max_usd_short_open > 0 and same >= max_usd_short_open:
+                return (
+                    False,
+                    "CORR_BLOCK_USD_WEAKNESS "
+                    f"THESIS={candidate_thesis} CORR_DECISION=BLOCK PAIR_TRIGGER=BASKET_CAP "
+                    f"open_same={same} max={max_usd_short_open}",
+                )
+
+            max_same = int(self.corr_cfg.get("max_same_thesis_open", 1) or 1)
+            if same >= max_same:
+                return (
+                    False,
+                    "CORR_BLOCK "
+                    f"THESIS={candidate_thesis} CORR_DECISION=BLOCK PAIR_TRIGGER=BASKET_CAP "
+                    f"open_same={same} max={max_same}",
+                )
+
+            if bool(self.corr_cfg.get("block_opposite_thesis", False)) and opp > 0:
+                return (
+                    False,
+                    "CORR_BLOCK_OPPOSITE "
+                    f"THESIS={candidate_thesis} CORR_DECISION=BLOCK PAIR_TRIGGER=OPPOSITE_THESIS "
+                    f"opposite_open={opp}",
+                )
 
         if symbol:
             blocked, reason, _ = self.should_cooldown(symbol)
@@ -345,9 +743,7 @@ class RiskManager:
             return False, f"Max daily trades reached ({self.cfg.get('max_daily_trades', 0)})"
 
         effective_daily_pnl = float(self._daily_pnl if current_daily_pnl is None else current_daily_pnl)
-        max_loss_pct = float(self.cfg.get("max_daily_loss_pct", 0.0))
-        if self._is_prop_mode():
-            max_loss_pct = float(self.prop_cfg.get("max_daily_loss_pct", max_loss_pct))
+        max_loss_pct = self._daily_loss_cap_pct()
         max_loss = account_balance * (max_loss_pct / 100.0)
         if max_loss_pct > 0 and effective_daily_pnl <= -abs(max_loss):
             return False, (
@@ -355,8 +751,8 @@ class RiskManager:
                 f"limit=-{abs(max_loss):.2f} pct={max_loss_pct:.2f}"
             )
 
-        if self._is_prop_mode():
-            profit_lock_pct = float(self.prop_cfg.get("daily_profit_lock_pct", 0.0))
+        if self._guardrails_enabled():
+            profit_lock_pct = self._daily_profit_lock_pct()
             if profit_lock_pct > 0:
                 profit_lock_usd = account_balance * (profit_lock_pct / 100.0)
                 if effective_daily_pnl >= profit_lock_usd:
@@ -366,7 +762,9 @@ class RiskManager:
             next_trade_risk_pct = self._used_risk_pct(confidence=confidence, rr=rr, risk_scale=risk_scale)
             current_open_risk_pct = len(open_positions) * next_trade_risk_pct
             self._total_open_risk_estimate_pct = current_open_risk_pct
-            max_total_open_risk_pct = float(self.prop_cfg.get("max_total_open_risk_pct", 0.0))
+            max_total_open_risk_pct = float(
+                self.guard_cfg.get("max_total_open_risk_pct", self.prop_cfg.get("max_total_open_risk_pct", 0.0)) or 0.0
+            )
             if (
                 max_total_open_risk_pct > 0
                 and (current_open_risk_pct + next_trade_risk_pct) > max_total_open_risk_pct
@@ -616,14 +1014,21 @@ class RiskManager:
         )
 
     def record_close(self, ticket: int, close_price: float, pnl: float):
-        self._daily_pnl += pnl
         for r in self.journal:
             if r.ticket == ticket:
                 r.close_time = self._now()
                 r.close_price = close_price
                 r.pnl = pnl
                 outcome = "WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN"
-                self.on_trade_closed(r.symbol, outcome, pnl, r.close_time)
+                self.on_trade_closed(
+                    symbol=r.symbol,
+                    outcome=outcome,
+                    pnl=pnl,
+                    exit_time=r.close_time,
+                    ticket=ticket,
+                    direction=r.direction,
+                    setup_id=r.setup_id,
+                )
                 logger.info(
                     f"Trade #{ticket} closed | P&L: {pnl:+.2f} | Daily P&L: {self._daily_pnl:+.2f}"
                 )
@@ -640,10 +1045,26 @@ class RiskManager:
             if rem > 0:
                 per_symbol[sym] = rem
 
-        prop_mode = self._is_prop_mode()
+        thesis_cooldowns = {}
+        for thesis, until in self._thesis_cooldown_until.items():
+            rem = self._seconds_remaining(until, now)
+            if rem > 0:
+                thesis_cooldowns[thesis] = rem
+        thesis_risk_scales = {}
+        for thesis, until in self._thesis_risk_scale_until.items():
+            rem = self._seconds_remaining(until, now)
+            if rem > 0:
+                thesis_risk_scales[thesis] = {
+                    "seconds_remaining": rem,
+                    "risk_scale": self._single_loss_risk_scale(),
+                }
+
+        prop_mode = self._guardrails_enabled()
         return {
             "mode": str(self.mode_cfg.get("type", "normal")).lower(),
             "cooldowns_per_symbol_seconds": per_symbol,
+            "cooldowns_per_thesis_seconds": thesis_cooldowns,
+            "thesis_risk_scales": thesis_risk_scales,
             "consecutive_losses": int(self._consecutive_losses),
             "global_throttle_seconds_remaining": self._seconds_remaining(self._global_throttle_until, now),
             "loss_streak_cooldown_seconds_remaining": self._seconds_remaining(self._pause_until, now),
@@ -657,6 +1078,9 @@ class RiskManager:
             "loss_streak_stop_day_active": bool(self._prop_stop_for_day_until and now < self._prop_stop_for_day_until),
             "loss_streak_stop_day_remaining_seconds": self._seconds_remaining(self._prop_stop_for_day_until, now),
             "total_open_risk_estimate_pct": round(float(self._total_open_risk_estimate_pct), 4),
+            "start_day_ref": self._start_day_ref,
+            "start_day_floor": self._start_day_floor,
+            "close_all_on_daily_loss_breach": self._close_all_on_daily_loss_breach(),
         }
 
     def get_stats(self) -> dict:

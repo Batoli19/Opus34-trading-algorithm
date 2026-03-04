@@ -141,6 +141,8 @@ class MT5Connector:
         return {
             "digits": int(getattr(info, "digits", 0) or 0),
             "point": float(getattr(info, "point", 0.0) or 0.0),
+            "stops_level": int(getattr(info, "trade_stops_level", 0) or 0),
+            "freeze_level": int(getattr(info, "trade_freeze_level", 0) or 0),
         }
 
     # ── Orders ─────────────────────────────────────────────────────────────────
@@ -211,6 +213,121 @@ class MT5Connector:
             "comment": comment,
         }
 
+    def place_limit_order(
+        self,
+        symbol: str,
+        order_type: str,
+        volume: float,
+        entry: float,
+        sl: float,
+        tp: float,
+        comment: str = "ICT_BOT_LIMIT",
+    ) -> Optional[dict]:
+        """
+        order_type: 'BUY' or 'SELL'
+        Places a pending BUY_LIMIT / SELL_LIMIT order.
+        """
+        self.ensure_connected()
+        tick = self.get_tick(symbol)
+        if not tick:
+            logger.error(f"Cannot get tick for {symbol}")
+            return None
+
+        if order_type == "BUY":
+            pending_type = mt5.ORDER_TYPE_BUY_LIMIT
+            if entry >= tick["ask"]:
+                logger.warning(
+                    f"Invalid BUY_LIMIT for {symbol}: entry={entry:.5f} must be below ask={tick['ask']:.5f}"
+                )
+                return None
+        else:
+            pending_type = mt5.ORDER_TYPE_SELL_LIMIT
+            if entry <= tick["bid"]:
+                logger.warning(
+                    f"Invalid SELL_LIMIT for {symbol}: entry={entry:.5f} must be above bid={tick['bid']:.5f}"
+                )
+                return None
+
+        request = {
+            "action": mt5.TRADE_ACTION_PENDING,
+            "symbol": symbol,
+            "volume": volume,
+            "type": pending_type,
+            "price": float(entry),
+            "sl": float(sl) if sl else 0.0,
+            "tp": float(tp) if tp else 0.0,
+            "deviation": 20,
+            "magic": 20250101,
+            "comment": comment,
+            "type_time": mt5.ORDER_TIME_GTC,
+            "type_filling": mt5.ORDER_FILLING_RETURN,
+        }
+
+        result = mt5.order_send(request)
+        if result is None or result.retcode != mt5.TRADE_RETCODE_DONE:
+            err = mt5.last_error() if result is None else f"Code {result.retcode}: {result.comment}"
+            logger.error(f"Limit order failed on {symbol}: {err}")
+            return None
+
+        order_ticket = getattr(result, "order", None)
+        logger.info(
+            f"PENDING LIMIT PLACED | {order_type}_LIMIT {volume} {symbol} | "
+            f"entry={entry:.5f} sl={sl:.5f} tp={tp:.5f} order={order_ticket}"
+        )
+        return {
+            "ticket": order_ticket,
+            "order_ticket": order_ticket,
+            "deal_ticket": None,
+            "position_id": None,
+            "symbol": symbol,
+            "type": order_type,
+            "volume": volume,
+            "price": float(entry),
+            "sl": float(sl),
+            "tp": float(tp),
+            "time": datetime.utcnow(),
+            "comment": comment,
+            "is_pending": True,
+        }
+
+    def get_pending_orders(self, symbol: Optional[str] = None) -> list:
+        self.ensure_connected()
+        orders = mt5.orders_get(symbol=symbol) if symbol else mt5.orders_get()
+        if orders is None:
+            return []
+        out = []
+        for o in orders:
+            if getattr(o, "magic", None) != 20250101:
+                continue
+            out.append(
+                {
+                    "ticket": int(o.ticket),
+                    "symbol": o.symbol,
+                    "type": int(o.type),
+                    "volume": float(o.volume_current),
+                    "price_open": float(o.price_open),
+                    "sl": float(getattr(o, "sl", 0.0) or 0.0),
+                    "tp": float(getattr(o, "tp", 0.0) or 0.0),
+                    "time_setup": datetime.utcfromtimestamp(int(o.time_setup)),
+                    "comment": str(getattr(o, "comment", "") or ""),
+                }
+            )
+        return out
+
+    def cancel_order(self, ticket: int) -> bool:
+        self.ensure_connected()
+        request = {
+            "action": mt5.TRADE_ACTION_REMOVE,
+            "order": int(ticket),
+            "magic": 20250101,
+        }
+        result = mt5.order_send(request)
+        if result is not None and result.retcode == mt5.TRADE_RETCODE_DONE:
+            logger.info(f"PENDING ORDER CANCELED | ticket={ticket}")
+            return True
+        logger.warning(f"Failed cancel pending order ticket={ticket} err={result.comment if result else 'None'}")
+        return False
+
     def close_position(self, ticket: int) -> bool:
         self.ensure_connected()
         position = None
@@ -248,7 +365,7 @@ class MT5Connector:
         logger.error(f"❌  Failed to close {ticket}: {result.comment if result else 'None'}")
         return False
 
-    def modify_sl_tp(self, ticket: int, sl: float, tp: float) -> bool:
+    def modify_sl_tp_detailed(self, ticket: int, sl: float, tp: float) -> dict:
         self.ensure_connected()
         request = {
             "action":   mt5.TRADE_ACTION_SLTP,
@@ -258,11 +375,20 @@ class MT5Connector:
         }
         result = mt5.order_send(request)
         if result is not None and result.retcode == mt5.TRADE_RETCODE_DONE:
-            return True
-        else:
-            if result:
-                logger.debug(f"Modify SL/TP failed: {result.comment}")
-            return False
+            return {"ok": True, "retcode": int(result.retcode), "comment": str(getattr(result, "comment", "") or "")}
+        err = mt5.last_error()
+        if result:
+            logger.debug(f"Modify SL/TP failed: {result.comment}")
+            return {
+                "ok": False,
+                "retcode": int(getattr(result, "retcode", 0) or 0),
+                "comment": str(getattr(result, "comment", "") or ""),
+                "last_error": str(err),
+            }
+        return {"ok": False, "retcode": None, "comment": "no_result", "last_error": str(err)}
+
+    def modify_sl_tp(self, ticket: int, sl: float, tp: float) -> bool:
+        return bool(self.modify_sl_tp_detailed(ticket, sl, tp).get("ok", False))
 
     # ── Positions ──────────────────────────────────────────────────────────────
     def get_open_positions(self) -> list:

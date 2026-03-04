@@ -11,12 +11,13 @@ SQLite database that records:
 This is the bot's long-term memory.
 """
 
+import re
 import sqlite3
 import logging
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional, List, Dict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 logger = logging.getLogger("MEMORY")
 
@@ -50,6 +51,8 @@ class TradeMemory:
     order_ticket: Optional[int] = None
     deal_ticket: Optional[int] = None
     position_id: Optional[int] = None
+    setup_class: str = ""  # CONTINUATION / REVERSAL
+    validity_tags: List[str] = field(default_factory=list)
     
     # Outcome (filled after trade closes)
     exit_price: Optional[float] = None
@@ -98,6 +101,8 @@ class TradingMemoryDB:
             conditions_met TEXT,
             expected_outcome TEXT,
             confidence_input REAL,
+            setup_class TEXT,
+            validity_tags TEXT,
             
             entry_time TIMESTAMP,
             exit_price REAL,
@@ -158,6 +163,10 @@ class TradingMemoryDB:
             cursor.execute("ALTER TABLE trades ADD COLUMN deal_ticket INTEGER")
         if "position_id" not in cols:
             cursor.execute("ALTER TABLE trades ADD COLUMN position_id INTEGER")
+        if "setup_class" not in cols:
+            cursor.execute("ALTER TABLE trades ADD COLUMN setup_class TEXT")
+        if "validity_tags" not in cols:
+            cursor.execute("ALTER TABLE trades ADD COLUMN validity_tags TEXT")
 
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_position_id ON trades(position_id)")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_trades_order_ticket ON trades(order_ticket)")
@@ -176,23 +185,27 @@ class TradingMemoryDB:
             symbol, direction, setup_type,
             entry_price, sl_price, tp_price, lot_size,
             htf_bias, kill_zone, spread_pips,
-            reason, conditions_met, expected_outcome, confidence_input,
+            reason, conditions_met, expected_outcome, confidence_input, setup_class, validity_tags,
             entry_time
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             trade.ticket, trade.order_ticket, trade.deal_ticket, trade.position_id,
             trade.symbol, trade.direction, trade.setup_type,
             trade.entry_price, trade.sl_price, trade.tp_price, trade.lot_size,
             trade.htf_bias, trade.kill_zone, trade.spread_pips,
             trade.reason, "|".join(trade.conditions_met), trade.expected_outcome,
-            trade.confidence_input, trade.entry_time
+            trade.confidence_input, trade.setup_class, "|".join(trade.validity_tags or []), trade.entry_time
         ))
         
         self.conn.commit()
         logger.info(f"📝  Recorded entry: {trade.setup_type} {trade.symbol} #{trade.ticket}")
 
-    def get_open_trades(self, limit: Optional[int] = None) -> List[Dict]:
-        """Return currently open DB trades."""
+    def get_open_trades(self, limit: Optional[int] = None, include_pending: bool = False) -> List[Dict]:
+        """Return currently open DB trades.
+
+        By default, only returns filled/open positions (position_id IS NOT NULL).
+        Set include_pending=True to include unfilled pending-order placeholders.
+        """
         cursor = self.conn.cursor()
         q = """
         SELECT id, ticket, symbol, direction, setup_type, entry_price, sl_price, tp_price,
@@ -201,6 +214,15 @@ class TradingMemoryDB:
         WHERE outcome IS NULL OR outcome = '' OR outcome = 'OPEN'
         ORDER BY id DESC
         """
+        if not include_pending:
+            q = """
+            SELECT id, ticket, symbol, direction, setup_type, entry_price, sl_price, tp_price,
+                   position_id, order_ticket, deal_ticket, entry_time
+            FROM trades
+            WHERE (outcome IS NULL OR outcome = '' OR outcome = 'OPEN')
+              AND position_id IS NOT NULL
+            ORDER BY id DESC
+            """
         params = ()
         if limit is not None:
             q += " LIMIT ?"
@@ -223,6 +245,227 @@ class TradingMemoryDB:
                 "entry_time": str(row[11]) if row[11] is not None else None,
             })
         return rows
+
+    def infer_setup_type_from_comment(self, comment: Optional[str]) -> str:
+        text = str(comment or "").strip().upper()
+        if not text:
+            return "UNKNOWN"
+        if text.startswith("ICT_"):
+            text = text[4:]
+        text = text.replace("_LIMIT", "").replace("_CLOSE", "").strip("_")
+        parts = [p for p in re.split(r"[^A-Z0-9]+", text) if p]
+        if len(parts) >= 2:
+            joined2 = f"{parts[0]}_{parts[1]}"
+            if joined2 in {"ORDER_BLOCK", "STOP_HUNT", "PIN_BAR"}:
+                return joined2
+        if parts:
+            return parts[0]
+        return "UNKNOWN"
+
+    def ensure_open_trade_from_position(self, position: Dict) -> str:
+        """Ensure a live MT5 position exists in DB as an open trade.
+
+        Returns one of: 'exists', 'linked', 'inserted', 'invalid'
+        """
+        try:
+            pos_ticket = int(position.get("ticket"))
+        except Exception:
+            return "invalid"
+        if pos_ticket <= 0:
+            return "invalid"
+
+        symbol = str(position.get("symbol") or "").upper().strip()
+        direction = str(position.get("type") or "").upper().strip()
+        setup_type = self.infer_setup_type_from_comment(position.get("comment"))
+        entry_price = float(position.get("open_price") or 0.0)
+        sl = float(position.get("sl") or 0.0)
+        tp = float(position.get("tp") or 0.0)
+        lot = float(position.get("volume") or 0.0)
+        open_time = position.get("open_time") or datetime.utcnow()
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT id, position_id
+            FROM trades
+            WHERE (outcome IS NULL OR outcome = '' OR outcome = 'OPEN')
+              AND (position_id = ? OR ticket = ? OR order_ticket = ?)
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (pos_ticket, pos_ticket, pos_ticket),
+        )
+        row = cursor.fetchone()
+        if row:
+            trade_id = int(row[0])
+            had_position_id = row[1] is not None
+            cursor.execute(
+                """
+                UPDATE trades
+                SET position_id = COALESCE(position_id, ?),
+                    ticket = COALESCE(ticket, ?),
+                    order_ticket = COALESCE(order_ticket, ?),
+                    symbol = CASE WHEN symbol IS NULL OR symbol = '' THEN ? ELSE symbol END,
+                    direction = CASE WHEN direction IS NULL OR direction = '' THEN ? ELSE direction END,
+                    setup_type = CASE WHEN setup_type IS NULL OR setup_type = '' THEN ? ELSE setup_type END,
+                    entry_price = CASE WHEN entry_price IS NULL OR entry_price = 0 THEN ? ELSE entry_price END,
+                    sl_price = CASE WHEN sl_price IS NULL OR sl_price = 0 THEN ? ELSE sl_price END,
+                    tp_price = CASE WHEN tp_price IS NULL OR tp_price = 0 THEN ? ELSE tp_price END,
+                    lot_size = CASE WHEN lot_size IS NULL OR lot_size = 0 THEN ? ELSE lot_size END,
+                    entry_time = COALESCE(entry_time, ?)
+                WHERE id = ?
+                """,
+                (
+                    pos_ticket,
+                    pos_ticket,
+                    pos_ticket,
+                    symbol,
+                    direction,
+                    setup_type,
+                    entry_price,
+                    sl,
+                    tp,
+                    lot,
+                    open_time,
+                    trade_id,
+                ),
+            )
+            self.conn.commit()
+            if had_position_id:
+                return "exists"
+            logger.info("DB_OPEN_SYNC_LINKED ticket=%s symbol=%s direction=%s", pos_ticket, symbol, direction)
+            return "linked"
+
+        try:
+            cursor.execute(
+                """
+                INSERT INTO trades (
+                    ticket, order_ticket, deal_ticket, position_id,
+                    symbol, direction, setup_type,
+                    entry_price, sl_price, tp_price, lot_size,
+                    htf_bias, kill_zone, spread_pips,
+                    reason, conditions_met, expected_outcome, confidence_input, setup_class, validity_tags,
+                    entry_time
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    pos_ticket, pos_ticket, None, pos_ticket,
+                    symbol, direction, setup_type,
+                    entry_price, sl, tp, lot,
+                    "UNKNOWN", "UNKNOWN", 0.0,
+                    "Recovered live position from MT5 sync",
+                    "LIVE_SYNC_RECOVERED",
+                    "Recovered open position from MT5 reconciliation",
+                    0.5, "UNKNOWN", "LIVE_SYNC_RECOVERED",
+                    open_time,
+                ),
+            )
+            self.conn.commit()
+            logger.warning(
+                "DB_OPEN_SYNC_INSERTED ticket=%s symbol=%s direction=%s setup=%s",
+                pos_ticket,
+                symbol,
+                direction,
+                setup_type,
+            )
+            return "inserted"
+        except sqlite3.IntegrityError:
+            logger.warning("DB_OPEN_SYNC_DUPLICATE ticket=%s symbol=%s", pos_ticket, symbol)
+            return "exists"
+
+    def ensure_entry_trade_from_deal(self, deal: Dict) -> str:
+        """Ensure a DB trade row exists for an MT5 entry deal.
+
+        Returns one of: 'exists', 'inserted', 'invalid'
+        """
+        entry_flag = deal.get("entry")
+        if entry_flag not in (0,):
+            return "invalid"
+
+        try:
+            position_id = int(deal.get("position_id") or 0)
+            order_ticket = int(deal.get("order_ticket") or 0)
+            deal_ticket = int(deal.get("deal_ticket") or deal.get("ticket") or 0)
+        except Exception:
+            return "invalid"
+        if position_id <= 0 and order_ticket <= 0 and deal_ticket <= 0:
+            return "invalid"
+
+        symbol = str(deal.get("symbol") or "").upper().strip()
+        direction = str(deal.get("type") or "").upper().strip()
+        setup_type = self.infer_setup_type_from_comment(deal.get("comment"))
+        entry_price = float(deal.get("price") or 0.0)
+        volume = float(deal.get("volume") or 0.0)
+        time_raw = self._parse_db_datetime(deal.get("time"))
+        entry_time = time_raw or datetime.utcnow()
+        canonical_ticket = position_id if position_id > 0 else (order_ticket if order_ticket > 0 else deal_ticket)
+
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT id
+            FROM trades
+            WHERE (position_id = ? AND position_id IS NOT NULL)
+               OR ticket = ?
+               OR (order_ticket = ? AND order_ticket IS NOT NULL)
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (position_id, canonical_ticket, order_ticket),
+        )
+        row = cursor.fetchone()
+        if row:
+            return "exists"
+
+        try:
+            cursor.execute(
+                """
+                INSERT INTO trades (
+                    ticket, order_ticket, deal_ticket, position_id,
+                    symbol, direction, setup_type,
+                    entry_price, sl_price, tp_price, lot_size,
+                    htf_bias, kill_zone, spread_pips,
+                    reason, conditions_met, expected_outcome, confidence_input, setup_class, validity_tags,
+                    entry_time
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    canonical_ticket,
+                    order_ticket if order_ticket > 0 else canonical_ticket,
+                    deal_ticket if deal_ticket > 0 else None,
+                    position_id if position_id > 0 else canonical_ticket,
+                    symbol,
+                    direction,
+                    setup_type,
+                    entry_price,
+                    0.0,
+                    0.0,
+                    volume,
+                    "UNKNOWN",
+                    "UNKNOWN",
+                    0.0,
+                    "Recovered entry from MT5 deal sync",
+                    "DEAL_SYNC_RECOVERED",
+                    "Recovered entry from MT5 deal reconciliation",
+                    0.5,
+                    "UNKNOWN",
+                    "DEAL_SYNC_RECOVERED",
+                    entry_time,
+                ),
+            )
+            self.conn.commit()
+            logger.warning(
+                "DB_DEAL_SYNC_INSERTED ticket=%s pos=%s symbol=%s direction=%s setup=%s",
+                canonical_ticket,
+                position_id,
+                symbol,
+                direction,
+                setup_type,
+            )
+            return "inserted"
+        except sqlite3.IntegrityError:
+            logger.warning("DB_DEAL_SYNC_DUPLICATE ticket=%s pos=%s", canonical_ticket, position_id)
+            return "exists"
     
     # ── Record Trade Exit ─────────────────────────────────────────────────────
     def record_exit(self,
@@ -512,7 +755,7 @@ class TradingMemoryDB:
         cursor.execute("""
         SELECT ticket, order_ticket, deal_ticket, position_id,
                symbol, setup_type, direction, outcome, pnl,
-               reason, expected_outcome, stop_hit_reason, lessons_learned,
+               reason, expected_outcome, stop_hit_reason, lessons_learned, setup_class, validity_tags,
                entry_time
         FROM trades
         WHERE outcome IS NOT NULL
@@ -536,7 +779,9 @@ class TradingMemoryDB:
                 'expected': row[10],
                 'stop_reason': row[11],
                 'lessons': row[12],
-                'time': row[13]
+                'setup_class': row[13],
+                'validity_tags': row[14].split("|") if row[14] else [],
+                'time': row[15]
             })
         
         return trades
@@ -738,6 +983,43 @@ class TradingMemoryDB:
             "win_rate": round(win_rate, 2),
             "profit_factor": round(profit_factor, 4) if profit_factor != float("inf") else "inf",
             "avg_pnl": round(avg_pnl, 2),
+        }
+
+    def get_overall_summary(self) -> Dict:
+        """All-time closed-trade stats from DB (persistent across restarts)."""
+        cursor = self.conn.cursor()
+        cursor.execute(
+            """
+            SELECT
+                COUNT(*) AS trades,
+                SUM(CASE WHEN outcome='WIN' THEN 1 ELSE 0 END) AS wins,
+                SUM(CASE WHEN outcome='LOSS' THEN 1 ELSE 0 END) AS losses,
+                SUM(COALESCE(pnl, 0)) AS total_pnl,
+                AVG(CASE WHEN outcome='WIN' THEN pnl END) AS avg_win,
+                AVG(CASE WHEN outcome='LOSS' THEN pnl END) AS avg_loss
+            FROM trades
+            WHERE outcome IS NOT NULL
+            """
+        )
+        row = cursor.fetchone() or (0, 0, 0, 0.0, 0.0, 0.0)
+        trades = int(row[0] or 0)
+        wins = int(row[1] or 0)
+        losses = int(row[2] or 0)
+        total_pnl = float(row[3] or 0.0)
+        avg_win = float(row[4] or 0.0)
+        avg_loss = float(row[5] or 0.0)
+        win_rate = (wins / trades * 100.0) if trades > 0 else 0.0
+        expectancy = ((wins / trades) * avg_win + (losses / trades) * avg_loss) if trades > 0 else 0.0
+        return {
+            "trades": trades,
+            "wins": wins,
+            "losses": losses,
+            "winrate": round(win_rate, 2),
+            "win_rate": round(win_rate, 2),
+            "total_pnl": round(total_pnl, 2),
+            "avg_win": round(avg_win, 2),
+            "avg_loss": round(avg_loss, 2),
+            "expectancy": round(expectancy, 2),
         }
 
     def get_trade_counts(self) -> Dict:

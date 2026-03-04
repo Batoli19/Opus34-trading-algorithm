@@ -1,7 +1,7 @@
 {
   "mt5": {
-    "login":    103498720,
-    "password":  "-0JuBpFh",
+    "login":    5047375529,
+    "password":  "8d_bYlWt",
     "server":   "MetaQuotes-Demo",
     "timeout":  10000
   },
@@ -31,8 +31,9 @@
 
   "execution": {
     "profile": "PROP_CHALLENGE",
+    "force_enable_setups": ["FVG"],
     "min_confidence": 0.68,
-    "min_rr": 2.0,
+    "min_rr": 1.6,
     "rr_epsilon": 0.02,
     "soft_discount_premium": true,
     "dp_strict": false,
@@ -44,6 +45,7 @@
       "EURUSD": 3.0,
       "XAUUSD": 30.0
     },
+    "pending_max_age_minutes": 90,
     "max_sl_pips": {
       "EURUSD": 12.0,
       "XAUUSD": 60.0
@@ -68,10 +70,11 @@
     "ob_override_min_confidence": 0.85,
     "ob_override_requires_displacement": true,
     "discount_premium_buffer_pct": 0.05,
-    "require_displacement": true,
+    "require_displacement": false,
     "atr_period": 14,
     "min_displacement_atr_mult": 0.8,
-    "avoid_chop": true,
+    "avoid_chop": false,
+    "reversal_gate_enabled": false,
     "chop_lookback": 30,
     "max_overlap_pct": 0.65,
     "one_trade_per_symbol_per_killzone": true,
@@ -79,24 +82,141 @@
     "enforce_killzones": false,
     "per_symbol": {
       "XAUUSD": {
-        "min_rr": 2.0,
+        "min_rr": 1.6,
         "max_sl_pips": 60.0,
         "max_entry_distance_pips": 30.0,
         "require_discount_premium": true,
         "allow_ob_premium_override": true,
-        "avoid_chop": true,
+        "avoid_chop": false,
         "max_overlap_pct": 0.62
       },
       "EURUSD": {
-        "min_rr": 2.0,
+        "min_rr": 1.6,
         "max_sl_pips": 12.0,
         "max_entry_distance_pips": 3.0,
         "require_discount_premium": true,
         "allow_ob_premium_override": false,
-        "avoid_chop": true,
+        "avoid_chop": false,
         "max_overlap_pct": 0.65
       }
     }
+  },
+
+  "trailing_structure": {
+    "enabled": true,
+    "fractal_left": 2,
+    "fractal_right": 2,
+    "swing_buffer_pips": 1.0,
+    "swing_tf": "M1",
+    "trailing_tf": "M5",
+    "min_swing_pips": 2.0,
+    "min_swing_atr_mult": 0.2,
+    "atr_period": 14,
+    "allow_ob_trail": true,
+    "ob_min_impulse_atr_mult": 0.8,
+    "be_enabled": true,
+    "be_min_profit_pips": 6.0,
+    "be_trigger_r_multiple": 0.6,
+    "be_buffer_pips": 0.8,
+    "lock_be_as_floor": true,
+    "per_symbol": {
+      "EURUSD": {
+        "fractal_left": 1,
+        "fractal_right": 1,
+        "swing_buffer_pips": 0.8,
+        "min_swing_pips": 1.5,
+        "min_swing_atr_mult": 0.2,
+        "allow_ob_trail": true,
+        "be_enabled": true,
+        "be_min_profit_pips": 6.0,
+        "be_trigger_r_multiple": 0.6,
+        "be_buffer_pips": 0.8,
+        "lock_be_as_floor": true
+      },
+      "XAUUSD": {
+        "fractal_left": 3,
+        "fractal_right": 3,
+        "swing_buffer_pips": 2.0,
+        "min_swing_pips": 2.0,
+        "min_swing_atr_mult": 0.25,
+        "allow_ob_trail": true,
+        "be_enabled": true,
+        "be_min_profit_pips": 6.0,
+        "be_trigger_r_multiple": 0.6,
+        "be_buffer_pips": 0.8,
+        "lock_be_as_floor": true
+      }
+    }
+  },
+
+  "entry_distance_limit": {
+    "EURUSD": 3,
+    "GBPUSD": 3,
+    "USDJPY": 4,
+    "XAUUSD": 30
+  },
+
+  "reversal_gate": {
+    "require_sweep": true,
+    "require_mss": true,
+    "min_conditions_required": 2
+  },
+
+  "htf_bias_control": {
+    "enabled": true,
+    "reduce_risk_on_conflict": true,
+    "block_on_strong_conflict": false
+  },
+
+  "displacement": {
+    "atr_multiplier": 1.5,
+    "require_close_beyond_structure": true
+  },
+
+  "prop_guardrails": {
+    "enabled": true,
+    "daily_profit_lock_pct": 1.8,
+    "daily_loss_cap_pct": 2.0,
+    "loss_streak_limit": 3,
+    "pause_minutes_on_streak": 120,
+    "stop_for_day_on_streak": false,
+    "max_total_open_risk_pct": 1.5,
+    "close_all_on_daily_loss_breach": true
+  },
+
+  "correlation": {
+    "enabled": true,
+    "max_same_thesis_open": 2,
+    "max_usd_short_open": 2,
+    "single_loss_risk_scale": 0.5,
+    "single_loss_risk_scale_seconds": 3600,
+    "cooldown_seconds_after_thesis_loss": 1800,
+    "loss_window_seconds": 3600,
+    "block_opposite_thesis": false,
+    "dangerous_pairs": [
+      ["EURUSD", "GBPUSD"],
+      ["EURUSD", "USDCHF"],
+      ["GBPUSD", "USDCHF"]
+    ],
+    "medium_pair_scale": {
+      "EURUSD|AUDUSD": 0.65,
+      "GBPUSD|AUDUSD": 0.80
+    },
+    "thesis_groups": {}
+  },
+
+  "chop_filter": {
+    "enabled": true,
+    "atr_period": 14,
+    "lookback": 24,
+    "min_atr_pct": 0.03,
+    "max_band_pct": 0.25,
+    "max_overlap_pct": 0.7,
+    "strict_in_asia_pre_session": true,
+    "asia_min_atr_pct": 0.04,
+    "asia_max_band_pct": 0.2,
+    "asia_max_overlap_pct": 0.6,
+    "allow_range_reversal_extremes_only": true
   },
 
   "risk": {
@@ -121,7 +241,7 @@
   "max_daily_trades": 100,
   "rr_ratio": 2.0,
   "trailing_stop": true,
-  "trailing_stop_pips": 10,
+  "trailing_stop_pips": 0,
   "max_risk_per_trade_usd": 50  ,
   "min_rr_for_high_risk": 2.0,
   "tp_miss_protection_pips": 2,
@@ -141,7 +261,7 @@
     "enabled": true,
     "trade_only_in_kill_zones": false,
     "allowed_kill_zones": ["LONDON_OPEN", "NY_OPEN", "LONDON_CLOSE"],
-    "min_rr": 2.0,
+    "min_rr": 1.6,
     "min_confidence": 0.65,
     "cooldown_after_close_seconds": 900,
     "cooldown_after_loss_seconds": 1800,
@@ -230,3 +350,4 @@
     "comment":           "Test mode disabled - using live ICT strategy"
   }
 }
+

@@ -21,7 +21,7 @@ def setup_basic_logging():
 async def main():
     # Adjust path depending on where you run from
     # If you run from /python folder, config is usually ../config/settings.json
-    cfg_path = Path("../config/settings.json")
+    cfg_path = Path(__file__).resolve().parent.parent / "config" / "settings.json"
 
     cfg = load_config(cfg_path)
 
@@ -46,3 +46,4 @@ if __name__ == "__main__":
     setup_basic_logging()
     logger.info("🚀 Starting ICT Trading Bot...")
     asyncio.run(main())
+

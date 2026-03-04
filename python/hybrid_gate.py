@@ -95,11 +95,8 @@ class HybridGate:
             return GateDecision(True, "HYBRID_DISABLED")
 
         min_rr = float(hcfg.get("min_rr", 0.0))
-        min_conf = float(hcfg.get("min_confidence", 0.0))
         if rr < min_rr:
             return GateDecision(False, f"RR_TOO_LOW rr={rr:.2f} min={min_rr:.2f}")
-        if confidence < min_conf:
-            return GateDecision(False, f"CONF_TOO_LOW conf={confidence:.2f} min={min_conf:.2f}")
 
         active, reason = self._cooldown_active(symbol)
         if active:

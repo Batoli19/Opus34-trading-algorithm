@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ICT Bot — FinTech Command Center</title>
+  <title>Trading Algo — Command Center</title>
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -62,17 +62,53 @@
       background: linear-gradient(90deg, var(--red), var(--amber));
     }
     
+    .setup-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      align-content: start;
+    }
+
     .setup-row {
       display: grid;
-      grid-template-columns: 110px 80px 100px 1fr;
+      grid-template-columns: minmax(130px, 1.2fr) minmax(180px, auto) minmax(190px, 1fr);
       gap: 12px;
       align-items: center;
-      padding: 12px 0;
-      border-bottom: 1px solid var(--border);
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: rgba(255,255,255,0.04);
       font-size: 12px;
+      min-height: 88px;
+      position: relative;
+      transition: transform 150ms ease, box-shadow 160ms ease, border-color 160ms ease, opacity 160ms ease;
     }
-    
-    .setup-row:last-child { border-bottom: none; }
+
+    .setup-row[data-state="active"] {
+      border-left: 3px solid var(--green);
+      background: rgba(19,211,142,0.07);
+    }
+
+    .setup-row[data-state="disabled"] {
+      border-left: 3px solid var(--red);
+      opacity: 0.75;
+    }
+
+    .setup-row[data-state="learning"] {
+      border-left: 3px solid var(--blue);
+    }
+
+    .setup-row:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
+      border-color: var(--border-2);
+    }
+
+    .setup-row:focus,
+    .setup-row:focus-within {
+      outline: none;
+      box-shadow: 0 0 0 4px var(--ring), 0 14px 30px rgba(0,0,0,0.08);
+    }
     
     .setup-name {
       font-weight: 800;
@@ -90,39 +126,48 @@
       gap: 8px;
       font-family: var(--font-mono);
       font-weight: 700;
+      justify-content: flex-start;
+      white-space: nowrap;
+    }
+
+    .setup-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      flex-wrap: wrap;
+    }
+
+    .setup-health {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 6px;
     }
 
     .ai-expand-card {
       position: relative;
       transition: box-shadow 180ms ease, border-color 180ms ease;
-      cursor: zoom-in;
+      cursor: default;
     }
 
     .ai-expand-body {
-      max-height: 270px;
-      overflow: hidden;
+      min-height: 300px;
+      max-height: 340px;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding-right: 6px;
       transition: max-height 220ms ease;
     }
 
     .ai-expand-card:hover,
     .ai-expand-card:focus-within {
-      position: fixed;
-      top: 84px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: min(1320px, calc(100vw - 44px));
-      max-height: calc(100vh - 108px);
-      z-index: 140;
       border-color: var(--border-2);
-      box-shadow: var(--shadow-2);
-      cursor: default;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.08);
     }
 
     .ai-expand-card:hover .ai-expand-body,
     .ai-expand-card:focus-within .ai-expand-body {
-      max-height: calc(100vh - 188px);
-      overflow-y: auto;
-      padding-right: 6px;
+      max-height: 420px;
     }
 
     .ai-expand-body::-webkit-scrollbar {
@@ -135,19 +180,23 @@
     }
 
     @media (max-width: 1100px) {
+      .setup-row {
+        grid-template-columns: 1fr;
+        align-items: start;
+      }
+
+      .setup-health {
+        align-items: flex-start;
+      }
+
       .ai-expand-card:hover,
       .ai-expand-card:focus-within {
-        position: relative;
-        top: auto;
-        left: auto;
-        transform: none;
-        width: auto;
-        max-height: none;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.08);
       }
 
       .ai-expand-card:hover .ai-expand-body,
       .ai-expand-card:focus-within .ai-expand-body {
-        max-height: 520px;
+        max-height: 320px;
       }
     }
     
@@ -314,6 +363,166 @@
       gap: 10px;
       flex-wrap: wrap;
       justify-content: flex-end;
+    }
+
+    .notif-wrap {
+      position: relative;
+    }
+
+    .notif-btn {
+      position: relative;
+      min-width: 42px;
+      justify-content: center;
+      padding: 10px 11px;
+    }
+
+    .notif-count {
+      position: absolute;
+      top: -7px;
+      right: -6px;
+      min-width: 18px;
+      height: 18px;
+      padding: 0 5px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.22);
+      background: linear-gradient(to bottom, rgba(255,77,109,0.95), rgba(255,77,109,0.75));
+      color: #fff;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      line-height: 16px;
+      text-align: center;
+      box-shadow: 0 8px 20px rgba(255,77,109,0.28);
+      display: none;
+    }
+
+    .notif-count.show {
+      display: inline-block;
+    }
+
+    .notif-panel {
+      position: absolute;
+      right: 0;
+      top: calc(100% + 10px);
+      width: min(420px, calc(100vw - 36px));
+      max-height: 420px;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      background: linear-gradient(to bottom, var(--panel-2), var(--panel));
+      backdrop-filter: var(--glass);
+      box-shadow: var(--shadow-2);
+      display: none;
+      z-index: 90;
+    }
+
+    .notif-panel.open {
+      display: block;
+      animation: toastIn 180ms ease;
+    }
+
+    .notif-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 12px;
+    }
+
+    .notif-title {
+      font-weight: 800;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+    }
+
+    .notif-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .notif-act {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,0.04);
+      color: var(--muted);
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .notif-act:hover {
+      border-color: var(--border-2);
+      color: var(--text);
+    }
+
+    .notif-list {
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 8px 12px 10px;
+    }
+
+    .notif-item {
+      display: grid;
+      grid-template-columns: 10px 1fr;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      padding: 10px 0;
+    }
+
+    .notif-item:last-child {
+      border-bottom: none;
+      padding-bottom: 4px;
+    }
+
+    .notif-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 99px;
+      margin-top: 4px;
+      background: var(--blue);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.16);
+    }
+
+    .notif-dot.success {
+      background: var(--green);
+      box-shadow: 0 0 0 4px rgba(19,211,142,0.16);
+    }
+
+    .notif-dot.danger {
+      background: var(--red);
+      box-shadow: 0 0 0 4px rgba(255,77,109,0.16);
+    }
+
+    .notif-dot.warn {
+      background: var(--amber);
+      box-shadow: 0 0 0 4px rgba(244,185,66,0.16);
+    }
+
+    .notif-text .t {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
+
+    .notif-text .s {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .notif-text .m {
+      margin-top: 4px;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted2);
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .pill {
@@ -648,6 +857,84 @@
     }
     .toast .t { font-weight: 900; }
     .toast .s { margin-top: 6px; font-family: var(--font-mono); font-size: 11px; color: var(--muted); }
+    .toast.toast--success {
+      border-color: rgba(19,211,142,0.36);
+      box-shadow: 0 18px 50px rgba(19,211,142,0.18);
+    }
+    .toast.toast--danger {
+      border-color: rgba(255,77,109,0.36);
+      box-shadow: 0 18px 50px rgba(255,77,109,0.20);
+    }
+    .toast.toast--warn {
+      border-color: rgba(244,185,66,0.36);
+      box-shadow: 0 18px 50px rgba(244,185,66,0.18);
+    }
+    .toast.toast--info {
+      border-color: rgba(59,130,246,0.36);
+      box-shadow: 0 18px 50px rgba(59,130,246,0.16);
+    }
+
+    .tooltip {
+      position: fixed;
+      z-index: 9999;
+      max-width: 360px;
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid var(--border-2);
+      background: linear-gradient(to bottom, var(--panel-2), var(--panel));
+      backdrop-filter: var(--glass);
+      box-shadow: var(--shadow-2);
+      display: none;
+      pointer-events: none;
+    }
+
+    .tooltip.show {
+      display: block;
+      animation: toastIn 160ms ease;
+    }
+
+    .tooltip .hd {
+      font-weight: 900;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .tooltip .meta {
+      margin-top: 6px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .tooltip .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    .tooltip .mini-kv {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      background: rgba(255,255,255,0.04);
+    }
+
+    .tooltip .mini-kv .k {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      color: var(--muted2);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tooltip .mini-kv .v {
+      margin-top: 4px;
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text);
+    }
 
     /* Responsive */
     @media (max-width: 1100px) {
@@ -675,7 +962,7 @@
         <div class="brand">
           <div class="logo">IC</div>
           <div>
-            <h1>ICT Bot — FinTech Command Center</h1>
+            <h1>Trading Algo — Command Center</h1>
             <div class="sub" id="subline">SSE Live • Risk-Aware • Memory Learning</div>
           </div>
         </div>
@@ -694,6 +981,25 @@
           <button class="btn" id="themeBtn" title="Toggle Light/Dark">
             🌗 Theme
           </button>
+
+          <div class="notif-wrap">
+            <button class="btn notif-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
+              🔔
+              <span class="notif-count" id="notifCount">0</span>
+            </button>
+            <div class="notif-panel" id="notifPanel" aria-hidden="true">
+              <div class="notif-head">
+                <div class="notif-title">Notifications</div>
+                <div class="notif-actions">
+                  <button class="notif-act" id="notifReadBtn" type="button">Mark All Read</button>
+                  <button class="notif-act" id="notifClearBtn" type="button">Clear</button>
+                </div>
+              </div>
+              <div class="notif-list" id="notifList">
+                <div class="empty">No notifications yet</div>
+              </div>
+            </div>
+          </div>
 
           <button class="btn danger" id="killBtn" title="Request bot shutdown">
             ⏻ Take Offline
@@ -919,6 +1225,7 @@
     <div class="t" id="toastTitle">—</div>
     <div class="s" id="toastSub">—</div>
   </div>
+  <div id="setupTip" class="tooltip" aria-hidden="true"></div>
 
 <script>
   // ─────────────────────────────────────────────────────────────
@@ -950,6 +1257,7 @@
     setup_performance: null,
     equity_history: []
   };
+  let notif = { items: [], unread: 0, lastSeen: { tradeKey: null, posKey: null }, _keys: new Set(), profitLock: null };
   let lastDataAt = 0;
   let lastStatusFetchAt = 0;
 
@@ -961,6 +1269,8 @@
   }
 
   function applySnapshot(data) {
+    const prev = state;
+    detectSnapshotEvents(prev, data || {});
     state = {
       ...state,
       ...data,
@@ -975,6 +1285,200 @@
     lastDataAt = Date.now();
     pushEquity(Number(state.account?.equity));
     render();
+  }
+
+  function fmtTs(ts) {
+    const d = ts ? new Date(ts) : new Date();
+    if (!Number.isFinite(d.getTime())) return new Date().toISOString();
+    return d.toISOString();
+  }
+
+  function shortTime(ts) {
+    const d = new Date(ts);
+    if (!Number.isFinite(d.getTime())) return "NOW";
+    const h = String(d.getHours()).padStart(2, "0");
+    const m = String(d.getMinutes()).padStart(2, "0");
+    const s = String(d.getSeconds()).padStart(2, "0");
+    return `${h}:${m}:${s}`;
+  }
+
+  function renderNotifications() {
+    const badge = document.getElementById("notifCount");
+    const list = document.getElementById("notifList");
+    if (!badge || !list) return;
+
+    const unread = Number(notif.unread || 0);
+    badge.textContent = unread > 99 ? "99+" : String(unread);
+    badge.classList.toggle("show", unread > 0);
+
+    if (!Array.isArray(notif.items) || notif.items.length === 0) {
+      list.innerHTML = `<div class="empty">No notifications yet</div>`;
+      return;
+    }
+
+    list.innerHTML = notif.items.map((n) => `
+      <div class="notif-item">
+        <div class="notif-dot ${n.type || "info"}"></div>
+        <div class="notif-text">
+          <div class="t">${n.title || "Event"}</div>
+          <div class="s">${n.detail || ""}</div>
+          <div class="m">${shortTime(n.ts)}${n.read ? " • READ" : " • NEW"}</div>
+        </div>
+      </div>
+    `).join("");
+  }
+
+  function maybeBrowserNotify(title, detail) {
+    if (!("Notification" in window)) return;
+    if (Notification.permission === "granted") {
+      try {
+        new Notification(title, { body: detail || "" });
+      } catch (_) {}
+    }
+  }
+
+  function pushNotif({ type = "info", title, detail, ts, key }) {
+    const useKey = String(key || `${type}:${title}:${detail}`);
+    if (notif._keys.has(useKey)) return;
+    notif._keys.add(useKey);
+
+    const item = {
+      type: ["success", "danger", "warn", "info"].includes(type) ? type : "info",
+      title: title || "Event",
+      detail: detail || "",
+      ts: fmtTs(ts),
+      key: useKey,
+      read: false,
+    };
+    notif.items.unshift(item);
+    if (notif.items.length > 30) {
+      const removed = notif.items.pop();
+      if (removed?.key) notif._keys.delete(removed.key);
+    }
+    notif.unread += 1;
+    toast(item.title, item.detail, item.type);
+    maybeBrowserNotify(item.title, item.detail);
+    renderNotifications();
+  }
+
+  function buildTradeKey(t) {
+    if (!t) return "";
+    return `${t.symbol || "UNK"}|${t.time || t.entry_time || ""}|${(t.type || t.direction || "").toUpperCase()}|${Number(t.lot ?? t.volume ?? 0).toFixed(2)}`;
+  }
+
+  function buildPosKey(p) {
+    if (!p) return "";
+    return String(p.ticket ?? `${p.symbol || "UNK"}|${(p.type || "").toUpperCase()}|${Number(p.volume ?? 0).toFixed(2)}|${Number(p.open_price ?? 0).toFixed(5)}`);
+  }
+
+  function truthyAny(obj, keys) {
+    if (!obj || typeof obj !== "object") return null;
+    for (const k of keys) {
+      if (k in obj) return Boolean(obj[k]);
+    }
+    return null;
+  }
+
+  function detectSnapshotEvents(prev, next) {
+    const prevLog = Array.isArray(prev?.trade_log) ? prev.trade_log : [];
+    const nextLog = Array.isArray(next?.trade_log) ? next.trade_log : [];
+    const prevPos = Array.isArray(prev?.positions) ? prev.positions : [];
+    const nextPos = Array.isArray(next?.positions) ? next.positions : [];
+
+    const prevTradeKeys = new Set(prevLog.map(buildTradeKey).filter(Boolean));
+    for (const t of nextLog) {
+      const key = buildTradeKey(t);
+      if (!key || prevTradeKeys.has(key)) continue;
+      const side = (t.type || t.direction || "").toUpperCase();
+      const lot = Number(t.lot ?? t.volume ?? 0).toFixed(2);
+      const setup = t.setup || t.setup_type || "SETUP";
+      const pnl = Number(t.pnl ?? t.profit ?? NaN);
+      const pnlTxt = Number.isFinite(pnl) ? ` | P&L ${pnl >= 0 ? "+" : ""}${money(pnl)}` : "";
+      pushNotif({
+        type: pnl < 0 ? "danger" : "success",
+        title: "Trade Executed",
+        detail: `${t.symbol || "SYMBOL"} ${side} ${lot} (${setup})${pnlTxt}`,
+        ts: t.time || t.entry_time || next.timestamp || new Date().toISOString(),
+        key: `trade:${key}`,
+      });
+    }
+
+    const prevPosMap = new Map(prevPos.map((p) => [buildPosKey(p), p]));
+    const nextPosMap = new Map(nextPos.map((p) => [buildPosKey(p), p]));
+
+    for (const [k, p] of nextPosMap.entries()) {
+      if (prevPosMap.has(k)) continue;
+      pushNotif({
+        type: "info",
+        title: "Position Opened",
+        detail: `${p.symbol || "SYMBOL"} ${(p.type || "").toUpperCase()} ${Number(p.volume ?? 0).toFixed(2)} @ ${Number(p.open_price ?? 0).toFixed(5)}`,
+        ts: next.timestamp || new Date().toISOString(),
+        key: `pos_open:${k}`,
+      });
+    }
+    for (const [k, p] of prevPosMap.entries()) {
+      if (nextPosMap.has(k)) continue;
+      pushNotif({
+        type: "warn",
+        title: "Position Closed",
+        detail: `${p.symbol || "SYMBOL"} ${(p.type || "").toUpperCase()} ${Number(p.volume ?? 0).toFixed(2)}`,
+        ts: next.timestamp || new Date().toISOString(),
+        key: `pos_close:${k}`,
+      });
+    }
+
+    for (const t of nextLog) {
+      const baseKey = buildTradeKey(t);
+      if (!baseKey) continue;
+      if (t.sl_update || t.trail_reason || t.new_sl || t.sl_new) {
+        pushNotif({
+          type: "info",
+          title: "SL Updated",
+          detail: `${t.symbol || "SYMBOL"} ${(t.type || t.direction || "").toUpperCase()}${t.trail_reason ? ` [${t.trail_reason}]` : ""}`,
+          ts: t.time || t.entry_time || next.timestamp || new Date().toISOString(),
+          key: `sl:${baseKey}:${t.new_sl ?? t.sl_new ?? t.sl_update ?? ""}`,
+        });
+      }
+      if (t.tp_update || t.new_tp || t.tp_new) {
+        pushNotif({
+          type: "info",
+          title: "TP Updated",
+          detail: `${t.symbol || "SYMBOL"} ${(t.type || t.direction || "").toUpperCase()} TP adjusted`,
+          ts: t.time || t.entry_time || next.timestamp || new Date().toISOString(),
+          key: `tp:${baseKey}:${t.new_tp ?? t.tp_new ?? t.tp_update ?? ""}`,
+        });
+      }
+    }
+
+    const lockSourcesNext = [next?.prop_guardrails, next?.prop_guardrails_state, next?.risk, next?.guard_rails];
+    let lockNow = null;
+    for (const s of lockSourcesNext) {
+      lockNow = truthyAny(s, ["daily_profit_lock", "daily_profit_lock_active", "profit_lock", "profit_lock_active", "profit_lock_triggered"]);
+      if (lockNow !== null) break;
+    }
+    if (lockNow !== null && notif.profitLock !== null && lockNow !== notif.profitLock) {
+      pushNotif({
+        type: lockNow ? "warn" : "info",
+        title: lockNow ? "Profit Lock Enabled" : "Profit Lock Released",
+        detail: lockNow ? "New live entries may be restricted." : "Entry restrictions removed.",
+        ts: next.timestamp || new Date().toISOString(),
+        key: `profit_lock:${String(lockNow)}:${next.timestamp || ""}`,
+      });
+    }
+    if (lockNow !== null) notif.profitLock = lockNow;
+
+    const guardTriggered = Boolean(next?.guard_rails?.triggered || next?.risk?.triggered || next?.prop_guardrails?.triggered);
+    const prevGuardTriggered = Boolean(prev?.guard_rails?.triggered || prev?.risk?.triggered || prev?.prop_guardrails?.triggered);
+    if (guardTriggered && !prevGuardTriggered) {
+      const reason = next?.guard_rails?.reason || next?.risk?.reason || next?.prop_guardrails?.reason || "Risk limit reached";
+      pushNotif({
+        type: "danger",
+        title: "Risk Guard Triggered",
+        detail: String(reason),
+        ts: next.timestamp || new Date().toISOString(),
+        key: `risk_guard:${reason}:${next.timestamp || ""}`,
+      });
+    }
   }
 
   async function fetchStatusSnapshot() {
@@ -1022,6 +1526,45 @@
       const t = localStorage.getItem("ict_theme");
       if (t) document.body.setAttribute("data-theme", t);
     } catch {}
+  })();
+
+  (function initNotifUI() {
+    const btn = document.getElementById("notifBtn");
+    const panel = document.getElementById("notifPanel");
+    const readBtn = document.getElementById("notifReadBtn");
+    const clearBtn = document.getElementById("notifClearBtn");
+    if (!btn || !panel || !readBtn || !clearBtn) return;
+
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      panel.classList.toggle("open");
+      panel.setAttribute("aria-hidden", panel.classList.contains("open") ? "false" : "true");
+      if (panel.classList.contains("open")) {
+        notif.unread = 0;
+        notif.items = notif.items.map((n) => ({ ...n, read: true }));
+        renderNotifications();
+      }
+    });
+
+    readBtn.addEventListener("click", () => {
+      notif.unread = 0;
+      notif.items = notif.items.map((n) => ({ ...n, read: true }));
+      renderNotifications();
+    });
+
+    clearBtn.addEventListener("click", () => {
+      notif = { ...notif, items: [], unread: 0, _keys: new Set() };
+      renderNotifications();
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!panel.classList.contains("open")) return;
+      if (btn.contains(e.target) || panel.contains(e.target)) return;
+      panel.classList.remove("open");
+      panel.setAttribute("aria-hidden", "true");
+    });
+
+    renderNotifications();
   })();
 
   // ─────────────────────────────────────────────────────────────
@@ -1127,10 +1670,13 @@
     return v.toFixed(1) + "%";
   }
 
-  function toast(title, sub) {
+  function toast(title, sub, type = "info") {
     const t = document.getElementById("toast");
     document.getElementById("toastTitle").textContent = title;
     document.getElementById("toastSub").textContent = sub;
+    t.classList.remove("toast--success", "toast--danger", "toast--warn", "toast--info");
+    const cls = ["success", "danger", "warn", "info"].includes(type) ? type : "info";
+    t.classList.add(`toast--${cls}`);
     t.classList.add("show");
     setTimeout(() => t.classList.remove("show"), 2400);
   }
@@ -1155,10 +1701,16 @@
     const dailyEl = document.getElementById("kDaily");
     dailyEl.textContent = `${Number(s.daily_pnl) >= 0 ? "+" : ""}${money(s.daily_pnl)}`;
     dailyEl.className = "value " + (Number(s.daily_pnl) > 0 ? "pos" : Number(s.daily_pnl) < 0 ? "neg" : "");
-    document.getElementById("kDailySub").textContent = `Trades today: ${s.daily_trades ?? 0}`;
+    const dailyTrades = Number(s.daily_trades ?? s.trades_today_count ?? 0);
+    document.getElementById("kDailySub").textContent = `Trades today: ${dailyTrades}`;
 
-    document.getElementById("kWinrate").textContent = s.trades ? pct(s.winrate) : "—";
-    document.getElementById("kWinrateSub").textContent = `All-time: ${s.trades ?? 0} trades`;
+    const allTimeTrades = Number(s.trades ?? 0);
+    const allTimeWinrate = Number(s.winrate ?? s.win_rate ?? 0);
+    const dailyWins = Number(s.wins_today_count ?? 0);
+    const dailyWinrate = Number(s.daily_winrate ?? s.daily_win_rate ?? 0);
+    document.getElementById("kWinrate").textContent = allTimeTrades > 0 ? pct(allTimeWinrate) : "—";
+    document.getElementById("kWinrateSub").textContent =
+      `All-time: ${allTimeTrades} trades | Today: ${dailyWins}/${dailyTrades} (${pct(dailyWinrate)})`;
 
     // Header badges
     document.getElementById("badgeAllTime").textContent = `All-time P&L: ${Number(s.total_pnl) >= 0 ? "+" : ""}${money(s.total_pnl)}`;
@@ -1210,7 +1762,7 @@
     const ddPct = maxLoss > 0 ? Math.min(100, (lossUsed / maxLoss) * 100) : 0;
 
     document.getElementById("rDailyPnl").textContent = `${Number(s.daily_pnl) >= 0 ? "+" : ""}${money(s.daily_pnl)}`;
-    document.getElementById("rDailyTrades").textContent = `${s.daily_trades ?? 0} / ${UI_LIMITS.maxDailyTrades}`;
+    document.getElementById("rDailyTrades").textContent = `${dailyTrades} / ${UI_LIMITS.maxDailyTrades}`;
 
     document.getElementById("ddLabel").textContent = `${money(lossUsed)} / ${money(maxLoss)} (${UI_LIMITS.maxDailyLossPct}%)`;
     const ddProg = document.getElementById("ddProg");
@@ -1218,9 +1770,9 @@
     ddProg.querySelector("div").style.width = ddPct + "%";
 
     const slotsPct = UI_LIMITS.maxDailyTrades > 0
-      ? Math.min(100, ((Number(s.daily_trades || 0) / UI_LIMITS.maxDailyTrades) * 100))
+      ? Math.min(100, ((dailyTrades / UI_LIMITS.maxDailyTrades) * 100))
       : 0;
-    document.getElementById("slotsLabel").textContent = `${s.daily_trades ?? 0} / ${UI_LIMITS.maxDailyTrades}`;
+    document.getElementById("slotsLabel").textContent = `${dailyTrades} / ${UI_LIMITS.maxDailyTrades}`;
     document.getElementById("slotsProg").querySelector("div").style.width = slotsPct + "%";
 
     // News
@@ -1254,6 +1806,7 @@
     document.getElementById("topSetup").textContent = bestSetup || "—";
     document.getElementById("topSetupMeta").textContent = bestSetupMeta || "Waiting for data…";
     document.getElementById("edgeBadge").textContent = log.length ? "Updated" : "Learning…";
+    renderNotifications();
 
     // Chart update
     updateChart();
@@ -1379,15 +1932,17 @@
     let arr = setupPerf;
     if (setupPerf && !Array.isArray(setupPerf) && typeof setupPerf === "object") {
       // convert object map -> array
-      arr = Object.keys(setupPerf).map(k => ({ setup: k, ...setupPerf[k] }));
+      arr = Object.keys(setupPerf).map(k => ({ setup: k, ...(setupPerf[k] || {}) }));
     }
 
     if (!Array.isArray(arr) || arr.length === 0) {
+      container.classList.remove("setup-grid");
       container.innerHTML = `<div class="empty">No setup data yet — AI is learning from your first trades</div>`;
       document.getElementById("setupBadge").textContent = "Waiting for data...";
       return;
     }
 
+    container.classList.add("setup-grid");
     const enabledCount = arr.filter(s => s.enabled !== false).length;
     document.getElementById("setupBadge").textContent = `${enabledCount}/${arr.length} active`;
 
@@ -1396,6 +1951,11 @@
       const conf = Number(setup.confidence ?? setup.conf ?? 0);
       const trades = Number(setup.trades ?? setup.count ?? 0);
       const enabled = setup.enabled !== false;
+      const setupState = trades < 50 ? "learning" : (enabled ? "active" : "disabled");
+      const netPnl = Number(setup.net_pnl ?? setup.pnl ?? NaN);
+      const wr = Number(setup.winrate ?? setup.win_rate ?? NaN);
+      const lastTrade = setup.last_trade_time || setup.last_trade || "";
+      const tags = Array.isArray(setup.tags) ? setup.tags.join(", ") : String(setup.tags || setup.reasons || setup.reason || "");
 
       const statusBadge = trades < 50
         ? { cls: "learning", txt: `Learning (${trades}/50)` }
@@ -1406,14 +1966,27 @@
       const low = conf < 60 ? " low" : "";
 
       return `
-        <div class="setup-row">
+        <div class="setup-row"
+             tabindex="0"
+             data-state="${setupState}"
+             data-name="${String(name).replace(/"/g, "&quot;")}"
+             data-status="${statusBadge.txt.replace(/"/g, "&quot;")}"
+             data-conf="${Number.isFinite(conf) ? conf.toFixed(0) : 0}"
+             data-trades="${trades}"
+             data-enabled="${enabled ? "true" : "false"}"
+             data-netpnl="${Number.isFinite(netPnl) ? netPnl : ""}"
+             data-winrate="${Number.isFinite(wr) ? wr : ""}"
+             data-last="${String(lastTrade).replace(/"/g, "&quot;")}"
+             data-tags="${String(tags).replace(/"/g, "&quot;")}">
           <div class="setup-name">${name}</div>
-          <div class="setup-trades">${trades} trades</div>
-          <div class="setup-conf">
-            <span class="brain-pulse"></span>
-            <span>${conf.toFixed(0)}%</span>
+          <div class="setup-stats">
+            <div class="setup-trades">${trades} trades</div>
+            <div class="setup-conf">
+              <span class="brain-pulse"></span>
+              <span>${conf.toFixed(0)}%</span>
+            </div>
           </div>
-          <div>
+          <div class="setup-health">
             <span class="ai-badge ${statusBadge.cls}">${statusBadge.txt}</span>
             <div class="confidence-bar${low}">
               <div style="width:${Math.max(0, Math.min(100, conf))}%"></div>
@@ -1422,6 +1995,85 @@
         </div>
       `;
     }).join("");
+  }
+
+  function setupTooltipHtml(el) {
+    const name = el.dataset.name || "Unknown";
+    const status = el.dataset.status || "Unknown";
+    const conf = el.dataset.conf || "0";
+    const trades = el.dataset.trades || "0";
+    const netPnlRaw = Number(el.dataset.netpnl);
+    const winrateRaw = Number(el.dataset.winrate);
+    const last = el.dataset.last || "";
+    const tags = el.dataset.tags || "";
+    const netPnl = Number.isFinite(netPnlRaw) ? `${netPnlRaw >= 0 ? "+" : ""}${money(netPnlRaw)}` : "—";
+    const winrate = Number.isFinite(winrateRaw) ? `${winrateRaw.toFixed(1)}%` : "—";
+    return `
+      <div class="hd">${name}</div>
+      <div class="meta">Status: ${status}<br/>Confidence: ${conf}%<br/>Trades: ${trades}</div>
+      <div class="grid">
+        <div class="mini-kv"><div class="k">Net P&L</div><div class="v">${netPnl}</div></div>
+        <div class="mini-kv"><div class="k">Win Rate</div><div class="v">${winrate}</div></div>
+        <div class="mini-kv"><div class="k">Last Trade</div><div class="v">${last || "—"}</div></div>
+        <div class="mini-kv"><div class="k">Tags/Reasons</div><div class="v">${tags || "—"}</div></div>
+      </div>
+    `;
+  }
+
+  function positionSetupTip(x, y, tip) {
+    const pad = 12;
+    const rect = tip.getBoundingClientRect();
+    let left = x + 14;
+    let top = y + 14;
+    if (left + rect.width > window.innerWidth - pad) left = Math.max(pad, x - rect.width - 14);
+    if (top + rect.height > window.innerHeight - pad) top = Math.max(pad, y - rect.height - 14);
+    tip.style.left = `${left}px`;
+    tip.style.top = `${top}px`;
+  }
+
+  function bindSetupTooltips() {
+    const host = document.getElementById("setupPerformance");
+    const tip = document.getElementById("setupTip");
+    if (!host || !tip || host.dataset.tipBound === "1") return;
+    host.dataset.tipBound = "1";
+
+    const show = (row, x, y) => {
+      tip.innerHTML = setupTooltipHtml(row);
+      tip.classList.add("show");
+      tip.setAttribute("aria-hidden", "false");
+      positionSetupTip(x, y, tip);
+    };
+
+    const hide = () => {
+      tip.classList.remove("show");
+      tip.setAttribute("aria-hidden", "true");
+    };
+
+    host.addEventListener("mouseover", (e) => {
+      const row = e.target.closest(".setup-row");
+      if (!row) return;
+      show(row, e.clientX, e.clientY);
+    });
+
+    host.addEventListener("mousemove", (e) => {
+      if (!tip.classList.contains("show")) return;
+      positionSetupTip(e.clientX, e.clientY, tip);
+    });
+
+    host.addEventListener("mouseout", (e) => {
+      if (!e.relatedTarget || !host.contains(e.relatedTarget)) hide();
+    });
+
+    host.addEventListener("focusin", (e) => {
+      const row = e.target.closest(".setup-row");
+      if (!row) return;
+      const r = row.getBoundingClientRect();
+      show(row, r.right - 10, r.top + 10);
+    });
+
+    host.addEventListener("focusout", (e) => {
+      if (!host.contains(e.relatedTarget)) hide();
+    });
   }
 
   function renderEnhancedTradeLog() {
@@ -1474,6 +2126,7 @@
   // ─────────────────────────────────────────────────────────────
   function init() {
     state.equity_history = [];
+    bindSetupTooltips();
     refreshChartTheme();
     render();
     fetchStatusSnapshot().catch((err) => console.warn("[status] initial fetch fail:", err));

@@ -66,11 +66,12 @@ class Dashboard:
 
         # Today's stats
         dp = stats.get("daily_pnl", 0)
+        daily_wr = stats.get("daily_winrate", stats.get("winrate", 0))
         dp_sign = "+" if dp >= 0 else ""
         dp_color = "\033[92m" if dp >= 0 else "\033[91m"
 
         print(f"║  📊 TODAY    Trades: {stats.get('daily_trades',0):>3}  "
-              f"Win rate: {stats.get('winrate',0):>5.1f}%  "
+              f"Win rate: {daily_wr:>5.1f}%  "
               f"Daily P&L: {dp_color}{dp_sign}{dp:>8.2f}{reset}  ║")
         print(f"║             All-time Trades: {stats.get('trades',0):>4}  "
               f"Total P&L: {stats.get('total_pnl',0):>+10.2f}  "

@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Dict, List, Optional, Tuple
+
+logger = logging.getLogger("SNIPER")
 
 
 @dataclass
@@ -18,6 +21,17 @@ class SniperMetrics:
     sl_soft_cap: bool = False
     sl_cap: float = 0.0
     sl_soft_buffer: float = 0.0
+    htf_bias: str = "NEUTRAL"
+    setup_type: str = "UNKNOWN"
+    sweep_detected: bool = False
+    displacement_strength: float = 0.0
+    structure_shift_detected: bool = False
+    market_state: str = "TREND"
+    entry_mode: str = "CONFIRMATION"
+    entry_price: float = 0.0
+    displacement_confirmed: bool = False
+    is_reversal: bool = False
+    skip_reason: str = ""
 
     def __getitem__(self, key: str):
         return getattr(self, key)
@@ -181,7 +195,24 @@ class SniperFilter:
             return None
         return sum(trs) / len(trs)
 
-    def _check_displacement(self, signal, candles_m5: List[dict], atr_period: int, atr_mult: float) -> bool:
+    def _displacement_strength(self, candles_m5: List[dict], atr_period: int) -> float:
+        if len(candles_m5) < 8:
+            return 0.0
+        atr = self._atr(candles_m5, atr_period)
+        if not atr or atr <= 0:
+            return 0.0
+        last = candles_m5[-1]
+        body = abs(self._num(last.get("close")) - self._num(last.get("open")))
+        return body / atr
+
+    def _check_displacement(
+        self,
+        signal,
+        candles_m5: List[dict],
+        atr_period: int,
+        atr_mult: float,
+        require_close_beyond_structure: bool = True,
+    ) -> bool:
         if len(candles_m5) < 8:
             return True
         atr = self._atr(candles_m5, atr_period)
@@ -201,12 +232,172 @@ class SniperFilter:
         lows = [self._num(c.get("low")) for c in prev if isinstance(c, dict)]
         if not highs or not lows:
             return True
+        if not require_close_beyond_structure:
+            return True
         margin = atr * 0.05
         if direction == "BUY":
             return close >= max(highs) + margin
         if direction == "SELL":
             return close <= min(lows) - margin
         return True
+
+    def _detect_liquidity_sweep(self, signal, candles_m5: List[dict], lookback: int = 24) -> bool:
+        if len(candles_m5) < max(10, lookback):
+            return False
+        _, _, _, direction, _ = self._signal_fields(signal)
+        tol_mult = 0.08
+        atr = self._atr(candles_m5, 14) or 0.0
+        tol = max(atr * tol_mult, 1e-9)
+        recent = candles_m5[-lookback:]
+        last = recent[-1]
+        prev = recent[:-1]
+        highs = [self._num(c.get("high")) for c in prev]
+        lows = [self._num(c.get("low")) for c in prev]
+        if not highs or not lows:
+            return False
+        eqh = max(highs)
+        eql = min(lows)
+        if direction == "BUY":
+            return self._num(last.get("low")) < (eql - tol) and self._num(last.get("close")) > eql
+        if direction == "SELL":
+            return self._num(last.get("high")) > (eqh + tol) and self._num(last.get("close")) < eqh
+        return False
+
+    def _detect_mss(self, signal, candles_m5: List[dict], lookback: int = 18) -> bool:
+        if len(candles_m5) < max(10, lookback):
+            return False
+        _, _, _, direction, _ = self._signal_fields(signal)
+        last = candles_m5[-1]
+        prev = candles_m5[-lookback:-1]
+        prev_high = max(self._num(c.get("high")) for c in prev)
+        prev_low = min(self._num(c.get("low")) for c in prev)
+        close = self._num(last.get("close"))
+        if direction == "BUY":
+            return close > prev_high
+        if direction == "SELL":
+            return close < prev_low
+        return False
+
+    def _htf_bias_single(self, candles: List[dict]) -> str:
+        if len(candles) < 25:
+            return "NEUTRAL"
+        closes = [self._num(c.get("close")) for c in candles[-25:]]
+        last = closes[-1]
+        sma_fast = sum(closes[-8:]) / 8.0
+        sma_slow = sum(closes[-21:]) / 21.0
+        if last > sma_fast > sma_slow:
+            return "BULLISH"
+        if last < sma_fast < sma_slow:
+            return "BEARISH"
+        return "NEUTRAL"
+
+    def _combined_htf_bias(self, candles_h1: List[dict], candles_h4: List[dict]) -> str:
+        b1 = self._htf_bias_single(candles_h1)
+        b4 = self._htf_bias_single(candles_h4)
+        if b1 == b4 and b1 != "NEUTRAL":
+            return b1
+        if b4 != "NEUTRAL":
+            return b4
+        return b1
+
+    def _is_direction_conflict(self, direction: str, htf_bias: str) -> bool:
+        if htf_bias == "NEUTRAL":
+            return False
+        return (direction == "BUY" and htf_bias == "BEARISH") or (direction == "SELL" and htf_bias == "BULLISH")
+
+    def _market_state(self, candles_m5: List[dict], chop_cfg: dict) -> str:
+        if len(candles_m5) < 30:
+            return "RANGE"
+        lookback = int(self._num(chop_cfg.get("lookback", 24), 24))
+        atr_period = int(self._num(chop_cfg.get("atr_period", 14), 14))
+        atr = self._atr(candles_m5, atr_period) or 0.0
+        last_close = self._num(candles_m5[-1].get("close"))
+        if last_close <= 0:
+            return "RANGE"
+        atr_pct = (atr / last_close) * 100.0 if atr > 0 else 0.0
+        min_atr_pct = self._num(chop_cfg.get("min_atr_pct", 0.03), 0.03)
+        recent = candles_m5[-lookback:]
+        hi = max(self._num(c.get("high")) for c in recent)
+        lo = min(self._num(c.get("low")) for c in recent)
+        band_pct = ((hi - lo) / last_close) * 100.0 if last_close > 0 else 0.0
+        max_band_pct = self._num(chop_cfg.get("max_band_pct", 0.25), 0.25)
+        overlap = self._chop_overlap_pct(candles_m5, lookback) or 1.0
+        max_overlap = self._num(chop_cfg.get("max_overlap_pct", 0.70), 0.70)
+        if atr_pct < min_atr_pct and band_pct < max_band_pct:
+            return "RANGE"
+        if overlap > max_overlap:
+            return "RANGE"
+        return "TREND"
+
+    def _session_phase(self, now_utc: Optional[datetime] = None) -> str:
+        now = now_utc or datetime.now(UTC).replace(tzinfo=None)
+        h = int(now.hour)
+        if 0 <= h < 6:
+            return "ASIA"
+        if 6 <= h < 7 or 11 <= h < 12:
+            return "PRE_SESSION"
+        if 7 <= h < 10:
+            return "LONDON"
+        if 12 <= h < 15:
+            return "NY"
+        return "OFF_SESSION"
+
+    def _range_extreme_ok(self, signal, candles_m5: List[dict], lookback: int = 30) -> bool:
+        if len(candles_m5) < max(10, lookback):
+            return False
+        _, _, _, direction, _ = self._signal_fields(signal)
+        recent = candles_m5[-lookback:]
+        hi = max(self._num(c.get("high")) for c in recent)
+        lo = min(self._num(c.get("low")) for c in recent)
+        span = hi - lo
+        if span <= 0:
+            return False
+        close = self._num(candles_m5[-1].get("close"))
+        pos = (close - lo) / span
+        if direction == "BUY":
+            return pos <= 0.25
+        if direction == "SELL":
+            return pos >= 0.75
+        return False
+
+    def _find_fvg_midpoint(self, candles: List[dict], direction: str) -> Optional[float]:
+        if len(candles) < 6:
+            return None
+        for i in range(len(candles) - 1, 1, -1):
+            c0, c2 = candles[i - 2], candles[i]
+            if direction == "BUY":
+                top = self._num(c2.get("low"))
+                bottom = self._num(c0.get("high"))
+                if top > bottom:
+                    return (top + bottom) / 2.0
+            elif direction == "SELL":
+                top = self._num(c0.get("low"))
+                bottom = self._num(c2.get("high"))
+                if top > bottom:
+                    return (top + bottom) / 2.0
+        return None
+
+    def _find_ob_midpoint(self, candles: List[dict], direction: str) -> Optional[float]:
+        if len(candles) < 8:
+            return None
+        for i in range(len(candles) - 3, 1, -1):
+            c = candles[i]
+            nxt = candles[i + 1]
+            o = self._num(c.get("open"))
+            cl = self._num(c.get("close"))
+            h = self._num(c.get("high"))
+            l = self._num(c.get("low"))
+            if direction == "BUY" and cl < o and self._num(nxt.get("close")) > h:
+                return (h + l) / 2.0
+            if direction == "SELL" and cl > o and self._num(nxt.get("close")) < l:
+                return (h + l) / 2.0
+        return None
+
+    def _entry_distance_limit_pips(self, symbol: str) -> float:
+        cfg = self.cfg.get("entry_distance_limit", {})
+        if not isinstance(cfg, dict):
+            return 0.0
+        return self._num(cfg.get(str(symbol or "").upper(), 0.0), 0.0)
 
     def _chop_overlap_pct(self, candles_m5: List[dict], lookback: int) -> Optional[float]:
         look = candles_m5[-lookback:] if len(candles_m5) >= lookback else candles_m5
@@ -284,7 +475,8 @@ class SniperFilter:
         symbol: str,
         candles_m5,
         candles_m15,
-        candles_h4,  # kept for future extension
+        candles_h4,
+        candles_h1=None,
         killzone: str = "NONE",
         in_killzone: bool = False,
     ) -> tuple[bool, str, SniperMetrics]:
@@ -296,20 +488,67 @@ class SniperFilter:
         sym = str(symbol).upper()
         c5 = self._as_candles(candles_m5)
         c15 = self._as_candles(candles_m15)
+        c1h = self._as_candles(candles_h1)
+        c4h = self._as_candles(candles_h4)
+        _, _, _, direction, setup = self._signal_fields(signal)
+        metrics.setup_type = setup
 
         metrics.sl_pips = self.compute_sl_pips(signal, sym)
         metrics.rr = self.compute_rr(signal)
         metrics.confidence = self._num(getattr(signal, "confidence", 0.0), 0.0)
         metrics.killzone = str(killzone or "NONE")
         metrics.risk_scale = 1.0
+        metrics.htf_bias = self._combined_htf_bias(c1h, c4h)
+        metrics.is_reversal = self._is_direction_conflict(direction, metrics.htf_bias)
+        disp_atr_mult = self._num(cfg.get("min_displacement_atr_mult", 0.8), 0.8)
+        disp_require_close = bool(cfg.get("require_close_beyond_structure", True))
+        atr_period = int(self._num(cfg.get("atr_period", 14), 14))
+        displacement_confirmed = self._check_displacement(
+            signal,
+            c5,
+            atr_period,
+            disp_atr_mult,
+            require_close_beyond_structure=disp_require_close,
+        )
+        metrics.displacement_confirmed = displacement_confirmed
+        metrics.displacement_strength = self._displacement_strength(c5, atr_period)
+        metrics.structure_shift_detected = self._detect_mss(signal, c5)
+        metrics.sweep_detected = self._detect_liquidity_sweep(signal, c5)
+        chop_cfg = {
+            "enabled": bool(cfg.get("avoid_chop", False)),
+            "lookback": int(self._num(cfg.get("chop_lookback", 24), 24)),
+            "atr_period": int(self._num(cfg.get("chop_atr_period", 14), 14)),
+            "min_atr_pct": self._num(cfg.get("chop_min_atr_pct", 0.03), 0.03),
+            "max_band_pct": self._num(cfg.get("chop_max_band_pct", 0.25), 0.25),
+            "max_overlap_pct": self._num(cfg.get("max_overlap_pct", 0.70), 0.70),
+            "strict_in_asia_pre_session": bool(cfg.get("chop_strict_in_asia_pre_session", True)),
+            "asia_min_atr_pct": self._num(cfg.get("chop_asia_min_atr_pct", 0.04), 0.04),
+            "asia_max_band_pct": self._num(cfg.get("chop_asia_max_band_pct", 0.20), 0.20),
+            "asia_max_overlap_pct": self._num(cfg.get("chop_asia_max_overlap_pct", 0.60), 0.60),
+            "allow_range_reversal_extremes_only": bool(cfg.get("chop_allow_range_reversal_extremes_only", True)),
+        }
+        phase = self._session_phase()
+        if bool(chop_cfg.get("strict_in_asia_pre_session", True)) and phase in ("ASIA", "PRE_SESSION"):
+            chop_cfg = {
+                **chop_cfg,
+                "min_atr_pct": self._num(chop_cfg.get("asia_min_atr_pct", self._num(chop_cfg.get("min_atr_pct", 0.03), 0.03) * 1.35)),
+                "max_band_pct": self._num(chop_cfg.get("asia_max_band_pct", self._num(chop_cfg.get("max_band_pct", 0.25), 0.25) * 0.85)),
+                "max_overlap_pct": self._num(chop_cfg.get("asia_max_overlap_pct", self._num(chop_cfg.get("max_overlap_pct", 0.70), 0.70) * 0.9)),
+            }
+        metrics.market_state = self._market_state(c5, chop_cfg)
 
+        # Low confidence no longer hard-blocks execution; keep for downstream sizing/context.
         min_conf = self._num(cfg.get("min_confidence", 0.0))
-        if metrics.confidence < min_conf:
-            return False, "LOW_CONFIDENCE", metrics
+
+        rr_hard_floor = self._num(cfg.get("rr_hard_floor", 1.3), 1.3)
+        if metrics.rr < rr_hard_floor:
+            metrics.skip_reason = "LOW_RR_HARD_FLOOR"
+            return False, "LOW_RR_HARD_FLOOR", metrics
 
         min_rr = self._num(cfg.get("min_rr", 0.0))
         rr_epsilon = max(0.0, self._num(cfg.get("rr_epsilon", 0.0), 0.0))
         if metrics.rr + rr_epsilon < min_rr:
+            metrics.skip_reason = "LOW_RR"
             return False, "LOW_RR", metrics
 
         sl_soft = self._soft_sl_settings(cfg, sym)
@@ -322,6 +561,7 @@ class SniperFilter:
             if soft_enabled:
                 hard_limit = sl_cap * max(1.0, hard_mult)
                 if metrics.sl_pips > hard_limit:
+                    metrics.skip_reason = "SL_TOO_WIDE_PIPS"
                     return False, "SL_TOO_WIDE_PIPS", metrics
                 if metrics.sl_pips > sl_cap:
                     if metrics.sl_pips <= (sl_cap + max(0.0, soft_buffer)):
@@ -331,9 +571,11 @@ class SniperFilter:
                         if soft_risk_scale < 1.0:
                             metrics["risk_scale"] = soft_risk_scale
                     else:
+                        metrics.skip_reason = "SL_TOO_WIDE_PIPS"
                         return False, "SL_TOO_WIDE_PIPS", metrics
             else:
                 if metrics.sl_pips > sl_cap:
+                    metrics.skip_reason = "SL_TOO_WIDE_PIPS"
                     return False, "SL_TOO_WIDE_PIPS", metrics
 
         max_sl_usd = self._num(cfg.get("max_sl_usd", 0.0), 0.0)
@@ -341,16 +583,29 @@ class SniperFilter:
             # USD risk cap is enforced during lot sizing in RiskManager where account context exists.
             pass
 
-        max_entry_dist = self._num(cfg.get("max_entry_distance_pips", 0.0), 0.0)
-        if max_entry_dist > 0:
-            dist = self.compute_entry_distance(signal, sym, c5)
-            metrics.entry_distance_pips = self._num(dist, 0.0) if dist is not None else 0.0
-            if dist is not None and dist > max_entry_dist:
-                return False, "LATE_ENTRY", metrics
+        max_entry_dist = self._entry_distance_limit_pips(sym)
+        if max_entry_dist <= 0:
+            max_entry_dist = self._num(cfg.get("max_entry_distance_pips", 0.0), 0.0)
 
-        atr_period = int(self._num(cfg.get("atr_period", 14), 14))
-        atr_mult = self._num(cfg.get("min_displacement_atr_mult", 0.8), 0.8)
-        displacement_confirmed = self._check_displacement(signal, c5, atr_period, atr_mult)
+        limit_mid = None
+        if setup in ("FVG", "ORDER_BLOCK"):
+            metrics.entry_mode = "LIMIT"
+            if setup == "FVG":
+                limit_mid = self._find_fvg_midpoint(c15[-60:] if len(c15) > 60 else c15, direction)
+            else:
+                limit_mid = self._find_ob_midpoint(c15[-60:] if len(c15) > 60 else c15, direction)
+            if limit_mid is not None:
+                signal.entry = limit_mid
+                setattr(signal, "trigger_price", c5[-1].get("close") if c5 else limit_mid)
+                metrics.entry_price = limit_mid
+            else:
+                metrics.entry_mode = "CONFIRMATION"
+
+        dist = self.compute_entry_distance(signal, sym, c5)
+        metrics.entry_distance_pips = self._num(dist, 0.0) if dist is not None else 0.0
+        if max_entry_dist > 0 and dist is not None and dist > max_entry_dist:
+            metrics.skip_reason = "LATE_ENTRY"
+            return False, "LATE_ENTRY", metrics
 
         require_discount_premium = bool(
             cfg.get(
@@ -382,39 +637,96 @@ class SniperFilter:
                         metrics.confidence >= dp_min_conf or displacement_confirmed
                     )
                     if not soft_dp_ok:
+                        metrics.skip_reason = "NOT_IN_DISCOUNT_PREMIUM"
                         return False, "NOT_IN_DISCOUNT_PREMIUM", metrics
         else:
             metrics.in_discount_premium = True
 
         if bool(cfg.get("require_displacement", False)):
             if not displacement_confirmed:
+                metrics.skip_reason = "NO_DISPLACEMENT"
                 return False, "NO_DISPLACEMENT", metrics
+        elif not displacement_confirmed:
+            logger.info(f"INFO: NOT_ENFORCED_DISPLACEMENT: symbol={sym} setup={setup}")
+            logger.info(f"RELAXED_GATE: displacement_not_required symbol={sym} setup={setup}")
 
-        if bool(cfg.get("avoid_chop", False)):
+        if bool(cfg.get("avoid_chop", False)) and metrics.market_state == "RANGE":
+            allow_range_reversal = (
+                bool(chop_cfg.get("allow_range_reversal_extremes_only", True))
+                and metrics.is_reversal
+                and metrics.sweep_detected
+                and metrics.structure_shift_detected
+                and self._range_extreme_ok(signal, c5, int(self._num(chop_cfg.get("lookback", 24), 24)))
+            )
+            if not allow_range_reversal:
+                metrics.skip_reason = "RANGE_CONDITION"
+                return False, "RANGE_CONDITION", metrics
+        elif bool(cfg.get("avoid_chop", False)):
             lookback = int(self._num(cfg.get("chop_lookback", 30), 30))
             max_overlap = self._num(cfg.get("max_overlap_pct", 0.65), 0.65)
             overlap_pct = self._chop_overlap_pct(c5, lookback)
             if overlap_pct is not None and overlap_pct > max_overlap:
+                metrics.skip_reason = "CHOP_MARKET"
                 return False, "CHOP_MARKET", metrics
+        else:
+            if metrics.market_state == "RANGE":
+                logger.info(f"INFO: NOT_ENFORCED_CHOP_FILTER: symbol={sym} setup={setup} market_state=RANGE")
+                logger.info(f"RELAXED_GATE: chop_not_blocking symbol={sym} setup={setup}")
+
+        reversal_gate_enabled = bool(cfg.get("reversal_gate_enabled", False))
+        if metrics.is_reversal:
+            if reversal_gate_enabled:
+                gate_conditions = [
+                    metrics.sweep_detected,
+                    displacement_confirmed,
+                    metrics.structure_shift_detected,
+                ]
+                min_required = int(self._num(cfg.get("reversal_gate_min_conditions_required", 2), 2))
+                if bool(cfg.get("reversal_gate_require_sweep", False)) and not metrics.sweep_detected:
+                    metrics.skip_reason = "NO_SWEEP_FOR_REVERSAL"
+                    return False, "NO_SWEEP_FOR_REVERSAL", metrics
+                if bool(cfg.get("reversal_gate_require_mss", False)) and not metrics.structure_shift_detected:
+                    metrics.skip_reason = "NO_MSS_FOR_REVERSAL"
+                    return False, "NO_MSS_FOR_REVERSAL", metrics
+                if sum(1 for x in gate_conditions if x) < max(1, min_required):
+                    metrics.skip_reason = "REVERSAL_GATE_FAILED"
+                    return False, "REVERSAL_GATE_FAILED", metrics
+            else:
+                logger.info(f"INFO: NOT_ENFORCED_REVERSAL_GATE: symbol={sym} setup={setup}")
+                logger.info(f"RELAXED_GATE: reversal_gate_disabled symbol={sym} setup={setup}")
+
+        htf_ctrl = self.cfg.get("htf_bias_control", {})
+        if not isinstance(htf_ctrl, dict):
+            htf_ctrl = {}
+        if bool(htf_ctrl.get("enabled", False)) and metrics.is_reversal:
+            if bool(htf_ctrl.get("block_on_strong_conflict", False)) and metrics.htf_bias != "NEUTRAL":
+                metrics.skip_reason = "HTF_CONFLICT"
+                return False, "HTF_CONFLICT", metrics
+            if bool(htf_ctrl.get("reduce_risk_on_conflict", False)):
+                metrics.risk_scale *= 0.5
 
         if bool(cfg.get("enforce_killzones", False)) and not in_killzone:
+            metrics.skip_reason = "KILLZONE_LIMIT"
             return False, "KILLZONE_LIMIT", metrics
         if bool(cfg.get("enforce_killzones", False)):
             allowed_kz = self.hybrid_cfg.get("allowed_kill_zones", ["LONDON_OPEN", "NY_OPEN", "LONDON_CLOSE"])
             allowed_set = {str(x).upper() for x in allowed_kz}
             if allowed_set and str(killzone or "NONE").upper() not in allowed_set:
+                metrics.skip_reason = "KILLZONE_LIMIT"
                 return False, "KILLZONE_LIMIT", metrics
 
         win = self._window_id(killzone)
         key = (sym, win)
         if bool(cfg.get("one_trade_per_symbol_per_killzone", False)):
             if self._symbol_kz_window_counts.get(key, 0) >= 1:
+                metrics.skip_reason = "KILLZONE_LIMIT"
                 return False, "KILLZONE_LIMIT", metrics
 
         if bool(cfg.get("reentry_requires_new_setup", False)):
             _, _, _, _, setup = self._signal_fields(signal)
             last_setup = self._last_setup_by_symbol_kz.get(key)
             if last_setup and last_setup == setup:
+                metrics.skip_reason = "KILLZONE_LIMIT"
                 return False, "KILLZONE_LIMIT", metrics
 
         return True, "OK", metrics

@@ -21,6 +21,7 @@ from trading_brain import TradingBrain
 from cooldown_manager import CooldownManager
 from hybrid_gate import HybridGate
 from sniper_filter import SniperFilter
+from trailing_manager import StructureTrailingManager
 
 logger = logging.getLogger("ENGINE")
 
@@ -39,12 +40,16 @@ class TradingEngine:
         self.notifier = Notifier(config.get("notifications", {}))
         self.cooldowns = CooldownManager(self.cfg)
 
-        db_path = Path(__file__).parent.parent / "memory" / "trading_memory.db"
+        login_raw = str(config.get("mt5", {}).get("login", "")).strip()
+        login_safe = "".join(ch for ch in login_raw if ch.isdigit()) or "default"
+        db_path = Path(__file__).parent.parent / "memory" / f"trading_memory_{login_safe}.db"
         db_path.parent.mkdir(exist_ok=True)
         self.memory = TradingMemoryDB(db_path)
-        self.brain = TradingBrain(self.memory)
+        self.brain = TradingBrain(self.memory, self.cfg)
         self.hybrid_gate = HybridGate(self.cfg, self.memory)
         self.sniper_filter = SniperFilter(self.cfg)
+        self.trailing = StructureTrailingManager(self.cfg)
+        self._sl_update_attempts: dict[int, int] = {}
 
         self._scan_interval = 10
         self._manage_interval = 5
@@ -60,6 +65,8 @@ class TradingEngine:
         self.analyzer_running = False
         self.analyzer_last_tick = None
         self.started_at_utc = datetime.utcnow()
+        self._pending_cancel_reasons: deque[dict] = deque(maxlen=20)
+        self._daily_loss_flatten_last_at: Optional[datetime] = None
 
     async def _startup(self) -> bool:
         logger.info("Connecting to MT5...")
@@ -109,7 +116,7 @@ class TradingEngine:
     async def _manage_loop(self):
         while not self.shutdown.is_set():
             try:
-                await self._manage_positions()
+                await self.manage_open_positions()
                 await self._fallback_closed_trade_sync()
             except Exception as e:
                 logger.error(f"Manage error: {e}", exc_info=True)
@@ -123,6 +130,7 @@ class TradingEngine:
     async def _scan_all_pairs(self):
         account = self.mt5.get_account_info()
         positions = self.mt5.get_open_positions()
+        self._sync_live_positions_to_memory(positions)
         balance = account.get("balance", 0)
         equity = float(account.get("equity", account.get("balance", 0.0)))
         self._latest_equity = equity
@@ -179,8 +187,22 @@ class TradingEngine:
         daily_metrics: dict,
         session_name: str,
     ) -> bool:
+        pending_orders = []
+        if hasattr(self.mt5, "get_pending_orders"):
+            try:
+                pending_orders = [o for o in self.mt5.get_pending_orders(symbol) if str(o.get("symbol")) == symbol]
+            except Exception:
+                pending_orders = []
+        if pending_orders:
+            self._manage_pending_orders(symbol, pending_orders)
+            pending_orders = [o for o in pending_orders if self._is_order_still_pending(o.get("ticket"))]
+            if pending_orders:
+                logger.info(f"SKIP_ENTRY_PENDING_EXISTS: symbol={symbol} pending={len(pending_orders)}")
+                return False
+
         existing = [p for p in open_positions if p["symbol"] == symbol]
         if existing:
+            logger.info(f"SKIP_ENTRY_OPEN_POSITION: symbol={symbol} open={len(existing)}")
             return False
         paper_trade_only = False
 
@@ -217,11 +239,13 @@ class TradingEngine:
         if last:
             elapsed = (datetime.utcnow() - last).total_seconds()
             if elapsed < self._signal_cooldown:
+                remaining = max(0, int(self._signal_cooldown - elapsed))
+                logger.info(f"SKIP_ENTRY_SIGNAL_COOLDOWN: symbol={symbol} remaining={remaining}")
                 return False
 
         blocked_news, reason = self.news.is_blocked(symbol)
         if blocked_news:
-            logger.debug(f"{symbol}: {reason}")
+            logger.info(f"SKIP_ENTRY_NEWS: symbol={symbol} reason={reason}")
             return False
 
         can_trade, reason = self.risk.can_trade(
@@ -270,6 +294,8 @@ class TradingEngine:
                 return False
             elif reason_text.startswith("DAILY_LOSS_LIMIT") or reason_text.startswith("MAX_DAILY_LOSS"):
                 logger.warning(f"SKIP_PROP_MAX_DAILY_LOSS: {reason_text}")
+                if reason_text.startswith("MAX_DAILY_LOSS_EQUITY"):
+                    await self._handle_prop_daily_loss_breach(reason_text, open_positions=open_positions)
                 self._skip_reasons.append(
                     {"ts": datetime.utcnow().isoformat(), "symbol": symbol, "reason": "MAX_DAILY_LOSS", "detail": reason_text}
                 )
@@ -282,26 +308,30 @@ class TradingEngine:
                 return False
 
         candles_h4 = self.mt5.get_candles(symbol, self.tf["bias"], 300)
+        candles_h1 = self.mt5.get_candles(symbol, "H1", 300)
         candles_m15 = self.mt5.get_candles(symbol, self.tf["entry"], 200)
         candles_m5 = self.mt5.get_candles(symbol, self.tf["trigger"], 100)
         candles_m1 = self.mt5.get_candles(symbol, "M1", 100)
         tick = self.mt5.get_tick(symbol)
         spread = self.mt5.get_spread_pips(symbol)
 
-        if not candles_h4 or not candles_m15 or not tick:
+        if not candles_h4 or not candles_h1 or not candles_m15 or not tick:
             logger.warning(f"Incomplete data for {symbol} - skipping")
             return False
 
         signal = self.strategy.analyze(symbol, candles_h4, candles_m15, candles_m5, candles_m1, spread)
 
         if signal and signal.valid:
-            passed, reason, metrics = self._sniper_filter(signal, symbol, candles_m5, candles_m15, candles_h4)
+            setup_name = str(getattr(signal.setup_type, "value", signal.setup_type))
+            passed, reason, metrics = self._sniper_filter(signal, symbol, candles_m5, candles_m15, candles_h4, candles_h1)
             if not passed:
-                setup_name = str(getattr(signal.setup_type, "value", signal.setup_type))
                 log_msg = (
                     f"SKIP_SNIPER_{reason}: symbol={symbol} setup={setup_name} "
                     f"sl_pips={metrics.sl_pips:.2f} rr={metrics.rr:.2f} "
-                    f"confidence={metrics.confidence:.2f} killzone={metrics.killzone}"
+                    f"confidence={metrics.confidence:.2f} killzone={metrics.killzone} "
+                    f"htf_bias={metrics.htf_bias} sweep={metrics.sweep_detected} "
+                    f"disp={metrics.displacement_strength:.2f} mss={metrics.structure_shift_detected} "
+                    f"entry_dist={metrics.entry_distance_pips:.2f} market={metrics.market_state}"
                 )
                 logger.info(log_msg)
                 self._skip_reasons.append(
@@ -314,6 +344,13 @@ class TradingEngine:
                         "rr": round(float(metrics.rr), 4),
                         "confidence": round(float(metrics.confidence), 4),
                         "killzone": metrics.killzone,
+                        "htf_bias": metrics.htf_bias,
+                        "sweep": bool(metrics.sweep_detected),
+                        "displacement_strength": round(float(metrics.displacement_strength), 4),
+                        "entry_distance_pips": round(float(metrics.entry_distance_pips), 4),
+                        "mss": bool(metrics.structure_shift_detected),
+                        "market_state": metrics.market_state,
+                        "risk_scale": round(float(getattr(metrics, "risk_scale", 1.0)), 4),
                     }
                 )
                 return False
@@ -370,15 +407,39 @@ class TradingEngine:
                     }
                 )
 
+            corr_scale, corr_detail = self.risk.correlation_risk_scale(
+                symbol=symbol,
+                direction=str(getattr(signal.direction, "value", "")),
+                open_positions=open_positions,
+            )
+            effective_risk_scale = float(getattr(metrics, "risk_scale", 1.0)) * float(corr_scale)
+            risk_pct_preview = self.risk.estimate_used_risk_pct(
+                confidence=float(getattr(signal, "confidence", 0.0)),
+                rr=float(getattr(signal, "rr", 0.0)),
+                risk_scale=float(effective_risk_scale),
+            )
+            logger.info(
+                "CORR_STATUS symbol=%s setup=%s direction=%s %s risk_scale=%.2f final_risk_pct=%.3f",
+                symbol,
+                setup_name,
+                str(getattr(signal.direction, "value", "")),
+                corr_detail,
+                float(effective_risk_scale),
+                float(risk_pct_preview),
+            )
+
+            setup_id = self._build_setup_id(signal)
             can_trade_signal, reason_signal = self.risk.can_trade(
                 open_positions=open_positions,
                 account_balance=balance,
+                setup_id=setup_id,
                 symbol=symbol,
+                direction=str(getattr(signal.direction, "value", "")),
                 equity=self._latest_equity,
                 current_daily_pnl=float(daily_metrics.get("daily_pnl", 0.0)),
                 confidence=float(getattr(signal, "confidence", 0.0)),
                 rr=float(getattr(signal, "rr", 0.0)),
-                risk_scale=float(getattr(metrics, "risk_scale", 1.0)),
+                risk_scale=float(effective_risk_scale),
             )
             if not can_trade_signal:
                 reason_text = str(reason_signal)
@@ -400,6 +461,8 @@ class TradingEngine:
                     return False
                 elif reason_text.startswith("DAILY_LOSS_LIMIT") or reason_text.startswith("MAX_DAILY_LOSS"):
                     logger.warning(f"SKIP_PROP_MAX_DAILY_LOSS: {reason_text}")
+                    if reason_text.startswith("MAX_DAILY_LOSS_EQUITY"):
+                        await self._handle_prop_daily_loss_breach(reason_text, open_positions=open_positions)
                     return False
                 else:
                     logger.warning(f"Risk block: {reason_text}")
@@ -439,12 +502,79 @@ class TradingEngine:
                 return True
 
             if not self.brain.should_disable_setup(signal.setup_type.value):
-                await self._execute_signal(signal, balance, spread, candles_h4, candles_m15, candles_m5, metrics)
+                logger.info(
+                    f"ICT_ENTRY_CONTEXT: symbol={symbol} setup={setup_name} htf_bias={metrics.htf_bias} "
+                    f"sweep={metrics.sweep_detected} disp_strength={metrics.displacement_strength:.2f} "
+                    f"entry_dist={metrics.entry_distance_pips:.2f} mss={metrics.structure_shift_detected} "
+                    f"killzone={metrics.killzone} market_state={metrics.market_state} "
+                    f"risk_scale={float(effective_risk_scale):.2f} mode={metrics.entry_mode}"
+                )
+                await self._execute_signal(
+                    signal,
+                    balance,
+                    spread,
+                    candles_h4,
+                    candles_m15,
+                    candles_m5,
+                    metrics,
+                    setup_id=setup_id,
+                    risk_scale_override=float(effective_risk_scale),
+                )
             else:
                 logger.warning(f"Setup '{signal.setup_type.value}' DISABLED due to low performance")
             return True
 
+        logger.info(f"NO_SIGNAL: symbol={symbol}")
         return False
+
+    def _is_order_still_pending(self, ticket) -> bool:
+        if not hasattr(self.mt5, "get_pending_orders"):
+            return False
+        try:
+            orders = self.mt5.get_pending_orders()
+            t = int(ticket)
+            return any(int(o.get("ticket", -1)) == t for o in orders)
+        except Exception:
+            return False
+
+    def _manage_pending_orders(self, symbol: str, orders: list[dict]):
+        tick = self.mt5.get_tick(symbol)
+        if not tick:
+            return
+        now = datetime.utcnow()
+        max_age_min = int(self.cfg.get("execution", {}).get("pending_max_age_minutes", 90))
+        dist_limit = float(self.cfg.get("entry_distance_limit", {}).get(symbol, 0.0) or 0.0)
+        pip = self.strategy.get_pip_size(symbol)
+        for o in orders:
+            ticket = int(o.get("ticket", 0) or 0)
+            if ticket <= 0:
+                continue
+            entry = float(o.get("price_open", 0.0) or 0.0)
+            if entry <= 0:
+                continue
+            setup_time = o.get("time_setup")
+            age_min = ((now - setup_time).total_seconds() / 60.0) if isinstance(setup_time, datetime) else 0.0
+            market_mid = (float(tick["bid"]) + float(tick["ask"])) / 2.0
+            dist_pips = abs(market_mid - entry) / pip if pip > 0 else 0.0
+            stale_age = max_age_min > 0 and age_min > max_age_min
+            stale_dist = dist_limit > 0 and dist_pips > (dist_limit * 2.0)
+            if stale_age or stale_dist:
+                reason = "AGE" if stale_age else "DISTANCE"
+                if hasattr(self.mt5, "cancel_order") and self.mt5.cancel_order(ticket):
+                    logger.info(
+                        f"CANCEL_PENDING_{reason}: symbol={symbol} ticket={ticket} "
+                        f"age_min={age_min:.1f} dist_pips={dist_pips:.2f}"
+                    )
+                    self._pending_cancel_reasons.append(
+                        {
+                            "ts": datetime.utcnow().isoformat(),
+                            "symbol": symbol,
+                            "ticket": ticket,
+                            "reason": f"PENDING_{reason}",
+                            "age_min": round(age_min, 2),
+                            "dist_pips": round(dist_pips, 4),
+                        }
+                    )
 
     async def _execute_signal(
         self,
@@ -455,6 +585,8 @@ class TradingEngine:
         candles_m15: list,
         candles_m5: list,
         sniper_metrics=None,
+        setup_id: str = "",
+        risk_scale_override: Optional[float] = None,
     ):
         adaptive_confidence = self.brain.get_adaptive_confidence(signal.setup_type.value)
         original_confidence = signal.confidence
@@ -476,7 +608,31 @@ class TradingEngine:
         in_kill_zone, kz_name = self.strategy.in_kill_zone()
         kz_name = kz_name or "NONE"
 
-        if not self._is_hybrid_mode():
+        planned_mode = str(getattr(sniper_metrics, "entry_mode", "CONFIRMATION")).upper()
+        planned_entry = float(getattr(signal, "entry", 0.0) or 0.0)
+        disp_ok = bool(getattr(sniper_metrics, "displacement_confirmed", True))
+        entry_dist = float(getattr(sniper_metrics, "entry_distance_pips", 0.0) or 0.0)
+        risk_scale_used = float(
+            risk_scale_override
+            if risk_scale_override is not None
+            else float(getattr(sniper_metrics, "risk_scale", 1.0))
+        )
+        final_risk_pct = self.risk.estimate_used_risk_pct(
+            confidence=float(signal.confidence),
+            rr=float(getattr(signal, "rr", 0.0)),
+            risk_scale=risk_scale_used,
+        )
+        thesis = self.risk.get_trade_thesis(signal.symbol, signal.direction.value)
+        corr_decision = "SCALE" if risk_scale_used < 1.0 else "OK"
+        logger.info(
+            "THESIS=%s CORR_DECISION=%s PAIR_TRIGGER=EXECUTION risk_scale=%.2f final_risk_pct=%.3f",
+            thesis,
+            corr_decision,
+            risk_scale_used,
+            final_risk_pct,
+        )
+
+        if self._is_hybrid_mode():
             hcfg = self.cfg.get("hybrid", {})
             if hcfg.get("trade_only_in_kill_zones", False):
                 if not in_kill_zone:
@@ -501,13 +657,13 @@ class TradingEngine:
 
         lot = self.risk.calculate_lot_size(
             symbol=signal.symbol,
-            entry=signal.entry,
+            entry=planned_entry,
             sl=signal.sl,
             tp=signal.tp,
             account_balance=balance,
             confidence=signal.confidence,
             rr=float(getattr(signal, "rr", 0.0)),
-            risk_scale=float(getattr(sniper_metrics, "risk_scale", 1.0)),
+            risk_scale=risk_scale_used,
             in_kill_zone=in_kill_zone,
             open_positions=self.mt5.get_open_positions(),
             daily_pnl=float(self.memory.get_daily_summary(*self._daily_window_utc()).get("daily_pnl", 0.0)),
@@ -517,16 +673,55 @@ class TradingEngine:
             logger.warning(f"Lot size too small ({lot}) - skip")
             return
 
-        result = self.mt5.place_market_order(
-            symbol=signal.symbol,
-            order_type=signal.direction.value,
-            volume=lot,
-            sl=signal.sl,
-            tp=signal.tp,
-            comment=f"ICT_{signal.setup_type.value}",
-        )
+        result = None
+        if planned_mode == "LIMIT" and hasattr(self.mt5, "place_limit_order"):
+            result = self.mt5.place_limit_order(
+                symbol=signal.symbol,
+                order_type=signal.direction.value,
+                volume=lot,
+                entry=planned_entry,
+                sl=signal.sl,
+                tp=signal.tp,
+                comment=f"ICT_{signal.setup_type.value}_LIMIT",
+            )
+        elif planned_mode == "LIMIT":
+            logger.info(
+                f"ENTRY_MODE_FALLBACK: symbol={signal.symbol} setup={signal.setup_type.value} "
+                f"mode=CONFIRMATION reason=LIMIT_API_UNAVAILABLE entry_dist={entry_dist:.2f}"
+            )
+            if not disp_ok:
+                logger.info(
+                    f"INFO: NOT_ENFORCED_DISPLACEMENT: symbol={signal.symbol} setup={signal.setup_type.value}"
+                )
+                logger.info(
+                    f"RELAXED_GATE: displacement_not_required symbol={signal.symbol} setup={signal.setup_type.value}"
+                )
+
+        if result is None:
+            result = self.mt5.place_market_order(
+                symbol=signal.symbol,
+                order_type=signal.direction.value,
+                volume=lot,
+                sl=signal.sl,
+                tp=signal.tp,
+                comment=f"ICT_{signal.setup_type.value}",
+            )
 
         if result:
+            is_pending = bool(result.get("is_pending", False))
+            if is_pending:
+                logger.info(
+                    "ENTRY_PENDING_ONLY: symbol=%s setup=%s direction=%s order=%s entry=%.5f sl=%.5f tp=%.5f",
+                    signal.symbol,
+                    signal.setup_type.value,
+                    signal.direction.value,
+                    int(result.get("order_ticket") or result.get("ticket") or 0),
+                    float(result.get("price") or planned_entry or 0.0),
+                    float(signal.sl),
+                    float(signal.tp),
+                )
+                return
+
             in_kill_zone, kz_name = self.strategy.in_kill_zone()
             kz_name = kz_name or "NONE"
             self.sniper_filter.register_entry(
@@ -534,10 +729,26 @@ class TradingEngine:
                 kz_name,
                 str(getattr(signal.setup_type, "value", signal.setup_type)),
             )
-            self.risk.record_open(result, signal.setup_type.value, signal.reason)
+            self.risk.record_open(
+                result,
+                setup_type=signal.setup_type.value,
+                setup_id=setup_id,
+                reason=signal.reason,
+            )
             self._last_signals[signal.symbol] = datetime.utcnow()
 
             htf_bias = self.strategy.get_htf_bias(candles_h4).value
+            setup_class = "REVERSAL" if bool(getattr(sniper_metrics, "is_reversal", False)) else "CONTINUATION"
+            validity_tags = [
+                f"SETUP_CLASS_{setup_class}",
+                f"SWEEP_{'YES' if bool(getattr(sniper_metrics, 'sweep_detected', False)) else 'NO'}",
+                f"DISPLACEMENT_{'YES' if bool(getattr(sniper_metrics, 'displacement_confirmed', False)) else 'NO'}",
+                f"MSS_{'YES' if bool(getattr(sniper_metrics, 'structure_shift_detected', False)) else 'NO'}",
+                f"ENTRY_MODE_{str(getattr(sniper_metrics, 'entry_mode', 'CONFIRMATION')).upper()}",
+                f"MARKET_{str(getattr(sniper_metrics, 'market_state', 'TREND')).upper()}",
+            ]
+            analysis_conditions = list(analysis["conditions_met"][:])
+            analysis_conditions.extend(validity_tags)
 
             trade_memory = TradeMemory(
                 ticket=result["ticket"],
@@ -555,9 +766,11 @@ class TradingEngine:
                 kill_zone=kz_name,
                 spread_pips=spread,
                 reason=analysis["reasoning"],
-                conditions_met=analysis["conditions_met"],
+                conditions_met=analysis_conditions,
                 expected_outcome=analysis["expected_outcome"],
                 confidence_input=signal.confidence,
+                setup_class=setup_class,
+                validity_tags=validity_tags,
                 entry_time=datetime.utcnow(),
             )
 
@@ -581,52 +794,192 @@ class TradingEngine:
             )
 
     async def _manage_positions(self):
+        await self.manage_open_positions()
+
+    async def manage_open_positions(self):
         positions = self.mt5.get_open_positions()
+        self._sync_live_positions_to_memory(positions)
         if not positions:
             return
 
-        if not hasattr(self, "_trailing_2022"):
-            from ict_2022_trailing import ICT2022TrailingStop
+        account = self.mt5.get_account_info()
+        balance = float(account.get("balance", 0.0) or 0.0)
+        equity = float(account.get("equity", balance) or balance)
+        self._latest_equity = equity
+        daily_metrics = self.memory.get_daily_summary(*self._daily_window_utc())
+        ok_global, reason_global = self.risk.can_trade(
+            open_positions=positions,
+            account_balance=balance,
+            equity=equity,
+            current_daily_pnl=float(daily_metrics.get("daily_pnl", 0.0)),
+        )
+        if not ok_global and str(reason_global).startswith("MAX_DAILY_LOSS_EQUITY"):
+            await self._handle_prop_daily_loss_breach(str(reason_global), open_positions=positions)
+            return
 
-            self._trailing_2022 = ICT2022TrailingStop(self.cfg, self.mt5)
+        tick_cache: dict[str, dict] = {}
+        info_cache: dict[str, dict] = {}
+        candles_m5_cache: dict[str, list] = {}
+        candles_m1_cache: dict[str, list] = {}
 
         for pos in positions:
-            tick = self.mt5.get_tick(pos["symbol"])
+            symbol = str(pos["symbol"])
+            side = str(pos.get("type", "")).upper()
+            current_sl = float(pos.get("sl", 0.0) or 0.0)
+            ticket = int(pos.get("ticket", 0) or 0)
+            if ticket <= 0 or side not in ("BUY", "SELL"):
+                continue
+
+            tick = tick_cache.get(symbol)
+            if tick is None:
+                tick = self.mt5.get_tick(symbol)
+                if tick:
+                    tick_cache[symbol] = tick
             if not tick:
                 continue
 
-            bid = tick["bid"]
-            ask = tick["ask"]
-            mid_price = (bid + ask) / 2
-
-            spread = tick.get("spread", 0)
-            pip_size = self.strategy.get_pip_size(pos["symbol"])
-            spread_pips = spread / pip_size if pip_size > 0 else 0
-
-            candles_m5 = self.mt5.get_candles(pos["symbol"], "M5", 20)
-            if not candles_m5:
+            bid = float(tick["bid"])
+            ask = float(tick["ask"])
+            candles_m5 = candles_m5_cache.get(symbol)
+            if candles_m5 is None:
+                candles_m5 = self.mt5.get_candles(symbol, "M5", 150)
+                candles_m5_cache[symbol] = candles_m5 or []
+            candles_m1 = candles_m1_cache.get(symbol)
+            if candles_m1 is None:
+                candles_m1 = self.mt5.get_candles(symbol, "M1", 300)
+                candles_m1_cache[symbol] = candles_m1 or []
+            if not candles_m5 and not candles_m1:
                 continue
 
-            new_sl = self._trailing_2022.get_trailing_sl(
+            symbol_info = info_cache.get(symbol)
+            if symbol_info is None and hasattr(self.mt5, "get_symbol_info"):
+                symbol_info = self.mt5.get_symbol_info(symbol) or {}
+                info_cache[symbol] = symbol_info
+            eval_res = self.trailing.evaluate_position(
                 position=pos,
-                current_price=mid_price,
-                candles_m5=candles_m5,
-                spread_pips=spread_pips,
+                candles_m5=list(candles_m5 or []),
+                candles_m1=list(candles_m1 or candles_m5 or []),
                 bid=bid,
                 ask=ask,
+                symbol_info=symbol_info,
+            )
+            new_sl = eval_res.get("new_sl")
+            reason = str(eval_res.get("reason") or "")
+            if not isinstance(new_sl, (float, int)):
+                continue
+            new_sl = float(new_sl)
+
+            if side == "BUY" and new_sl <= current_sl:
+                continue
+            if side == "SELL" and new_sl >= current_sl:
+                continue
+
+            attempt = int(self._sl_update_attempts.get(ticket, 0)) + 1
+            if hasattr(self.mt5, "modify_sl_tp_detailed"):
+                mod = self.mt5.modify_sl_tp_detailed(ticket, new_sl, pos["tp"])
+                ok = bool(mod.get("ok", False))
+                retcode = mod.get("retcode")
+                comment = str(mod.get("comment", ""))
+                last_error = str(mod.get("last_error", ""))
+            else:
+                ok = bool(self.mt5.modify_sl_tp(ticket, new_sl, pos["tp"]))
+                retcode = None
+                comment = ""
+                last_error = ""
+
+            if ok:
+                self._sl_update_attempts[ticket] = 0
+                logger.info(
+                    f"SL_UPDATE: symbol={symbol} ticket={ticket} side={side} old_sl={current_sl:.5f} "
+                    f"new_sl={new_sl:.5f} reason={reason} attempt={attempt}"
+                )
+            else:
+                self._sl_update_attempts[ticket] = attempt
+                point = float((symbol_info or {}).get("point", 0.0) or 0.0)
+                stops_level = int((symbol_info or {}).get("stops_level", 0) or 0)
+                freeze_level = int((symbol_info or {}).get("freeze_level", 0) or 0)
+                stop_dist = point * max(stops_level, 0)
+                freeze_dist = point * max(freeze_level, 0)
+                logger.warning(
+                    f"SL_UPDATE_REJECTED: symbol={symbol} ticket={ticket} side={side} old_sl={current_sl:.5f} "
+                    f"new_sl={new_sl:.5f} reason={reason} attempt={attempt} retcode={retcode} "
+                    f"broker_error={comment or last_error} stop_level={stops_level} stop_dist={stop_dist:.5f} "
+                    f"freeze_level={freeze_level} freeze_dist={freeze_dist:.5f}"
+                )
+
+    def _sync_live_positions_to_memory(self, positions: Optional[list] = None):
+        ensure_fn = getattr(self.memory, "ensure_open_trade_from_position", None)
+        if not callable(ensure_fn):
+            return
+
+        live_positions = list(positions or [])
+        if not live_positions:
+            return
+
+        inserted = 0
+        linked = 0
+        for pos in live_positions:
+            try:
+                action = str(ensure_fn(pos))
+            except Exception as e:
+                logger.error(f"DB_OPEN_SYNC_FAILED: {e}", exc_info=True)
+                continue
+            if action == "inserted":
+                inserted += 1
+            elif action == "linked":
+                linked += 1
+
+        if inserted > 0 or linked > 0:
+            logger.warning(
+                "DB_OPEN_SYNC_SUMMARY live_positions=%s inserted=%s linked=%s",
+                len(live_positions),
+                inserted,
+                linked,
             )
 
-            if new_sl and new_sl != pos["sl"]:
-                if pos["type"] == "BUY" and new_sl > pos["sl"]:
-                    if self.mt5.modify_sl_tp(pos["ticket"], new_sl, pos["tp"]):
-                        logger.info(
-                            f"Trailing SL | {pos['symbol']} #{pos['ticket']} | {pos['sl']:.5f} -> {new_sl:.5f}"
-                        )
-                elif pos["type"] == "SELL" and new_sl < pos["sl"]:
-                    if self.mt5.modify_sl_tp(pos["ticket"], new_sl, pos["tp"]):
-                        logger.info(
-                            f"Trailing SL | {pos['symbol']} #{pos['ticket']} | {pos['sl']:.5f} -> {new_sl:.5f}"
-                        )
+    async def _handle_prop_daily_loss_breach(self, reason: str, open_positions: Optional[list] = None):
+        now = datetime.utcnow()
+        if self._daily_loss_flatten_last_at and (now - self._daily_loss_flatten_last_at).total_seconds() < 15:
+            return
+        self._daily_loss_flatten_last_at = now
+
+        canceled = 0
+        pending_total = 0
+        if hasattr(self.mt5, "get_pending_orders") and hasattr(self.mt5, "cancel_order"):
+            try:
+                pending_orders = self.mt5.get_pending_orders()
+            except Exception:
+                pending_orders = []
+            pending_total = len(pending_orders)
+            for order in pending_orders:
+                ticket = int(order.get("ticket", 0) or 0)
+                if ticket <= 0:
+                    continue
+                if self.mt5.cancel_order(ticket):
+                    canceled += 1
+
+        close_all = bool(self.risk.should_close_all_on_daily_loss_breach())
+        closed = 0
+        close_total = 0
+        if close_all and hasattr(self.mt5, "close_position"):
+            positions = list(open_positions or self.mt5.get_open_positions())
+            close_total = len(positions)
+            for pos in positions:
+                ticket = int(pos.get("ticket", 0) or 0)
+                if ticket <= 0:
+                    continue
+                if self.mt5.close_position(ticket):
+                    closed += 1
+
+        logger.error(
+            "PROP_DAILY_LOSS_BREACH_FLATTEN reason=%s close_all=%s canceled_pending=%s/%s closed_positions=%s/%s",
+            reason,
+            int(close_all),
+            canceled,
+            pending_total,
+            closed,
+            close_total,
+        )
 
     async def _fallback_closed_trade_sync(self):
         if self.analyzer_running:
@@ -642,12 +995,21 @@ class TradingEngine:
                 continue
             if tkt not in live_tickets:
                 rec.close_time = datetime.utcnow()
-                self.risk.on_trade_closed(rec.symbol, "BREAKEVEN", 0.0, rec.close_time)
+                self.risk.on_trade_closed(
+                    symbol=rec.symbol,
+                    outcome="BREAKEVEN",
+                    pnl=0.0,
+                    exit_time=rec.close_time,
+                    ticket=tkt,
+                    direction=rec.direction,
+                    setup_id=rec.setup_id,
+                )
 
     def get_status(self) -> dict:
         account = self.mt5.get_account_info()
         positions = self.mt5.get_open_positions()
         stats = self.risk.get_stats()
+        memory_stats = self.memory.get_overall_summary()
         max_loss_pct = float(self.cfg.get("risk", {}).get("max_daily_loss_pct", 0.0))
         start_utc, end_utc = self._daily_window_utc()
         daily = self.memory.get_daily_summary(start_utc, end_utc)
@@ -679,10 +1041,11 @@ class TradingEngine:
 
         merged_stats = {
             **stats,
+            **memory_stats,
             "daily_pnl": daily["daily_pnl"],
             "daily_trades": daily["trades_today_count"],
-            "winrate": daily["win_rate"],
-            "win_rate": daily["win_rate"],
+            "daily_winrate": daily["win_rate"],
+            "daily_win_rate": daily["win_rate"],
             "trades_today_count": daily["trades_today_count"],
             "wins_today_count": daily["wins_today_count"],
             "losses_today_count": daily["losses_today_count"],
@@ -700,6 +1063,17 @@ class TradingEngine:
             for e in upcoming[:5]
         ]
 
+        setup_perf = self.memory.get_all_setup_performance()
+        exec_cfg = self.cfg.get("execution", {}) if isinstance(self.cfg.get("execution", {}), dict) else {}
+        forced = exec_cfg.get("force_enable_setups", [])
+        if isinstance(forced, list) and forced:
+            forced_set = {str(x).upper().strip() for x in forced if str(x).strip()}
+            for row in setup_perf:
+                setup_name = str(row.get("setup", "")).upper()
+                if setup_name in forced_set:
+                    row["enabled"] = True
+                    row["forced_enabled"] = True
+
         return {
             "timestamp": datetime.utcnow().isoformat(),
             "server_time": datetime.utcnow().isoformat(),
@@ -709,7 +1083,7 @@ class TradingEngine:
             "connected": self.mt5.connected,
             "pair_biases": pair_biases,
             "trade_log": trade_log,
-            "setup_performance": self.memory.get_all_setup_performance(),
+            "setup_performance": setup_perf,
             "daily_pnl": daily["daily_pnl"],
             "win_rate": daily["win_rate"],
             "trades_today_count": daily["trades_today_count"],
@@ -838,6 +1212,7 @@ class TradingEngine:
         candles_m5: list,
         candles_m15: list,
         candles_h4: list,
+        candles_h1: list,
     ):
         in_kill_zone, kz_name = self.strategy.in_kill_zone()
         kz_name = kz_name or "NONE"
@@ -847,9 +1222,21 @@ class TradingEngine:
             candles_m5=candles_m5,
             candles_m15=candles_m15,
             candles_h4=candles_h4,
+            candles_h1=candles_h1,
             killzone=kz_name,
             in_killzone=in_kill_zone,
         )
+
+    def _build_setup_id(self, signal: Signal) -> str:
+        symbol = str(getattr(signal, "symbol", "")).upper()
+        side = str(getattr(getattr(signal, "direction", None), "value", "")).upper()
+        setup = str(getattr(getattr(signal, "setup_type", None), "value", "")).upper()
+        entry = float(getattr(signal, "entry", 0.0) or 0.0)
+        sl = float(getattr(signal, "sl", 0.0) or 0.0)
+        sig_time = getattr(signal, "time", datetime.utcnow())
+        if not isinstance(sig_time, datetime):
+            sig_time = datetime.utcnow()
+        return f"{symbol}:{side}:{setup}:{entry:.5f}:{sl:.5f}:{sig_time.strftime('%Y%m%d%H%M')}"
 
     def _json_safe_positions(self, positions: list) -> list:
         out = []

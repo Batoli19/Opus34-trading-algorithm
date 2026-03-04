@@ -18,8 +18,9 @@ logger = logging.getLogger("BRAIN")
 
 
 class TradingBrain:
-    def __init__(self, memory_db):
+    def __init__(self, memory_db, config: Optional[dict] = None):
         self.memory = memory_db
+        self.config = config or {}
         
     # ── Analyze Trade Entry ──────────────────────────────────────────────────
     def analyze_entry_conditions(self, symbol: str, setup_type: str, 
@@ -269,6 +270,14 @@ class TradingBrain:
           • Has 50+ trades AND
           • Confidence < 60%
         """
+        exec_cfg = self.config.get("execution", {}) if isinstance(self.config.get("execution", {}), dict) else {}
+        forced = exec_cfg.get("force_enable_setups", [])
+        if not isinstance(forced, list):
+            forced = []
+        forced_set = {str(x).upper().strip() for x in forced if str(x).strip()}
+        if str(setup_type or "").upper() in forced_set:
+            logger.info(f"SETUP_OVERRIDE_FORCE_ENABLED: {setup_type}")
+            return False
         return not self.memory.is_setup_enabled(setup_type)
     
     # ── Generate Performance Report ──────────────────────────────────────────
