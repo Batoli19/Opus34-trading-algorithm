@@ -10,6 +10,7 @@ memory/*.sqlite3
 # Local artifacts
 python.zip
 analysis.txt
+python/__write_test.tmp
 
 # Python cache/venv
 __pycache__/
