@@ -1,5 +1,4 @@
 @echo off
-title ICT Trading Bot
-cd /d "C:\Users\user\Documents\BAC\ict_trading_bot\python"
-python main.py
-pause
+cd /d "C:\Users\user\Documents\BAC\ict_trading_bot"
+start "" /B pythonw "bot_launcher.pyw"
+exit

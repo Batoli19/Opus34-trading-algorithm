@@ -1,69 +1,40 @@
-param(
+﻿param(
     [string]$RepoRoot = "C:\Users\user\Documents\BAC\ict_trading_bot",
-    [string]$BatchPath = "C:\Users\user\Documents\BAC\ict_trading_bot\start_bot.bat",
     [string]$ShortcutName = "ICT Trading Bot",
-    [string]$PngIconPath = "C:\Users\user\Documents\BAC\ict_trading_bot\bot icons\bot algo.png",
-    [string]$IcoIconPath = "C:\Users\user\Documents\BAC\ict_trading_bot\bot icons\bot algo.ico"
+    [string]$LauncherPath = "C:\Users\user\Documents\BAC\ict_trading_bot\bot_launcher.pyw",
+    [string]$PythonwPath = "",
+    [string]$IconPath = ""
 )
 
-function Convert-PngToIco {
-    param(
-        [Parameter(Mandatory=$true)][string]$PngPath,
-        [Parameter(Mandatory=$true)][string]$IcoPath
-    )
-
-    if (-not (Test-Path $PngPath)) {
-        throw "PNG icon not found: $PngPath"
-    }
-
-    $pngBytes = [System.IO.File]::ReadAllBytes($PngPath)
-    $icoDir = Split-Path -Parent $IcoPath
-    if (-not (Test-Path $icoDir)) {
-        New-Item -Path $icoDir -ItemType Directory -Force | Out-Null
-    }
-
-    $fs = [System.IO.File]::Open($IcoPath, [System.IO.FileMode]::Create, [System.IO.FileAccess]::Write)
-    try {
-        $bw = New-Object System.IO.BinaryWriter($fs)
-        try {
-            $bw.Write([UInt16]0)
-            $bw.Write([UInt16]1)
-            $bw.Write([UInt16]1)
-
-            $bw.Write([Byte]0)
-            $bw.Write([Byte]0)
-            $bw.Write([Byte]0)
-            $bw.Write([Byte]0)
-            $bw.Write([UInt16]1)
-            $bw.Write([UInt16]32)
-            $bw.Write([UInt32]$pngBytes.Length)
-            $bw.Write([UInt32]22)
-
-            $bw.Write($pngBytes)
-        }
-        finally {
-            $bw.Dispose()
-        }
-    }
-    finally {
-        $fs.Dispose()
-    }
+if (-not (Test-Path $RepoRoot)) {
+    throw "Repo root not found: $RepoRoot"
 }
 
-if (-not (Test-Path $BatchPath)) {
-    throw "Batch launcher not found: $BatchPath"
+if (-not (Test-Path $LauncherPath)) {
+    throw "Launcher not found: $LauncherPath"
 }
 
-$iconForShortcut = $PngIconPath
-$iconExtension = [System.IO.Path]::GetExtension($iconForShortcut).ToLowerInvariant()
-
-if ($iconExtension -eq ".png") {
-    Convert-PngToIco -PngPath $PngIconPath -IcoPath $IcoIconPath
-    $iconForShortcut = $IcoIconPath
+if ([string]::IsNullOrWhiteSpace($PythonwPath)) {
+    $pythonwCmd = Get-Command pythonw -ErrorAction SilentlyContinue
+    if ($null -eq $pythonwCmd) {
+        throw "pythonw.exe not found in PATH. Install Python or pass -PythonwPath explicitly."
+    }
+    $PythonwPath = $pythonwCmd.Source
 }
 
-if (-not (Test-Path $iconForShortcut)) {
-    throw "Icon file not found: $iconForShortcut"
+if (-not (Test-Path $PythonwPath)) {
+    throw "pythonw.exe not found: $PythonwPath"
+}
+
+if ([string]::IsNullOrWhiteSpace($IconPath)) {
+    $rootIcon = Join-Path $RepoRoot "bot_icon.ico"
+    $fallbackIcon = Join-Path $RepoRoot "bot icons\bot algo.ico"
+    if (Test-Path $rootIcon) {
+        $IconPath = $rootIcon
+    } elseif (Test-Path $fallbackIcon) {
+        Copy-Item -Force $fallbackIcon $rootIcon
+        $IconPath = $rootIcon
+    }
 }
 
 $desktop = [Environment]::GetFolderPath("Desktop")
@@ -71,12 +42,20 @@ $shortcutPath = Join-Path $desktop ($ShortcutName + ".lnk")
 
 $wsh = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $BatchPath
+$shortcut.TargetPath = $PythonwPath
+$shortcut.Arguments = "`"$LauncherPath`""
 $shortcut.WorkingDirectory = $RepoRoot
-$shortcut.IconLocation = "$iconForShortcut,0"
 $shortcut.WindowStyle = 1
 $shortcut.Description = "Launch ICT Trading Bot"
+
+if (-not [string]::IsNullOrWhiteSpace($IconPath) -and (Test-Path $IconPath)) {
+    $shortcut.IconLocation = "$IconPath,0"
+}
+
 $shortcut.Save()
 
 Write-Host "Shortcut created: $shortcutPath"
-Write-Host "Icon used: $iconForShortcut"
+Write-Host "Target: $PythonwPath $($shortcut.Arguments)"
+if (-not [string]::IsNullOrWhiteSpace($shortcut.IconLocation)) {
+    Write-Host "Icon: $($shortcut.IconLocation)"
+}
