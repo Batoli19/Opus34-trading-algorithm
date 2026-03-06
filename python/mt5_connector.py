@@ -139,15 +139,80 @@ class MT5Connector:
         info = mt5.symbol_info(symbol)
         if info is None:
             return None
+        trade_tick_value = float(
+            getattr(info, "trade_tick_value", 0.0)
+            or getattr(info, "trade_tick_value_profit", 0.0)
+            or getattr(info, "trade_tick_value_loss", 0.0)
+            or 0.0
+        )
+        trade_tick_size = float(
+            getattr(info, "trade_tick_size", 0.0)
+            or getattr(info, "point", 0.0)
+            or 0.0
+        )
+        point = float(getattr(info, "point", 0.0) or 0.0)
+        pip_size = self._pip_size_for_symbol(symbol, point=point)
+        pip_value_per_lot = 0.0
+        if trade_tick_value > 0.0 and trade_tick_size > 0.0 and pip_size > 0.0:
+            pip_value_per_lot = trade_tick_value * (pip_size / trade_tick_size)
         return {
             "digits": int(getattr(info, "digits", 0) or 0),
-            "point": float(getattr(info, "point", 0.0) or 0.0),
+            "point": point,
             "stops_level": int(getattr(info, "trade_stops_level", 0) or 0),
             "freeze_level": int(getattr(info, "trade_freeze_level", 0) or 0),
             "volume_min": float(getattr(info, "volume_min", 0.0) or 0.0),
             "volume_step": float(getattr(info, "volume_step", 0.0) or 0.0),
             "volume_max": float(getattr(info, "volume_max", 0.0) or 0.0),
+            "trade_tick_value": trade_tick_value,
+            "trade_tick_size": trade_tick_size,
+            "pip_size": pip_size,
+            "pip_value_per_lot": pip_value_per_lot,
         }
+
+    def _pip_size_for_symbol(self, symbol: str, point: float = 0.0) -> float:
+        sym = str(symbol or "").upper()
+        if "JPY" in sym:
+            return 0.01
+        if "XAU" in sym:
+            return 0.1
+        if sym in ("US30", "NAS100", "SPX500"):
+            return 1.0
+        if point > 0.0:
+            if point >= 0.01:
+                return 0.01
+            if point >= 0.0001:
+                return 0.0001
+        return 0.0001
+
+    def get_pip_value_per_lot(self, symbol: str) -> float:
+        self.ensure_connected()
+        info = self.get_symbol_info(symbol) or {}
+        pip_value = float(info.get("pip_value_per_lot", 0.0) or 0.0)
+        if pip_value > 0.0:
+            return pip_value
+
+        tick = mt5.symbol_info_tick(symbol)
+        if tick is None:
+            return 0.0
+
+        pip_size = float(info.get("pip_size", 0.0) or self._pip_size_for_symbol(symbol))
+        if pip_size <= 0.0:
+            return 0.0
+
+        try:
+            ref_price = float(getattr(tick, "ask", 0.0) or getattr(tick, "bid", 0.0) or 0.0)
+            if ref_price <= 0.0:
+                return 0.0
+            profit = mt5.order_calc_profit(
+                mt5.ORDER_TYPE_BUY,
+                symbol,
+                1.0,
+                ref_price,
+                ref_price + pip_size,
+            )
+            return abs(float(profit or 0.0))
+        except Exception:
+            return 0.0
 
     #  Orders 
     def place_market_order(self, symbol: str, order_type: str,

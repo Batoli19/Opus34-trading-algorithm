@@ -61,13 +61,16 @@ class AdaptiveRule:
 
 
 class LossAnalyzer:
-    def __init__(self, mt5_connector, strategy, memory_db, config):
+    def __init__(self, mt5_connector, strategy, memory_db, config, shared_learning_db=None):
         self.mt5 = mt5_connector
         self.strategy = strategy
         self.memory = memory_db
+        self.shared = shared_learning_db
         self.cfg = config if isinstance(config, dict) else {}
+        self.account_login = self._extract_account_login()
 
         self.al_cfg = self._build_adaptive_cfg(self.cfg)
+        self.learning_store = self._resolve_learning_store()
 
         self.learned_lessons: List[LossLesson] = []
         self.adaptive_rules: List[AdaptiveRule] = []
@@ -80,12 +83,37 @@ class LossAnalyzer:
         self.load_rules_from_db()
 
         logger.info(
-            "ADAPTIVE_LEARNING_INIT enabled=%s phase=%s entry_blocking=%s shadow_mode=%s",
+            "ADAPTIVE_LEARNING_INIT enabled=%s phase=%s entry_blocking=%s shadow_mode=%s shared_store=%s",
             int(self.al_cfg["enabled"]),
             int(self.al_cfg["phase"]),
             int(self.al_cfg["entry_blocking_enabled"]),
             int(self.al_cfg["shadow_mode"]),
+            int(self.learning_store is not self.memory),
         )
+
+    def _extract_account_login(self) -> int:
+        try:
+            cfg = getattr(self.mt5, "cfg", {})
+            return int((cfg or {}).get("login", 0) or 0)
+        except Exception:
+            return 0
+
+    def _store_has(self, store, method_name: str) -> bool:
+        return bool(store is not None and callable(getattr(store, method_name, None)))
+
+    def _resolve_learning_store(self):
+        required = (
+            "load_adaptive_rules",
+            "save_adaptive_rule",
+            "save_rule_event",
+            "count_matching_lessons",
+            "get_rule_events_count",
+            "get_adaptive_learning_stats",
+            "save_learned_lesson",
+        )
+        if self.shared is not None and all(self._store_has(self.shared, m) for m in required):
+            return self.shared
+        return self.memory
 
     def _build_adaptive_cfg(self, root_cfg: dict) -> dict:
         raw = root_cfg.get("adaptive_learning", {})
@@ -445,10 +473,11 @@ class LossAnalyzer:
 
     def load_rules_from_db(self) -> List[AdaptiveRule]:
         self.adaptive_rules = []
-        if not hasattr(self.memory, "load_adaptive_rules"):
+        store = self.learning_store
+        if not self._store_has(store, "load_adaptive_rules"):
             return self.adaptive_rules
         try:
-            rows = self.memory.load_adaptive_rules() or []
+            rows = store.load_adaptive_rules() or []
             for row in rows:
                 created = self._parse_time(row.get("created_at_utc")) or self._utcnow()
                 last_triggered = self._parse_time(row.get("last_triggered_utc"))
@@ -481,8 +510,6 @@ class LossAnalyzer:
         return list(self.adaptive_rules)
 
     def save_lesson_to_db(self, lesson: LossLesson) -> int:
-        if not hasattr(self.memory, "save_learned_lesson"):
-            return 0
         payload = {
             "ticket": lesson.trade_id,
             "symbol": lesson.symbol,
@@ -499,11 +526,18 @@ class LossAnalyzer:
             "htf_bias": lesson.htf_bias,
             "kill_zone": lesson.kill_zone,
             "spread_pips": lesson.spread_pips,
+            "source_account_login": self.account_login,
         }
-        return int(self.memory.save_learned_lesson(payload) or 0)
+        local_id = 0
+        shared_id = 0
+        if self._store_has(self.memory, "save_learned_lesson"):
+            local_id = int(self.memory.save_learned_lesson(payload) or 0)
+        if self.learning_store is not self.memory and self._store_has(self.learning_store, "save_learned_lesson"):
+            shared_id = int(self.learning_store.save_learned_lesson(payload) or 0)
+        return int(shared_id or local_id or 0)
 
     def save_rule_to_db(self, rule: AdaptiveRule) -> int:
-        if not hasattr(self.memory, "save_adaptive_rule"):
+        if not self._store_has(self.learning_store, "save_adaptive_rule"):
             return 0
         payload = {
             "id": rule.id,
@@ -525,8 +559,9 @@ class LossAnalyzer:
             "last_triggered_utc": rule.last_triggered_utc,
             "expires_at_utc": rule.expires_at_utc,
             "status": rule.status,
+            "source_account_login": self.account_login,
         }
-        rid = int(self.memory.save_adaptive_rule(payload) or 0)
+        rid = int(self.learning_store.save_adaptive_rule(payload) or 0)
         return rid
 
     def _record_rule_event(
@@ -538,10 +573,10 @@ class LossAnalyzer:
         decision: str,
         notes: str,
     ):
-        if not hasattr(self.memory, "save_rule_event"):
+        if not self._store_has(self.learning_store, "save_rule_event"):
             return
         try:
-            self.memory.save_rule_event(
+            self.learning_store.save_rule_event(
                 {
                     "rule_id": int(rule_id),
                     "event_time_utc": self._utcnow(),
@@ -550,6 +585,7 @@ class LossAnalyzer:
                     "direction": str(direction or ""),
                     "decision": str(decision or ""),
                     "notes": str(notes or ""),
+                    "account_login": self.account_login,
                 }
             )
         except Exception as e:
@@ -705,12 +741,12 @@ class LossAnalyzer:
                 self._record_rule_event(rule.id, "*", "", "", "DISABLED_AUTO", "expired")
                 continue
 
-            if hasattr(self.memory, "count_matching_lessons"):
-                matching_losses = int(self.memory.count_matching_lessons(rule.affected_setup, rule.check_for) or 0)
+            if self._store_has(self.learning_store, "count_matching_lessons"):
+                matching_losses = int(self.learning_store.count_matching_lessons(rule.affected_setup, rule.check_for) or 0)
             else:
                 matching_losses = 0
-            if hasattr(self.memory, "get_rule_events_count"):
-                event_count = int(self.memory.get_rule_events_count(rule.id) or 0)
+            if self._store_has(self.learning_store, "get_rule_events_count"):
+                event_count = int(self.learning_store.get_rule_events_count(rule.id) or 0)
             else:
                 event_count = 0
 
@@ -788,17 +824,25 @@ class LossAnalyzer:
 
     def get_learning_stats(self) -> Dict:
         db_stats = {}
-        if hasattr(self.memory, "get_adaptive_learning_stats"):
+        if self._store_has(self.learning_store, "get_adaptive_learning_stats"):
             try:
-                db_stats = dict(self.memory.get_adaptive_learning_stats() or {})
+                db_stats = dict(self.learning_store.get_adaptive_learning_stats() or {})
             except Exception:
                 db_stats = {}
+        if self.learning_store is not self.memory and self._store_has(self.memory, "get_adaptive_learning_stats"):
+            try:
+                local_stats = dict(self.memory.get_adaptive_learning_stats() or {})
+                for key, value in local_stats.items():
+                    db_stats[f"account_{key}"] = value
+            except Exception:
+                pass
 
         return {
             "enabled": self._is_enabled(),
             "phase": int(self.al_cfg.get("phase", 1)),
             "entry_blocking_enabled": bool(self.al_cfg.get("entry_blocking_enabled", False)),
             "shadow_mode": bool(self.al_cfg.get("shadow_mode", False)),
+            "learning_scope": "shared" if self.learning_store is not self.memory else "account",
             "total_losses_analyzed": int(self.total_losses_analyzed),
             "lessons_in_memory": len(self.learned_lessons),
             "rules_in_memory": len(self.adaptive_rules),

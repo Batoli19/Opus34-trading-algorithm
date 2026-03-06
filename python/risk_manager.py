@@ -877,16 +877,34 @@ class RiskManager:
             max_sl_usd = float(self.exec_cfg.get("max_sl_usd", 0.0))
         except Exception:
             max_sl_usd = 0.0
-        if max_sl_usd > 0 and risk_amount > max_sl_usd:
+        max_risk_per_trade_usd = 0.0
+        try:
+            max_risk_per_trade_usd = float(self.cfg.get("max_risk_per_trade_usd", 0.0))
+        except Exception:
+            max_risk_per_trade_usd = 0.0
+        cap_candidates = [v for v in (max_sl_usd, max_risk_per_trade_usd) if v > 0]
+        hard_cap_usd = min(cap_candidates) if cap_candidates else 0.0
+        slippage_buffer_pct = 0.0
+        try:
+            slippage_buffer_pct = float(self.cfg.get("slippage_buffer_pct", 0.0) or 0.0)
+        except Exception:
+            slippage_buffer_pct = 0.0
+        slippage_buffer_pct = min(0.50, max(0.0, slippage_buffer_pct))
+        capped_budget_usd = hard_cap_usd * (1.0 - slippage_buffer_pct) if hard_cap_usd > 0 else 0.0
+        if capped_budget_usd > 0 and risk_amount > capped_budget_usd:
             logger.info(
-                f"SKIP_SNIPER_SL_CAP: symbol={sym} reason=SL_TOO_WIDE_USD risk_target={risk_amount:.2f} cap={max_sl_usd:.2f} action=downsize"
+                f"RISK_HARD_CAP: symbol={sym} raw_target={risk_amount:.2f} cap={hard_cap_usd:.2f} "
+                f"buffer={slippage_buffer_pct:.2%} used_target={capped_budget_usd:.2f}"
             )
-            risk_amount = max_sl_usd
+            risk_amount = capped_budget_usd
 
-        pip_value = float(pip_value_per_lot or 10.0)
+        pip_value = float(pip_value_per_lot or 0.0)
         if pip_value <= 0:
-            logger.warning(f"{symbol}: Invalid pip_value_per_lot={pip_value}")
-            return 0.0
+            pip_value = 10.0
+            logger.warning(
+                f"{symbol}: Missing pip_value_per_lot, falling back to {pip_value:.2f}. "
+                "This can reduce risk precision on non-USD quote pairs."
+            )
 
         raw_lot = risk_amount / (stop_pips * pip_value)
         if raw_lot <= 0:
@@ -913,6 +931,22 @@ class RiskManager:
         lot = max(0.0, lot)
 
         final_risk = lot * stop_pips * pip_value
+        if capped_budget_usd > 0 and final_risk > capped_budget_usd:
+            lot_cap = self._round_lot_to_step(capped_budget_usd / (stop_pips * pip_value), volume_step)
+            if volume_min is not None and lot_cap < float(volume_min):
+                logger.warning(
+                    f"SKIP_SNIPER_SL_CAP: symbol={sym} reason=LOT_CAP_BELOW_MIN "
+                    f"lot_cap={lot_cap:.2f} min_lot={float(volume_min):.2f} cap={capped_budget_usd:.2f}"
+                )
+                return 0.0
+            lot = max(0.0, min(lot, lot_cap))
+            final_risk = lot * stop_pips * pip_value
+            if capped_budget_usd > 0 and final_risk > (capped_budget_usd * 1.001):
+                logger.warning(
+                    f"SKIP_SNIPER_SL_CAP: symbol={sym} reason=FINAL_RISK_ABOVE_CAP "
+                    f"final_risk={final_risk:.2f} cap={capped_budget_usd:.2f}"
+                )
+                return 0.0
         target_stop = self.target_stop_pips.get(symbol, None)
         extra = f" (target stop {target_stop}p)" if target_stop is not None else ""
 

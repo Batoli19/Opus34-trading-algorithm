@@ -24,6 +24,7 @@ from hybrid_gate import HybridGate
 from sniper_filter import SniperFilter
 from trailing_manager import StructureTrailingManager
 from loss_analyzer import LossAnalyzer
+from shared_learning import SharedLearningDB
 
 logger = logging.getLogger("ENGINE")
 
@@ -47,11 +48,39 @@ class TradingEngine:
         db_path = Path(__file__).parent.parent / "memory" / f"trading_memory_{login_safe}.db"
         db_path.parent.mkdir(exist_ok=True)
         self.memory = TradingMemoryDB(db_path)
+        self.shared_learning = None
+        al_cfg = config.get("adaptive_learning", {}) if isinstance(config.get("adaptive_learning", {}), dict) else {}
+        shared_enabled = bool(al_cfg.get("shared_across_accounts", True))
+        if shared_enabled:
+            shared_name = str(al_cfg.get("shared_db_name", "shared_learning.db") or "shared_learning.db").strip()
+            if not shared_name:
+                shared_name = "shared_learning.db"
+            shared_db_path = Path(__file__).parent.parent / "memory" / shared_name
+            shared_login = int(login_safe) if login_safe.isdigit() else 0
+            try:
+                self.shared_learning = SharedLearningDB(shared_db_path, account_login=shared_login)
+                bootstrap = self.shared_learning.bootstrap_from_account_memory(self.memory)
+                if bool(bootstrap.get("bootstrapped", False)):
+                    logger.info(
+                        "SHARED_LEARNING_BOOTSTRAP lessons=%s rules=%s rule_events=%s",
+                        int(bootstrap.get("lessons", 0)),
+                        int(bootstrap.get("rules", 0)),
+                        int(bootstrap.get("rule_events", 0)),
+                    )
+            except Exception as e:
+                logger.error("SHARED_LEARNING_INIT_FAILED: %s", e, exc_info=True)
+                self.shared_learning = None
         self.brain = TradingBrain(self.memory, self.cfg)
         self.hybrid_gate = HybridGate(self.cfg, self.memory)
         self.sniper_filter = SniperFilter(self.cfg)
         self.trailing = StructureTrailingManager(self.cfg)
-        self.loss_analyzer = LossAnalyzer(self.mt5, self.strategy, self.memory, self.cfg)
+        self.loss_analyzer = LossAnalyzer(
+            self.mt5,
+            self.strategy,
+            self.memory,
+            self.cfg,
+            shared_learning_db=self.shared_learning,
+        )
         self._sl_update_attempts: dict[int, int] = {}
         self._tm_partial_retry_after: dict[str, float] = {}
         self._tm_invalid_risk_logged: set[str] = set()
@@ -680,6 +709,25 @@ class TradingEngine:
                 logger.info(f"HYBRID_SKIP: {signal.symbol} {signal.setup_type.value} reason={decision.reason}")
                 return
 
+        symbol_info = {}
+        if hasattr(self.mt5, "get_symbol_info"):
+            try:
+                symbol_info = self.mt5.get_symbol_info(signal.symbol) or {}
+            except Exception:
+                symbol_info = {}
+        volume_min = float(symbol_info.get("volume_min", 0.0) or 0.0)
+        volume_max = float(symbol_info.get("volume_max", 0.0) or 0.0)
+        volume_step = float(symbol_info.get("volume_step", 0.0) or 0.0)
+
+        pip_value_per_lot = 0.0
+        if hasattr(self.mt5, "get_pip_value_per_lot"):
+            try:
+                pip_value_per_lot = float(self.mt5.get_pip_value_per_lot(signal.symbol) or 0.0)
+            except Exception:
+                pip_value_per_lot = 0.0
+        if pip_value_per_lot <= 0.0:
+            pip_value_per_lot = float(symbol_info.get("pip_value_per_lot", 0.0) or 0.0)
+
         lot = self.risk.calculate_lot_size(
             symbol=signal.symbol,
             entry=planned_entry,
@@ -692,10 +740,72 @@ class TradingEngine:
             in_kill_zone=in_kill_zone,
             open_positions=self.mt5.get_open_positions(),
             daily_pnl=float(self.memory.get_daily_summary(*self._daily_window_utc()).get("daily_pnl", 0.0)),
+            pip_value_per_lot=pip_value_per_lot,
+            volume_min=volume_min if volume_min > 0.0 else None,
+            volume_max=volume_max if volume_max > 0.0 else None,
+            volume_step=volume_step if volume_step > 0.0 else None,
         )
 
-        if lot < 0.01:
-            logger.warning(f"Lot size too small ({lot}) - skip")
+        hard_cap_candidates = []
+        try:
+            max_sl_usd = float(self.cfg.get("execution", {}).get("max_sl_usd", 0.0) or 0.0)
+            if max_sl_usd > 0.0:
+                hard_cap_candidates.append(max_sl_usd)
+        except Exception:
+            pass
+        try:
+            max_risk_trade_usd = float(self.cfg.get("risk", {}).get("max_risk_per_trade_usd", 0.0) or 0.0)
+            if max_risk_trade_usd > 0.0:
+                hard_cap_candidates.append(max_risk_trade_usd)
+        except Exception:
+            pass
+        hard_cap_usd = min(hard_cap_candidates) if hard_cap_candidates else 0.0
+
+        if lot > 0.0 and hard_cap_usd > 0.0:
+            slippage_buffer_pct = 0.0
+            try:
+                slippage_buffer_pct = float(self.cfg.get("risk", {}).get("slippage_buffer_pct", 0.0) or 0.0)
+            except Exception:
+                slippage_buffer_pct = 0.0
+            slippage_buffer_pct = min(0.50, max(0.0, slippage_buffer_pct))
+            capped_budget_usd = hard_cap_usd * (1.0 - slippage_buffer_pct)
+
+            pip_size = self.risk._get_pip_size(signal.symbol)
+            stop_pips = abs(planned_entry - signal.sl) / pip_size if pip_size > 0 else 0.0
+            pip_value_for_check = pip_value_per_lot if pip_value_per_lot > 0.0 else 10.0
+
+            if stop_pips > 0.0 and capped_budget_usd > 0.0:
+                projected_risk_usd = lot * stop_pips * pip_value_for_check
+                if projected_risk_usd > (capped_budget_usd * 1.001):
+                    lot_cap = self.risk._round_lot_to_step(
+                        capped_budget_usd / (stop_pips * pip_value_for_check),
+                        volume_step if volume_step > 0.0 else None,
+                    )
+                    if volume_min > 0.0 and lot_cap < volume_min:
+                        logger.warning(
+                            "SKIP_ENTRY_RISK_CAP: symbol=%s lot=%.2f risk=%.2f cap=%.2f min_lot=%.2f",
+                            signal.symbol,
+                            lot,
+                            projected_risk_usd,
+                            capped_budget_usd,
+                            volume_min,
+                        )
+                        return
+                    lot = max(0.0, min(lot, lot_cap))
+                    projected_risk_usd = lot * stop_pips * pip_value_for_check
+                    if projected_risk_usd > (capped_budget_usd * 1.001):
+                        logger.warning(
+                            "SKIP_ENTRY_RISK_CAP_FINAL: symbol=%s lot=%.2f risk=%.2f cap=%.2f",
+                            signal.symbol,
+                            lot,
+                            projected_risk_usd,
+                            capped_budget_usd,
+                        )
+                        return
+
+        min_trade_lot = volume_min if volume_min > 0.0 else 0.01
+        if lot < min_trade_lot:
+            logger.warning(f"Lot size too small ({lot}) for {signal.symbol} min={min_trade_lot} - skip")
             return
 
         adaptive_block, adaptive_reason = self.loss_analyzer.should_block_entry(

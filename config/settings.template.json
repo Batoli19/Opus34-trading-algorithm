@@ -10,7 +10,7 @@
  
 
 
-  "pairs": ["EURUSD", "GBPUSD", "USDJPY", "XAUUSD"],
+  "pairs": ["EURUSD", "GBPUSD", "USDJPY"],
 
   "timeframes": {
     "bias":   "H4",
