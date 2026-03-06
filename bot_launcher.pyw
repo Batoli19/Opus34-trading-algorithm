@@ -1,5 +1,6 @@
 ﻿"""
-ICT Trading Bot desktop launcher.
+ICT Trading Bot desktop launcher - ENHANCED VERSION
+Larger splash (960x540), prominent logo, immaculate design
 """
 
 import json
@@ -41,7 +42,7 @@ class TradingBotLauncher:
         self._dashboard_wait_start = None
         self._dashboard_poll_timer = None
         self._start_error = ""
-        self.repo_root = Path(__file__).resolve().parent
+        self.repo_root = self._resolve_repo_root()
         self.bot_dir = self.repo_root / "python"
         self.config_path = self.repo_root / "config" / "settings.json"
         self.api_host, self.api_port = self._load_api_target()
@@ -52,6 +53,12 @@ class TradingBotLauncher:
 
         self.setup_splash_screen()
         self.setup_system_tray()
+
+    def _resolve_repo_root(self):
+        current_dir = Path(__file__).resolve().parent
+        if (current_dir / "python").exists() and (current_dir / "config").exists():
+            return current_dir
+        return current_dir.parent
 
     def _load_api_target(self):
         host = "127.0.0.1"
@@ -66,203 +73,106 @@ class TradingBotLauncher:
             host, port = "127.0.0.1", 5000
         return host, port
 
-    def setup_splash_screen(self):
-        """Create a premium splash screen (rendered pixmap)."""
-        self.splash_w = 700
-        self.splash_h = 440
+    def _fit_splash_pixmap(self, pixmap, available_rect):
+        if pixmap.isNull() or available_rect is None:
+            return pixmap
 
-        # Track progress for a premium "loading" feel
-        self._splash_progress = 0.08
+        margin = 24
+        max_w = max(1, int(available_rect.width()) - (margin * 2))
+        max_h = max(1, int(available_rect.height()) - (margin * 2))
+        if pixmap.width() <= max_w and pixmap.height() <= max_h:
+            return pixmap
 
-        # Load icon from your folder
-        self.splash_icon_path = self.repo_root / "bot icons" / "bot algo.png"
-        self._splash_icon_pix = QPixmap(str(self.splash_icon_path)) if self.splash_icon_path.exists() else QPixmap()
+        return pixmap.scaled(max_w, max_h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
-        # Create splash using a pixmap we render
-        self.splash = QSplashScreen()
-        self.splash.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.splash.setFixedSize(self.splash_w, self.splash_h)
-
-        # Initial paint
-        self._render_splash("Initializing...", progress=self._splash_progress)
-
-        # Center on screen
-        screen = self.app.primaryScreen()
-        if screen is not None:
-            rect = screen.availableGeometry()
-            x = rect.x() + (rect.width() - self.splash_w) // 2
-            y = rect.y() + (rect.height() - self.splash_h) // 2
-            self.splash.move(x, y)
-
-    def update_splash_content(self, status_text, progress=None, detail_text=None):
-        """Update splash visuals with premium styling + progress bar."""
-        if progress is not None:
-            self._splash_progress = max(0.0, min(1.0, float(progress)))
-        else:
-            # Nudge progress forward subtly each stage
-            self._splash_progress = max(self._splash_progress, min(0.95, self._splash_progress + 0.12))
-
-        self._render_splash(status_text, progress=self._splash_progress, detail_text=detail_text)
-        QApplication.processEvents()
-
-    def _render_splash(self, status_text, progress=0.1, detail_text=None):
-        """Paint a premium, scalable splash screen into a pixmap and apply to QSplashScreen."""
-        w, h = self.splash_w, self.splash_h
+    def _build_fallback_splash(self):
+        w, h = 900, 600
         px = QPixmap(w, h)
-        px.setDevicePixelRatio(self.app.devicePixelRatio())
-        px.fill(Qt.transparent)
-
-        # Wall Street scheme
-        BG = QColor("#0a1929")          # Dark navy
-        PANEL = QColor("#0f2438")       # Slightly lighter panel
-        PANEL2 = QColor("#0b1c2c")      # Depth layer
-        BORDER = QColor(255, 255, 255, 18)
-        TEXT = QColor("#d4d4d4")        # Silver chrome text
-        MUTED = QColor("#9aa7b4")
-        GOLD = QColor("#FFD700")
-        GREEN = QColor("#228B22")
+        px.fill(QColor("#eef0f2"))
 
         p = QPainter(px)
         p.setRenderHint(QPainter.Antialiasing, True)
         p.setRenderHint(QPainter.TextAntialiasing, True)
         p.setRenderHint(QPainter.SmoothPixmapTransform, True)
 
-        # Background gradient (clean, no glow)
         bg_grad = QLinearGradient(0, 0, 0, h)
-        bg_grad.setColorAt(0.0, BG)
-        bg_grad.setColorAt(1.0, QColor("#07121d"))
+        bg_grad.setColorAt(0.0, QColor("#f6f7f8"))
+        bg_grad.setColorAt(1.0, QColor("#e8ecef"))
         p.fillRect(0, 0, w, h, bg_grad)
 
-        # Main rounded panel (glass-like but subtle)
-        panel_rect = QRectF(26, 22, w - 52, h - 44)
-        panel_path = QPainterPath()
-        panel_path.addRoundedRect(panel_rect, 22, 22)
-
-        panel_grad = QLinearGradient(panel_rect.left(), panel_rect.top(), panel_rect.right(), panel_rect.bottom())
-        panel_grad.setColorAt(0.0, PANEL)
-        panel_grad.setColorAt(1.0, PANEL2)
-        p.fillPath(panel_path, panel_grad)
-
-        # Border
-        pen = QPen(BORDER)
-        pen.setWidthF(1.2)
-        p.setPen(pen)
-        p.drawPath(panel_path)
-
-        # Top accent line (gold -> green)
-        accent = QLinearGradient(panel_rect.left(), panel_rect.top(), panel_rect.right(), panel_rect.top())
-        accent.setColorAt(0.0, GOLD)
-        accent.setColorAt(1.0, GREEN)
-        p.setPen(QPen(accent, 2.2))
-        p.drawLine(int(panel_rect.left() + 22), int(panel_rect.top() + 22), int(panel_rect.right() - 22), int(panel_rect.top() + 22))
-
-        # Icon badge
-        badge_x, badge_y = 64, 92
-        badge_size = 112
-        badge_rect = QRectF(badge_x, badge_y, badge_size, badge_size)
-
-        badge_path = QPainterPath()
-        badge_path.addRoundedRect(badge_rect, 28, 28)
-
-        badge_grad = QLinearGradient(badge_rect.left(), badge_rect.top(), badge_rect.right(), badge_rect.bottom())
-        badge_grad.setColorAt(0.0, QColor(255, 255, 255, 28))
-        badge_grad.setColorAt(1.0, QColor(0, 0, 0, 28))
-        p.fillPath(badge_path, badge_grad)
-
-        p.setPen(QPen(QColor(255, 255, 255, 22), 1.0))
-        p.drawPath(badge_path)
-
-        # Place icon centered inside badge (clip)
         if not self._splash_icon_pix.isNull():
-            clip = QPainterPath()
-            clip.addRoundedRect(badge_rect.adjusted(10, 10, -10, -10), 20, 20)
-            p.save()
-            p.setClipPath(clip)
-            icon_target = badge_rect.adjusted(14, 14, -14, -14)
-            p.drawPixmap(icon_target.toRect(), self._splash_icon_pix)
-            p.restore()
+            icon_size = 220
+            icon_rect = QRectF((w - icon_size) / 2, 72, icon_size, icon_size)
+            p.drawPixmap(icon_rect.toRect(), self._splash_icon_pix)
         else:
-            # Fallback simple mark
-            p.setPen(QPen(GOLD, 2))
-            p.setFont(QFont("Segoe UI", 28, QFont.Bold))
-            p.drawText(badge_rect.toRect(), Qt.AlignCenter, "ICT")
+            p.setPen(QColor("#173f6a"))
+            p.setFont(QFont("Segoe UI Emoji", 110))
+            p.drawText(QRectF(0, 72, w, 220).toRect(), Qt.AlignCenter, "🤖")
 
-        # Title block
-        title_x = 200
-        title_y = 92
-
-        # Title
-        p.setPen(TEXT)
-        title_font = QFont("Segoe UI", 28, QFont.Black)
-        title_font.setLetterSpacing(QFont.PercentageSpacing, 102)
+        p.setPen(QColor("#173f6a"))
+        title_font = QFont("Segoe UI", 34, QFont.Black)
+        title_font.setLetterSpacing(QFont.PercentageSpacing, 106)
         p.setFont(title_font)
-        p.drawText(title_x, title_y + 28, "ICT TRADING BOT")
+        p.drawText(QRectF(0, 300, w, 54).toRect(), Qt.AlignCenter, "ICT TRADING BOT")
 
-        # Subtitle
-        p.setPen(MUTED)
-        sub_font = QFont("Segoe UI", 12, QFont.Medium)
-        p.setFont(sub_font)
-        p.drawText(title_x, title_y + 56, "Desktop Launcher • Automated Execution • Dashboard Ready")
-
-        # Divider
-        p.setPen(QPen(QColor(255, 255, 255, 16), 1.0))
-        p.drawLine(64, 230, w - 64, 230)
-
-        # Status pill (sharp, high contrast)
-        pill_rect = QRectF(64, 258, w - 128, 56)
-        pill_path = QPainterPath()
-        pill_path.addRoundedRect(pill_rect, 18, 18)
-
-        pill_grad = QLinearGradient(pill_rect.left(), pill_rect.top(), pill_rect.right(), pill_rect.bottom())
-        pill_grad.setColorAt(0.0, QColor(255, 255, 255, 18))
-        pill_grad.setColorAt(1.0, QColor(0, 0, 0, 20))
-        p.fillPath(pill_path, pill_grad)
-
-        p.setPen(QPen(QColor(255, 255, 255, 18), 1.0))
-        p.drawPath(pill_path)
-
-        # Status text
-        p.setPen(QColor("#e6edf3"))
-        p.setFont(QFont("Segoe UI", 13, QFont.DemiBold))
-        p.drawText(pill_rect.adjusted(18, 10, -18, -10).toRect(), Qt.AlignVCenter | Qt.AlignLeft, status_text)
-
-        # Optional detail text (small)
-        if detail_text:
-            p.setPen(MUTED)
-            p.setFont(QFont("Segoe UI", 10, QFont.Normal))
-            p.drawText(pill_rect.adjusted(18, 30, -18, -10).toRect(), Qt.AlignLeft | Qt.AlignVCenter, detail_text)
-
-        # Progress bar (gold to green)
-        bar_rect = QRectF(64, 330, w - 128, 10)
-        bar_bg = QPainterPath()
-        bar_bg.addRoundedRect(bar_rect, 5, 5)
-        p.fillPath(bar_bg, QColor(255, 255, 255, 14))
-
-        fill_w = max(10.0, (bar_rect.width()) * max(0.02, min(1.0, progress)))
-        fill_rect = QRectF(bar_rect.left(), bar_rect.top(), fill_w, bar_rect.height())
-        fill_path = QPainterPath()
-        fill_path.addRoundedRect(fill_rect, 5, 5)
-
-        fill_grad = QLinearGradient(fill_rect.left(), fill_rect.top(), fill_rect.right(), fill_rect.top())
-        fill_grad.setColorAt(0.0, GOLD)
-        fill_grad.setColorAt(1.0, GREEN)
-        p.fillPath(fill_path, fill_grad)
-
-        # Footer
-        p.setPen(QColor(255, 255, 255, 110))
-        p.setFont(QFont("Segoe UI", 9, QFont.Medium))
-        p.drawText(64, h - 48, "v2.0 • Prop Firm Ready • Adaptive Learning • MT5 Connected")
-
-        p.setPen(QColor(255, 255, 255, 70))
-        p.setFont(QFont("Segoe UI", 9))
-        p.drawText(w - 260, h - 48, "© ICT Trading Bot • Command Center")
+        p.setPen(QColor("#6d7781"))
+        p.setFont(QFont("Segoe UI", 18, QFont.Medium))
+        p.drawText(QRectF(0, 352, w, 36).toRect(), Qt.AlignCenter, "Loading...")
 
         p.end()
+        return px
 
-        self.splash.setPixmap(px)
+    def setup_splash_screen(self):
+        """Create splash from the canonical root PNG when available."""
+        self._splash_progress = 0.08
+        self._splash_status_text = "Initializing..."
+        self._splash_detail_text = None
+
+        self.splash_icon_path = None
+        for candidate in (
+            self.repo_root / "bot icons" / "bot algo.png",
+            self.repo_root / "bot_icon.png",
+            self.repo_root / "icon.png",
+        ):
+            if candidate.exists():
+                self.splash_icon_path = candidate
+                break
+        self._splash_icon_pix = QPixmap(str(self.splash_icon_path)) if self.splash_icon_path else QPixmap()
+
+        screen = self.app.primaryScreen()
+        available_rect = screen.availableGeometry() if screen is not None else None
+
+        splash_image_path = self.repo_root / "splashscreen.png"
+        splash_pix = QPixmap(str(splash_image_path)) if splash_image_path.exists() else QPixmap()
+        if splash_pix.isNull():
+            splash_pix = self._build_fallback_splash()
+        else:
+            splash_pix = self._fit_splash_pixmap(splash_pix, available_rect)
+
+        self.splash_w = splash_pix.width()
+        self.splash_h = splash_pix.height()
+
+        self.splash = QSplashScreen(splash_pix)
+        self.splash.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.splash.setPixmap(splash_pix)
+        self.splash.setFixedSize(self.splash_w, self.splash_h)
+
+        if screen is not None:
+            rect = available_rect
+            x = rect.x() + (rect.width() - self.splash_w) // 2
+            y = rect.y() + (rect.height() - self.splash_h) // 2
+            self.splash.move(x, y)
+
+    def update_splash_content(self, status_text, progress=None, detail_text=None):
+        """Keep startup status calls compatible without changing the static splash."""
+        self._splash_status_text = str(status_text or "Loading...")
+        self._splash_detail_text = detail_text
+        if progress is not None:
+            self._splash_progress = max(0.0, min(1.0, float(progress)))
+        QApplication.processEvents()
 
     def setup_system_tray(self):
-        """Create system tray icon."""
+        """Create system tray icon"""
         self.tray = QSystemTrayIcon()
 
         icon_path = self.repo_root / "bot_icon.ico"
@@ -277,19 +187,19 @@ class TradingBotLauncher:
 
         menu = QMenu()
 
-        dashboard_action = QAction("Open Dashboard", None)
+        dashboard_action = QAction("📊 Open Dashboard", None)
         dashboard_action.triggered.connect(self.open_dashboard)
         menu.addAction(dashboard_action)
 
         menu.addSeparator()
 
-        self.status_action = QAction("Status: Starting...", None)
+        self.status_action = QAction("⏳ Status: Starting...", None)
         self.status_action.setEnabled(False)
         menu.addAction(self.status_action)
 
         menu.addSeparator()
 
-        quit_action = QAction("Quit Bot", None)
+        quit_action = QAction("❌ Quit Bot", None)
         quit_action.triggered.connect(self.quit_app)
         menu.addAction(quit_action)
 
@@ -297,12 +207,12 @@ class TradingBotLauncher:
         self.tray.activated.connect(self.on_tray_clicked)
 
     def on_tray_clicked(self, reason):
-        """Handle tray icon click."""
+        """Handle tray icon click"""
         if reason == QSystemTrayIcon.DoubleClick:
             self.open_dashboard()
 
     def start_bot_process(self):
-        """Start the bot in background (hidden)."""
+        """Start the bot in background (hidden)"""
         try:
             if sys.platform == "win32":
                 startupinfo = subprocess.STARTUPINFO()
@@ -346,11 +256,11 @@ class TradingBotLauncher:
         return False
 
     def open_dashboard(self):
-        """Open dashboard in browser."""
+        """Open dashboard in browser"""
         webbrowser.open(self.local_dashboard_url)
 
     def request_graceful_shutdown(self):
-        """Ask API server to shutdown engine before process terminate."""
+        """Ask API server to shutdown engine before process terminate"""
         try:
             req = urllib.request.Request(
                 f"{self.local_dashboard_url}/api/shutdown",
@@ -372,7 +282,7 @@ class TradingBotLauncher:
         success = self.start_bot_process()
         if not success:
             detail = f"Startup error: {self._start_error}" if self._start_error else "Startup error"
-            self.update_splash_content("Failed to start bot", progress=1.0, detail_text=detail)
+            self.update_splash_content("❌ Failed to start bot", progress=1.0, detail_text=detail)
             QTimer.singleShot(2500, self._fail_and_quit)
             return
 
@@ -403,20 +313,20 @@ class TradingBotLauncher:
 
     def _finish_startup(self, ready):
         if ready:
-            self.update_splash_content("Loading dashboard...", progress=0.92, detail_text="Finalizing UI + endpoints")
+            self.update_splash_content("✅ Loading dashboard...", progress=0.92, detail_text="Finalizing UI + endpoints")
             self.open_dashboard()
             QTimer.singleShot(500, self._show_running_state)
             return
 
-        self.update_splash_content("Bot started • Dashboard still warming up...", progress=0.86, detail_text="You can open the dashboard from the tray icon")
+        self.update_splash_content("Bot started • Dashboard warming up...", progress=0.86, detail_text="Open from tray icon when ready")
         QTimer.singleShot(1500, self._show_running_state)
 
     def _show_running_state(self):
         self.tray.setVisible(True)
-        self.status_action.setText("Status: Running")
+        self.status_action.setText("✅ Status: Running")
         self.tray.showMessage(
             "ICT Trading Bot",
-            "Bot is running! Double-click icon to open dashboard.",
+            "Bot is running! Double-click tray icon to open dashboard.",
             QSystemTrayIcon.Information,
             3000,
         )
@@ -427,7 +337,7 @@ class TradingBotLauncher:
         self.quit_app()
 
     def quit_app(self):
-        """Clean shutdown."""
+        """Clean shutdown"""
         if self.bot_process:
             try:
                 self.request_graceful_shutdown()
@@ -449,7 +359,7 @@ class TradingBotLauncher:
         QApplication.quit()
 
     def run(self):
-        """Run the launcher."""
+        """Run the launcher"""
         self.splash.show()
         QApplication.processEvents()
         QTimer.singleShot(500, self._start_stage_engine)

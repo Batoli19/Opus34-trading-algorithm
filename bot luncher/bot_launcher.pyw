@@ -42,7 +42,7 @@ class TradingBotLauncher:
         self._dashboard_wait_start = None
         self._dashboard_poll_timer = None
         self._start_error = ""
-        self.repo_root = Path(__file__).resolve().parent
+        self.repo_root = self._resolve_repo_root()
         self.bot_dir = self.repo_root / "python"
         self.config_path = self.repo_root / "config" / "settings.json"
         self.api_host, self.api_port = self._load_api_target()
@@ -53,6 +53,12 @@ class TradingBotLauncher:
 
         self.setup_splash_screen()
         self.setup_system_tray()
+
+    def _resolve_repo_root(self):
+        current_dir = Path(__file__).resolve().parent
+        if (current_dir / "python").exists() and (current_dir / "config").exists():
+            return current_dir
+        return current_dir.parent
 
     def _load_api_target(self):
         host = "127.0.0.1"
@@ -67,300 +73,103 @@ class TradingBotLauncher:
             host, port = "127.0.0.1", 5000
         return host, port
 
-    def setup_splash_screen(self):
-        """Create ENHANCED premium splash screen - MUCH LARGER"""
-        # ENHANCED: 960x540 (half screen on 1920x1080)
-        self.splash_w = 960
-        self.splash_h = 540
+    def _fit_splash_pixmap(self, pixmap, available_rect):
+        if pixmap.isNull() or available_rect is None:
+            return pixmap
 
-        self._splash_progress = 0.08
-        self._splash_target_progress = 0.08
-        self._splash_status_text = "Initializing..."
-        self._splash_detail_text = None
-        self._splash_anim_phase = 0.0
+        margin = 24
+        max_w = max(1, int(available_rect.width()) - (margin * 2))
+        max_h = max(1, int(available_rect.height()) - (margin * 2))
+        if pixmap.width() <= max_w and pixmap.height() <= max_h:
+            return pixmap
 
-        # Load icon - try multiple paths
-        self.splash_icon_path = self.repo_root / "bot icons" / "bot algo.png"
-        if not self.splash_icon_path.exists():
-            self.splash_icon_path = self.repo_root / "bot_icon.png"
-        if not self.splash_icon_path.exists():
-            self.splash_icon_path = self.repo_root / "icon.png"
-        
-        self._splash_icon_pix = QPixmap(str(self.splash_icon_path)) if self.splash_icon_path.exists() else QPixmap()
+        return pixmap.scaled(max_w, max_h, Qt.KeepAspectRatio, Qt.SmoothTransformation)
 
-        self.splash = QSplashScreen()
-        self.splash.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
-        self.splash.setFixedSize(self.splash_w, self.splash_h)
-
-        # Initial render
-        self._render_splash(self._splash_status_text, progress=self._splash_progress)
-
-        self._splash_anim_timer = QTimer(self.app)
-        self._splash_anim_timer.timeout.connect(self._animate_splash)
-        self._splash_anim_timer.start(33)
-
-        # Center on screen
-        screen = self.app.primaryScreen()
-        if screen is not None:
-            rect = screen.availableGeometry()
-            x = rect.x() + (rect.width() - self.splash_w) // 2
-            y = rect.y() + (rect.height() - self.splash_h) // 2
-            self.splash.move(x, y)
-
-    def update_splash_content(self, status_text, progress=None, detail_text=None):
-        """Update splash with enhanced styling"""
-        self._splash_status_text = str(status_text or "Loading...")
-        self._splash_detail_text = detail_text
-
-        if progress is not None:
-            self._splash_target_progress = max(0.0, min(1.0, float(progress)))
-        else:
-            self._splash_target_progress = max(
-                self._splash_target_progress,
-                min(0.95, self._splash_target_progress + 0.10),
-            )
-
-        self._render_splash(
-            self._splash_status_text,
-            progress=self._splash_progress,
-            detail_text=self._splash_detail_text,
-        )
-        QApplication.processEvents()
-
-    def _animate_splash(self):
-        if not hasattr(self, "splash"):
-            return
-
-        delta = self._splash_target_progress - self._splash_progress
-        if abs(delta) > 0.0005:
-            step = max(0.003, min(0.04, abs(delta) * 0.28))
-            if delta > 0:
-                self._splash_progress = min(self._splash_target_progress, self._splash_progress + step)
-            else:
-                self._splash_progress = max(self._splash_target_progress, self._splash_progress - step)
-
-        self._splash_anim_phase = (self._splash_anim_phase + 0.03) % 1.0
-        if self.splash.isVisible():
-            self._render_splash(
-                self._splash_status_text,
-                progress=self._splash_progress,
-                detail_text=self._splash_detail_text,
-            )
-
-    def _render_splash(self, status_text, progress=0.1, detail_text=None):
-        """Render premium, high-visibility splash screen."""
-        w, h = self.splash_w, self.splash_h
+    def _build_fallback_splash(self):
+        w, h = 900, 600
         px = QPixmap(w, h)
-        px.setDevicePixelRatio(self.app.devicePixelRatio())
-        px.fill(Qt.transparent)
-
-        # Premium color scheme
-        BG_DARK = QColor("#050b18")
-        BG_MID = QColor("#0c1d33")
-        BORDER = QColor(56, 189, 248, 85)
-        TEXT_PRIMARY = QColor("#e5f3ff")
-        TEXT_SECONDARY = QColor("#9fb7c9")
-        ACCENT_CYAN = QColor("#38bdf8")
-        ACCENT_BLUE = QColor("#2563eb")
-        ACCENT_GOLD = QColor("#fbbf24")
-        ACCENT_GREEN = QColor("#34d399")
+        px.fill(QColor("#eef0f2"))
 
         p = QPainter(px)
         p.setRenderHint(QPainter.Antialiasing, True)
         p.setRenderHint(QPainter.TextAntialiasing, True)
         p.setRenderHint(QPainter.SmoothPixmapTransform, True)
 
-        # Background gradient
-        bg_grad = QLinearGradient(0, 0, w, h)
-        bg_grad.setColorAt(0.0, BG_DARK)
-        bg_grad.setColorAt(0.5, BG_MID)
-        bg_grad.setColorAt(1.0, QColor("#071226"))
+        bg_grad = QLinearGradient(0, 0, 0, h)
+        bg_grad.setColorAt(0.0, QColor("#f6f7f8"))
+        bg_grad.setColorAt(1.0, QColor("#e8ecef"))
         p.fillRect(0, 0, w, h, bg_grad)
 
-        # Main card
-        panel_margin = 24
-        panel_rect = QRectF(panel_margin, panel_margin, w - (panel_margin * 2), h - (panel_margin * 2))
-        panel_path = QPainterPath()
-        panel_path.addRoundedRect(panel_rect, 24, 24)
-
-        panel_grad = QLinearGradient(panel_rect.left(), panel_rect.top(), panel_rect.left(), panel_rect.bottom())
-        panel_grad.setColorAt(0.0, QColor(255, 255, 255, 11))
-        panel_grad.setColorAt(1.0, QColor(0, 0, 0, 28))
-        p.fillPath(panel_path, panel_grad)
-
-        p.setPen(QPen(BORDER, 1.6))
-        p.drawPath(panel_path)
-
-        # Subtle cyan inner border
-        inner_rect = panel_rect.adjusted(10, 10, -10, -10)
-        p.setPen(QPen(QColor(56, 189, 248, 35), 1.2))
-        p.drawRoundedRect(inner_rect, 18, 18)
-
-        # Logo section (centered 120px icon)
-        logo_size = 120
-        logo_x = (w - logo_size) // 2
-        logo_y = 62
-        logo_rect = QRectF(logo_x, logo_y, logo_size, logo_size)
-
-        # Glow layers behind badge
-        for spread, alpha in ((22, 45), (34, 26), (46, 14)):
-            glow_rect = logo_rect.adjusted(-spread, -spread, spread, spread)
-            glow_path = QPainterPath()
-            glow_path.addRoundedRect(glow_rect, 28 + spread * 0.35, 28 + spread * 0.35)
-            glow_grad = QLinearGradient(glow_rect.left(), glow_rect.top(), glow_rect.right(), glow_rect.bottom())
-            glow_grad.setColorAt(0.0, QColor(56, 189, 248, alpha))
-            glow_grad.setColorAt(1.0, QColor(37, 99, 235, max(5, alpha - 8)))
-            p.fillPath(glow_path, glow_grad)
-
-        # Blue gradient badge around logo
-        badge_path = QPainterPath()
-        badge_path.addRoundedRect(logo_rect, 22, 22)
-        badge_grad = QLinearGradient(logo_rect.left(), logo_rect.top(), logo_rect.right(), logo_rect.bottom())
-        badge_grad.setColorAt(0.0, QColor("#1d4ed8"))
-        badge_grad.setColorAt(1.0, QColor("#0ea5e9"))
-        p.fillPath(badge_path, badge_grad)
-        p.setPen(QPen(QColor("#7dd3fc"), 2.4))
-        p.drawPath(badge_path)
-
-        # Draw icon inside badge
         if not self._splash_icon_pix.isNull():
-            icon_clip = QPainterPath()
-            icon_clip.addRoundedRect(logo_rect.adjusted(10, 10, -10, -10), 16, 16)
-            p.save()
-            p.setClipPath(icon_clip)
-            icon_target = logo_rect.adjusted(14, 14, -14, -14)
-            p.drawPixmap(icon_target.toRect(), self._splash_icon_pix)
-            p.restore()
+            icon_size = 220
+            icon_rect = QRectF((w - icon_size) / 2, 72, icon_size, icon_size)
+            p.drawPixmap(icon_rect.toRect(), self._splash_icon_pix)
         else:
-            p.setPen(QColor("#dbeafe"))
-            p.setFont(QFont("Segoe UI Emoji", 62))
-            p.drawText(logo_rect.toRect(), Qt.AlignCenter, "🤖")
+            p.setPen(QColor("#173f6a"))
+            p.setFont(QFont("Segoe UI Emoji", 110))
+            p.drawText(QRectF(0, 72, w, 220).toRect(), Qt.AlignCenter, "🤖")
 
-        # Title section
-        title_y = int(logo_y + logo_size + 58)
-        p.setPen(ACCENT_CYAN)
-        title_font = QFont("Segoe UI", 48, QFont.Bold)
-        title_font.setLetterSpacing(QFont.PercentageSpacing, 111)
+        p.setPen(QColor("#173f6a"))
+        title_font = QFont("Segoe UI", 34, QFont.Black)
+        title_font.setLetterSpacing(QFont.PercentageSpacing, 106)
         p.setFont(title_font)
-        p.drawText(
-            QRectF(0, title_y - 46, w, 56).toRect(),
-            Qt.AlignHCenter | Qt.AlignVCenter,
-            "ICT TRADING BOT",
-        )
+        p.drawText(QRectF(0, 300, w, 54).toRect(), Qt.AlignCenter, "ICT TRADING BOT")
 
-        # Subtitle
-        p.setPen(TEXT_SECONDARY)
-        sub_font = QFont("Segoe UI", 16, QFont.Medium)
-        sub_font.setLetterSpacing(QFont.PercentageSpacing, 104)
-        p.setFont(sub_font)
-        p.drawText(
-            QRectF(0, title_y + 12, w, 34).toRect(),
-            Qt.AlignHCenter | Qt.AlignVCenter,
-            "Professional AI Trading System",
-        )
-
-        # Status section
-        status_rect = QRectF(90, 318, w - 180, 78)
-        status_path = QPainterPath()
-        status_path.addRoundedRect(status_rect, 16, 16)
-
-        status_grad = QLinearGradient(status_rect.left(), status_rect.top(), status_rect.right(), status_rect.bottom())
-        status_grad.setColorAt(0.0, QColor(251, 191, 36, 44))
-        status_grad.setColorAt(1.0, QColor(180, 83, 9, 20))
-        p.fillPath(status_path, status_grad)
-
-        p.setPen(QPen(QColor("#fde68a"), 2.0))
-        p.drawPath(status_path)
-
-        p.setPen(TEXT_PRIMARY)
-        p.setFont(QFont("Segoe UI", 20, QFont.DemiBold))
-        p.drawText(
-            status_rect.adjusted(24, 8, -24, -30).toRect(),
-            Qt.AlignLeft | Qt.AlignVCenter,
-            f"⚡ {status_text}",
-        )
-
-        # Detail text (if provided)
-        if detail_text:
-            p.setPen(TEXT_SECONDARY)
-            p.setFont(QFont("Segoe UI", 11, QFont.Normal))
-            p.drawText(
-                status_rect.adjusted(24, 39, -24, -8).toRect(),
-                Qt.AlignLeft | Qt.AlignVCenter,
-                detail_text,
-            )
-
-        # Progress bar
-        bar_rect = QRectF(90, 422, w - 180, 12)
-        bar_bg_path = QPainterPath()
-        bar_bg_path.addRoundedRect(bar_rect, 6, 6)
-        p.fillPath(bar_bg_path, QColor(255, 255, 255, 20))
-        p.setPen(QPen(QColor(255, 255, 255, 40), 1.0))
-        p.drawPath(bar_bg_path)
-
-        progress_clamped = max(0.0, min(1.0, float(progress)))
-        fill_w = bar_rect.width() * progress_clamped
-        if fill_w > 0:
-            fill_rect = QRectF(bar_rect.left(), bar_rect.top(), fill_w, bar_rect.height())
-            fill_path = QPainterPath()
-            fill_path.addRoundedRect(fill_rect, 6, 6)
-
-            phase_shift = self._splash_anim_phase * bar_rect.width()
-            fill_grad = QLinearGradient(
-                fill_rect.left() - phase_shift,
-                fill_rect.top(),
-                fill_rect.right() + (bar_rect.width() - phase_shift),
-                fill_rect.top(),
-            )
-            fill_grad.setColorAt(0.0, ACCENT_BLUE)
-            fill_grad.setColorAt(0.5, ACCENT_CYAN)
-            fill_grad.setColorAt(1.0, QColor("#22d3ee"))
-            p.fillPath(fill_path, fill_grad)
-
-        p.setPen(QColor(191, 219, 254))
-        p.setFont(QFont("Segoe UI", 11, QFont.DemiBold))
-        p.drawText(
-            QRectF(90, 438, w - 180, 24).toRect(),
-            Qt.AlignRight | Qt.AlignVCenter,
-            f"{int(round(progress_clamped * 100)):02d}%",
-        )
-
-        # Feature badges
-        badges = [
-            "Prop Firm Ready",
-            "Adaptive Learning",
-            "MT5 Connected",
-            "Risk Controls",
-        ]
-        badge_y = 462
-        badge_h = 34
-        badge_w = 186
-        badge_gap = 12
-        badges_total_w = (badge_w * len(badges)) + (badge_gap * (len(badges) - 1))
-        badge_x = int((w - badges_total_w) / 2)
-
-        p.setFont(QFont("Segoe UI", 11, QFont.Medium))
-        for i, label in enumerate(badges):
-            rect = QRectF(badge_x + i * (badge_w + badge_gap), badge_y, badge_w, badge_h)
-            badge_path = QPainterPath()
-            badge_path.addRoundedRect(rect, 12, 12)
-            p.fillPath(badge_path, QColor(16, 185, 129, 28))
-            p.setPen(QPen(QColor(52, 211, 153, 150), 1.2))
-            p.drawPath(badge_path)
-            p.setPen(ACCENT_GREEN)
-            p.drawText(rect.toRect(), Qt.AlignCenter, f"✓ {label}")
-
-        # Footer
-        p.setPen(QColor(255, 255, 255, 132))
-        p.setFont(QFont("Segoe UI", 11, QFont.Medium))
-        p.drawText(
-            QRectF(0, h - 44, w, 24).toRect(),
-            Qt.AlignHCenter | Qt.AlignVCenter,
-            "v2.0 • Institutional Grade",
-        )
+        p.setPen(QColor("#6d7781"))
+        p.setFont(QFont("Segoe UI", 18, QFont.Medium))
+        p.drawText(QRectF(0, 352, w, 36).toRect(), Qt.AlignCenter, "Loading...")
 
         p.end()
-        self.splash.setPixmap(px)
+        return px
+
+    def setup_splash_screen(self):
+        """Create splash from the canonical root PNG when available."""
+        self._splash_progress = 0.08
+        self._splash_status_text = "Initializing..."
+        self._splash_detail_text = None
+
+        self.splash_icon_path = None
+        for candidate in (
+            self.repo_root / "bot icons" / "bot algo.png",
+            self.repo_root / "bot_icon.png",
+            self.repo_root / "icon.png",
+        ):
+            if candidate.exists():
+                self.splash_icon_path = candidate
+                break
+        self._splash_icon_pix = QPixmap(str(self.splash_icon_path)) if self.splash_icon_path else QPixmap()
+
+        screen = self.app.primaryScreen()
+        available_rect = screen.availableGeometry() if screen is not None else None
+
+        splash_image_path = self.repo_root / "splashscreen.png"
+        splash_pix = QPixmap(str(splash_image_path)) if splash_image_path.exists() else QPixmap()
+        if splash_pix.isNull():
+            splash_pix = self._build_fallback_splash()
+        else:
+            splash_pix = self._fit_splash_pixmap(splash_pix, available_rect)
+
+        self.splash_w = splash_pix.width()
+        self.splash_h = splash_pix.height()
+
+        self.splash = QSplashScreen(splash_pix)
+        self.splash.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.FramelessWindowHint)
+        self.splash.setPixmap(splash_pix)
+        self.splash.setFixedSize(self.splash_w, self.splash_h)
+
+        if screen is not None:
+            rect = available_rect
+            x = rect.x() + (rect.width() - self.splash_w) // 2
+            y = rect.y() + (rect.height() - self.splash_h) // 2
+            self.splash.move(x, y)
+
+    def update_splash_content(self, status_text, progress=None, detail_text=None):
+        """Keep startup status calls compatible without changing the static splash."""
+        self._splash_status_text = str(status_text or "Loading...")
+        self._splash_detail_text = detail_text
+        if progress is not None:
+            self._splash_progress = max(0.0, min(1.0, float(progress)))
+        QApplication.processEvents()
 
     def setup_system_tray(self):
         """Create system tray icon"""
@@ -513,8 +322,6 @@ class TradingBotLauncher:
         QTimer.singleShot(1500, self._show_running_state)
 
     def _show_running_state(self):
-        if hasattr(self, "_splash_anim_timer"):
-            self._splash_anim_timer.stop()
         self.tray.setVisible(True)
         self.status_action.setText("✅ Status: Running")
         self.tray.showMessage(
@@ -526,15 +333,11 @@ class TradingBotLauncher:
         self.splash.close()
 
     def _fail_and_quit(self):
-        if hasattr(self, "_splash_anim_timer"):
-            self._splash_anim_timer.stop()
         self.splash.close()
         self.quit_app()
 
     def quit_app(self):
         """Clean shutdown"""
-        if hasattr(self, "_splash_anim_timer"):
-            self._splash_anim_timer.stop()
         if self.bot_process:
             try:
                 self.request_graceful_shutdown()

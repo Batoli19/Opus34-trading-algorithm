@@ -13,7 +13,7 @@ Add this to bot_engine as a background task.
 import asyncio
 import logging
 from datetime import datetime, timedelta
-from typing import Dict, Set
+from typing import Dict, List, Set
 
 import MetaTrader5 as mt5
 
@@ -91,6 +91,102 @@ class TradeAnalyzer:
         if not isinstance(t, datetime):
             t = datetime.utcnow()
         return f"{symbol}:{side}:{setup}:{entry:.5f}:{sl:.5f}:{t.strftime('%Y%m%d%H%M')}"
+
+    def _deal_match_score(self, db_trade: Dict, mt5_trade: Dict) -> int:
+        position_id = self._to_int(db_trade.get("position_id"))
+        ticket = self._to_int(db_trade.get("ticket"))
+        order_ticket = self._to_int(db_trade.get("order_ticket"))
+        deal_ticket = self._to_int(db_trade.get("deal_ticket"))
+        d_pos = self._to_int(mt5_trade.get("position_id"))
+        d_ord = self._to_int(mt5_trade.get("order_ticket"))
+        d_deal = self._to_int(mt5_trade.get("deal_ticket"))
+
+        if position_id is not None and d_pos == position_id:
+            return 4
+        if position_id is not None and d_ord == position_id:
+            return 3
+        if ticket is not None and d_pos == ticket:
+            return 3
+        if order_ticket is not None and d_ord == order_ticket:
+            return 2
+        if deal_ticket is not None and d_deal == deal_ticket:
+            return 1
+        return 0
+
+    def _find_exit_deals_for_db_trade(self, db_trade: Dict, deals: List[Dict]) -> List[Dict]:
+        symbol = str(db_trade.get("symbol") or "").upper().strip()
+        entry_price = float(db_trade.get("entry_price") or 0.0)
+        entry_time = self._parse_time(db_trade.get("entry_time"))
+
+        exact_candidates = []
+        fallback_candidates = []
+        for d in deals:
+            if symbol and str(d.get("symbol") or "").upper().strip() != symbol:
+                continue
+
+            d_time = self._parse_time(d.get("time"))
+            if entry_time and d_time and d_time < entry_time:
+                continue
+
+            score = self._deal_match_score(db_trade, d)
+            if score > 0:
+                exact_candidates.append((score, d_time or datetime.min, d))
+                continue
+
+            if symbol:
+                price = float(d.get("price") or 0.0)
+                px_delta = abs(price - entry_price) if entry_price > 0 and price > 0 else 999999.0
+                time_penalty = 0.0
+                if entry_time and d_time:
+                    time_penalty = max(0.0, (d_time - entry_time).total_seconds()) / 3600.0
+                fallback_candidates.append((-(px_delta + time_penalty), d_time or datetime.min, d))
+
+        if exact_candidates:
+            max_score = max(item[0] for item in exact_candidates)
+            matched = [d for score, _, d in exact_candidates if score == max_score]
+            matched.sort(key=lambda item: self._parse_time(item.get("time")) or datetime.min)
+            return matched
+
+        if not fallback_candidates:
+            return []
+
+        fallback_candidates.sort(key=lambda item: (item[0], item[1]), reverse=True)
+        return [fallback_candidates[0][2]]
+
+    def _build_exit_summary(self, db_trade: Dict, deals: List[Dict]) -> Dict | None:
+        matched_deals = self._find_exit_deals_for_db_trade(db_trade, deals)
+        if not matched_deals:
+            return None
+
+        matched_deals = sorted(
+            matched_deals,
+            key=lambda item: self._parse_time(item.get("time")) or datetime.min,
+        )
+        latest_deal = matched_deals[-1]
+
+        total_profit = 0.0
+        total_volume = 0.0
+        weighted_price_numerator = 0.0
+        for deal in matched_deals:
+            profit = float(deal.get("profit") or 0.0)
+            volume = max(0.0, float(deal.get("volume") or 0.0))
+            price = float(deal.get("price") or 0.0)
+            total_profit += profit
+            total_volume += volume
+            if volume > 0.0 and price > 0.0:
+                weighted_price_numerator += price * volume
+
+        weighted_exit_price = float(latest_deal.get("price") or 0.0)
+        if total_volume > 0.0 and weighted_price_numerator > 0.0:
+            weighted_exit_price = weighted_price_numerator / total_volume
+
+        summary = dict(latest_deal)
+        summary["profit"] = total_profit
+        summary["price"] = weighted_exit_price
+        summary["exit_deal_count"] = len(matched_deals)
+        summary["exit_volume_total"] = total_volume
+        summary["matched_exit_deals"] = matched_deals
+        return summary
     
     async def analyze_recent_closes(self):
         """Find DB-recorded trades that are now closed and record exits."""
@@ -138,7 +234,7 @@ class TradeAnalyzer:
                 except Exception:
                     pass
 
-            mt5_trade = self._find_exit_deal_for_db_trade(db_trade, exit_deals)
+            mt5_trade = self._build_exit_summary(db_trade, exit_deals)
             if not mt5_trade:
                 logger.warning(
                     "NO_DB_MATCH symbol=%s position_id=%s order_ticket=%s deal_ticket=%s entry=%s profit=%s time=%s",
@@ -198,66 +294,6 @@ class TradeAnalyzer:
         if inserted > 0:
             logger.warning("ANALYZER_ENTRY_SYNC inserted=%s matched_existing=%s", inserted, matched_existing)
 
-    def _find_exit_deal_for_db_trade(self, db_trade: Dict, deals: list[Dict]) -> Dict | None:
-        position_id = self._to_int(db_trade.get("position_id"))
-        ticket = self._to_int(db_trade.get("ticket"))
-        order_ticket = self._to_int(db_trade.get("order_ticket"))
-        deal_ticket = self._to_int(db_trade.get("deal_ticket"))
-        symbol = db_trade.get("symbol")
-        entry_price = float(db_trade.get("entry_price") or 0.0)
-        entry_time = self._parse_time(db_trade.get("entry_time"))
-
-        candidates = []
-        for d in deals:
-            if symbol and d.get("symbol") != symbol:
-                continue
-            d_pos = self._to_int(d.get("position_id"))
-            d_ord = self._to_int(d.get("order_ticket"))
-            d_deal = self._to_int(d.get("deal_ticket"))
-            if position_id is not None and d_pos == position_id:
-                candidates.append((4, d))
-                continue
-            if position_id is not None and d_ord == position_id:
-                candidates.append((3, d))
-                continue
-            if ticket is not None and d_pos == ticket:
-                candidates.append((3, d))
-                continue
-            if order_ticket is not None and d_ord == order_ticket:
-                candidates.append((2, d))
-                continue
-            if deal_ticket is not None and d_deal == deal_ticket:
-                candidates.append((1, d))
-
-        # Fallback: same symbol + exit deal after entry time + closest price
-        if not candidates and symbol:
-            for d in deals:
-                if d.get("symbol") != symbol:
-                    continue
-                d_time = self._parse_time(d.get("time"))
-                if entry_time and d_time and d_time < entry_time:
-                    continue
-                price = float(d.get("price") or 0.0)
-                px_delta = abs(price - entry_price) if entry_price > 0 and price > 0 else 999999.0
-                time_penalty = 0.0
-                if entry_time and d_time:
-                    time_penalty = max(0.0, (d_time - entry_time).total_seconds()) / 3600.0
-                score = -(px_delta + time_penalty)
-                candidates.append((0, {**d, "_fallback_score": score}))
-
-        if not candidates:
-            return None
-
-        candidates.sort(
-            key=lambda x: (
-                x[0],
-                x[1].get("_fallback_score", 0.0),
-                x[1].get("time") or "",
-            ),
-            reverse=True,
-        )
-        return candidates[0][1]
-    
     async def _analyze_closed_trade(self, mt5_trade: dict, db_record: Dict):
         """Deep analysis of a closed trade"""
         ticket = db_record["ticket"]
@@ -280,11 +316,13 @@ class TradeAnalyzer:
             'sl_price': db_record.get("sl_price"),
             'tp_price': db_record.get("tp_price"),
             'exit_price': mt5_trade['price'],
-            'outcome': None  # Will be determined
+            'outcome': None,
         }
         
         # Record exit first; analysis must never block persistence.
         pnl = mt5_trade['profit']
+        outcome = "WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN"
+        trade_record["outcome"] = outcome
         exit_time_raw = mt5_trade.get("time")
         exit_time = None
         if isinstance(exit_time_raw, str):
@@ -311,6 +349,15 @@ class TradeAnalyzer:
             raise
         if not updated:
             return
+        if int(mt5_trade.get("exit_deal_count") or 1) > 1:
+            logger.info(
+                "EXIT_AGGREGATED: symbol=%s position_id=%s exit_deals=%s total_pnl=%+.2f avg_exit=%.5f",
+                symbol,
+                mt5_trade.get("position_id"),
+                int(mt5_trade.get("exit_deal_count") or 1),
+                pnl,
+                float(mt5_trade.get("price") or 0.0),
+            )
         logger.info(
             "EXIT_RECORDED: symbol=%s position_id=%s order=%s deal=%s pnl=%+.2f outcome=%s",
             symbol,
@@ -318,7 +365,7 @@ class TradeAnalyzer:
             mt5_trade.get("order_ticket"),
             mt5_trade.get("deal_ticket"),
             pnl,
-            "WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN",
+            outcome,
         )
         try:
             sym = symbol
@@ -337,7 +384,7 @@ class TradeAnalyzer:
         try:
             self.engine.risk.on_trade_closed(
                 symbol=symbol,
-                outcome="WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAKEVEN",
+                outcome=outcome,
                 pnl=float(pnl),
                 exit_time=exit_time or datetime.utcnow(),
                 ticket=db_record.get("ticket"),
