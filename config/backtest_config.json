@@ -26,5 +26,17 @@
     },
     "test_mode": {
         "enabled": false
+    },
+    "trade_management": {
+        "giveback_guard": {
+            "enabled": true,
+            "activate_at_r": 1.2,
+            "max_giveback_pct": 0.60
+        },
+        "partials": {
+            "enabled": true,
+            "tp1_r": 1.0,
+            "tp1_close_pct": 0.5
+        }
     }
 }

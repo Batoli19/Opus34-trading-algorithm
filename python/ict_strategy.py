@@ -25,6 +25,7 @@ from datetime import datetime, time as dtime, timezone
 from enum import Enum
 from typing import Optional, List, Tuple
 
+from ict_advanced_setups import ICTSetupsLibrary
 
 logger = logging.getLogger("ICT")
 
@@ -87,9 +88,10 @@ class Signal:
 class ICTStrategy:
     def __init__(self, config: dict):
         self.root_config = config
-        self.cfg = config["ict"]
+        self.cfg = config.get("ict", {})
         self.scalp_cfg = config.get("scalping", {})
         self.pip_size = {}  # per symbol cache
+        self.advanced_setups = ICTSetupsLibrary(config)
 
     # ── Utilities ────────────────────────────────────────────────────────────
 
@@ -916,6 +918,31 @@ class ICTStrategy:
         sig = self.scalp_signal(candles_m1, symbol, bias, spread_pips)
         if sig:
             candidates.append(sig)
+
+        # 10) ADVANCED SETUPS SCORING ENGINE
+        adv_signals = self.advanced_setups.scan_all_setups(
+            candles_h4=candles_h4,
+            candles_m15=candles_m15,
+            candles_m5=candles_m5,
+            symbol=symbol,
+        )
+        
+        for adv_signal in adv_signals:
+            direction = Direction.BULLISH if adv_signal.direction == "BUY" else Direction.BEARISH
+            mapped_sig = Signal(
+                symbol=symbol,
+                direction=direction,
+                setup_type=adv_signal.setup_type,  # Duck types with old Enums perfectly
+                entry=adv_signal.entry_price,
+                sl=adv_signal.sl_price,
+                tp=adv_signal.tp_price,
+                confidence=adv_signal.confidence,
+                reason=adv_signal.reason,
+                time=adv_signal.detected_at,
+                valid=adv_signal.valid,
+                sniper_entry=False
+            )
+            candidates.append(mapped_sig)
 
         if not candidates:
             return None

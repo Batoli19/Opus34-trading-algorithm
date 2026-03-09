@@ -84,6 +84,10 @@ class SimulatedTrade:
     original_sl: float = 0.0       # Original SL at entry (before trailing)
     trail_count: int = 0           # Number of times SL was trailed
     be_applied: bool = False       # Whether breakeven was applied
+    partial_taken: bool = False
+    half_rr_price: float = 0.0
+    peak_r: float = 0.0            # Highest R-multiple reached during the trade
+    activated_giveback: bool = False # Whether the giveback guard has been activated
 
     @property
     def is_open(self) -> bool:
@@ -670,6 +674,8 @@ class BacktestEngine:
                 self.strategy.get_htf_bias(candles_h4), "value", "NEUTRAL"
             ))
 
+            half_rr_price = signal.entry + (signal.tp - signal.entry) / 2.0
+
             trade = SimulatedTrade(
                 symbol=symbol,
                 direction=direction,
@@ -683,6 +689,9 @@ class BacktestEngine:
                 htf_bias=htf_bias,
                 sniper_passed=sniper_passed,
                 sniper_skip_reason=sniper_skip,
+                half_rr_price=half_rr_price,
+                peak_r=0.0,
+                activated_giveback=False
             )
 
             self.trades.append(trade)
@@ -784,11 +793,75 @@ class BacktestEngine:
                 except Exception as e:
                     logger.debug(f"Trailing error for {trade.symbol}: {e}")
 
+            # ─── Step 1b: Update Peak R for Giveback Guard ─────────────────
+            # Determine current R-gain
+            risk_dist = abs(trade.entry_price - (trade.original_sl or trade.sl_price))
+            if risk_dist > 0:
+                if trade.direction == "BUY":
+                    r_now = (bar_close - trade.entry_price) / risk_dist
+                else:
+                    r_now = (trade.entry_price - bar_close) / risk_dist
+                
+                # Get giveback config
+                mgmt_cfg = self.config.get("trade_management", {})
+                gb_cfg = mgmt_cfg.get("giveback_guard", {})
+                if gb_cfg.get("enabled", False):
+                    activate_at_r = float(gb_cfg.get("activate_at_r", 1.2))
+                    max_gb_pct = float(gb_cfg.get("max_giveback_pct", 0.60))
+
+                    if r_now >= activate_at_r:
+                        trade.activated_giveback = True
+                        if r_now > trade.peak_r:
+                            trade.peak_r = r_now
+
+                    if trade.activated_giveback and trade.peak_r >= activate_at_r and trade.peak_r > 0:
+                        giveback = max(0.0, (trade.peak_r - r_now) / trade.peak_r)
+                        if giveback >= max_gb_pct:
+                            trade.exit_time = current_time
+                            trade.exit_price = bar_close
+                            trade.exit_reason = "GIVEBACK_GUARD"
+                            
+                            # Calculate final Pips and R-multiple
+                            pip_size = self._get_pip_size(trade.symbol)
+                            if trade.direction == "BUY":
+                                final_pips = (bar_close - trade.entry_price) / pip_size
+                            else:
+                                final_pips = (trade.entry_price - bar_close) / pip_size
+                            
+                            if trade.partial_taken:
+                                trade.pnl_pips += final_pips * 0.5
+                            else:
+                                trade.pnl_pips += final_pips
+                            
+                            trade.rr_achieved = trade.pnl_pips * pip_size / risk_dist if risk_dist > 0 else 0
+                            
+                            logger.info(
+                                f"GIVEBACK_GUARD EXIT: {trade.symbol} {trade.direction} "
+                                f"pnl={trade.pnl_pips:+.1f} pips | peak_R={trade.peak_r:.2f} "
+                                f"now_R={r_now:.2f} gb={giveback:.2f}"
+                            )
+                            continue  # Move to next trade
+
             # ─── Check SL/TP hits against the current bar ─────────────
             # Determine pip size for this symbol (for PnL calculation)
             pip_size = self._get_pip_size(trade.symbol)
             sl_hit = False
             tp_hit = False
+
+            # Check Partial (Halfway to TP)
+            if not trade.partial_taken:
+                tp1_hit = False
+                if trade.direction == "BUY":
+                    tp1_hit = bar_high >= trade.half_rr_price
+                elif trade.direction == "SELL":
+                    tp1_hit = bar_low <= trade.half_rr_price
+                
+                if tp1_hit:
+                    trade.partial_taken = True
+                    # Log 50% of the pips up to the halfway mark
+                    partial_pips = abs(trade.half_rr_price - trade.entry_price) / pip_size
+                    trade.pnl_pips += partial_pips * 0.5
+                    logger.debug(f"PARTIAL TP1 HIT: {trade.symbol} {trade.direction} locked +{partial_pips*0.5:.1f} pips")
 
             if trade.direction == "BUY":
                 sl_hit = bar_low <= trade.sl_price
@@ -806,14 +879,19 @@ class BacktestEngine:
                 trade.exit_price = trade.sl_price
                 # If SL is above entry (BUY) or below entry (SELL), it's a trailed exit
                 if trade.direction == "BUY":
-                    trade.pnl_pips = (trade.sl_price - trade.entry_price) / pip_size
+                    final_pips = (trade.sl_price - trade.entry_price) / pip_size
                 else:
-                    trade.pnl_pips = (trade.entry_price - trade.sl_price) / pip_size
+                    final_pips = (trade.entry_price - trade.sl_price) / pip_size
+
+                if trade.partial_taken:
+                    trade.pnl_pips += final_pips * 0.5
+                else:
+                    trade.pnl_pips += final_pips
 
                 # Determine exit reason based on whether the SL was trailed
-                if trade.pnl_pips > 0:
+                if final_pips > 0 and trade.sl_price != trade.original_sl:
                     trade.exit_reason = "TRAILED_SL"  # Profitable exit via trailing
-                elif trade.be_applied and abs(trade.pnl_pips) < 2.0:
+                elif trade.be_applied and abs(final_pips) < 2.0:
                     trade.exit_reason = "BREAKEVEN"    # Exited near breakeven
                 else:
                     trade.exit_reason = "SL_HIT"      # Normal stop loss
@@ -833,9 +911,14 @@ class BacktestEngine:
                 trade.exit_reason = "TP_HIT"
 
                 if trade.direction == "BUY":
-                    trade.pnl_pips = (trade.tp_price - trade.entry_price) / pip_size
+                    final_pips = (trade.tp_price - trade.entry_price) / pip_size
                 else:
-                    trade.pnl_pips = (trade.entry_price - trade.tp_price) / pip_size
+                    final_pips = (trade.entry_price - trade.tp_price) / pip_size
+
+                if trade.partial_taken:
+                    trade.pnl_pips += final_pips * 0.5
+                else:
+                    trade.pnl_pips += final_pips
 
                 risk = abs(trade.entry_price - (trade.original_sl or trade.sl_price))
                 trade.rr_achieved = trade.pnl_pips * pip_size / risk if risk > 0 else 0
