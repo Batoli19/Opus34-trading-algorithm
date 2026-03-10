@@ -24,6 +24,8 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
+from market_math import pip_size as _pip_size
+
 logger = logging.getLogger("RISK")
 
 
@@ -827,8 +829,8 @@ class RiskManager:
         rr: float = 0.0,
         risk_scale: float = 1.0,
     ) -> float:
-        pip_size = self._get_pip_size(symbol)
-        stop_pips = abs(entry - sl) / pip_size
+        ps = _pip_size(symbol)
+        stop_pips = abs(entry - sl) / ps if ps else 0.0
 
         if stop_pips <= 0:
             logger.warning(f"{symbol}: Invalid stop distance (stop_pips={stop_pips})")
@@ -980,16 +982,6 @@ class RiskManager:
             logger.warning(f"{symbol}: Stop wider than target ({stop_pips:.1f}p vs {target_stop}p)")
 
         return lot
-
-    def _get_pip_size(self, symbol: str) -> float:
-        s = symbol.upper()
-        if "JPY" in s:
-            return 0.01
-        if s in ("US30", "NAS100", "SPX500"):
-            return 1.0
-        if "XAU" in s:
-            return 0.1
-        return 0.0001
 
     def _soft_sl_cfg_for_symbol(self, symbol: str) -> dict:
         sym = str(symbol or "").upper()

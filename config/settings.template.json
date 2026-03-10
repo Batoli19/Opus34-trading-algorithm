@@ -1,7 +1,7 @@
 {
   "mt5": {
-    "login":    5047375529,
-    "password":  "8d_bYlWt",
+    "login":    123456789,
+    "password":  "YOUR_MT5_PASSWORD",
     "server":   "MetaQuotes-Demo",
     "timeout":  10000
   },

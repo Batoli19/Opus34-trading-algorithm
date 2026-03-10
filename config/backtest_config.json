@@ -1,18 +1,31 @@
 {
-    "_comment": "Backtest-specific config — inherits from main settings.json and overrides specific values for backtesting",
+    "_comment": "Backtest config — inherits from settings.json and overrides for backtesting",
     "inherit_from_main": true,
-    "backtest_notes": "This config is loaded by run_backtest.py. It merges with settings.json, so you only need to specify overrides here.",
     "disabled_setups": [
-        "PIN_BAR"
+        "PIN_BAR",
+        "FVG",
+        "CONTINUATION_OB",
+        "CHOCH",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION"
     ],
-    "_disabled_setups_note": "PIN_BAR had 14.3% WR and -175.6 pips in backtest — worst performing setup",
+    "_disabled_setups_note": [
+        "Prefix matching is enforced in backtester.py.",
+        "Global disables (PF < 0.8 across all three pairs):",
+        "  CHOCH — PF: GBPJPY 0.78, GBPUSD 0.59, USDJPY 0.35",
+        "  HH_HL_CONTINUATION — PF: GBPJPY 0.49, GBPUSD 0.69, USDJPY 0.44",
+        "  LIQUIDITY_GRAB_CONTINUATION — PF: GBPJPY 0.58, GBPUSD 0.47, USDJPY 0.43",
+        "FVG remains disabled by design in this backtest.",
+        "Add exact names or prefixes here — all matching is case-insensitive."
+    ],
     "execution": {
         "enforce_killzones": true,
-        "_killzone_note": "60% of trades were in DEAD_ZONE with near-breakeven results — enforce KZ to filter noise"
+        "_killzone_note": "60% of trades were in DEAD_ZONE — KZ enforcement filters noise",
+        "min_confidence": 0.68
     },
     "news": {
         "enabled": false,
-        "_comment": "Disable news filter during backtesting (we don't have historical news data)"
+        "_comment": "No historical news data available during backtesting"
     },
     "notifications": {
         "enabled": false,
@@ -22,21 +35,36 @@
         "max_open_trades": 3,
         "max_daily_trades": 10000,
         "max_daily_loss_pct": 99.0,
-        "_comment": "Relaxed risk limits for backtesting — we want to see all possible trades"
+        "_comment": "Relaxed risk limits — see all possible trades during backtest"
     },
     "test_mode": {
         "enabled": false
     },
     "trade_management": {
-        "giveback_guard": {
-            "enabled": true,
-            "activate_at_r": 1.2,
-            "max_giveback_pct": 0.60
-        },
+        "_comment": [
+            "Partials now driven by tp1_r and tp1_close_pct — no more hardcoded halfway/50%.",
+            "tp1_r=1.0 means partial fires at exactly 1R profit.",
+            "tp1_close_pct=0.6 means 60% of position closed at TP1.",
+            "Remaining 40% runs to full TP or SL.",
+            "tp1_sl_mode=BE_PLUS moves SL to entry+0.05R after partial fires.",
+            "Set tp1_close_pct=0.6 if you want 60% closed at TP1 (matches settings.json)."
+        ],
         "partials": {
             "enabled": true,
             "tp1_r": 1.0,
-            "tp1_close_pct": 0.5
+            "tp1_close_pct": 0.6,
+            "tp1_sl_mode": "BE_PLUS",
+            "tp1_be_plus_r": 0.05
+        },
+        "giveback_guard": {
+            "enabled": true,
+            "activate_at_r": 2.0,
+            "max_giveback_pct": 0.35
         }
-    }
+    },
+    "pairs": [
+        "USDJPY",
+        "GBPUSD",
+        "GBPJPY"
+    ]
 }

@@ -1,0 +1,50 @@
+{
+    "_comment": "Patch for settings.json - only changed keys.",
+    "pairs": [
+        "USDJPY",
+        "GBPUSD",
+        "GBPJPY"
+    ],
+    "mode": {
+        "pairs_focus": [
+            "USDJPY",
+            "GBPUSD",
+            "GBPJPY"
+        ]
+    },
+    "disabled_setups": [
+        "PIN_BAR",
+        "FVG",
+        "CHOCH",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION"
+    ],
+    "execution": {
+        "min_rr": 2.5,
+        "per_symbol": {
+            "GBPJPY": {
+                "min_rr": 2.0,
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LH_LL_CONTINUATION",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ]
+            },
+            "GBPUSD": {
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ]
+            },
+            "USDJPY": {
+                "disabled_setups": [
+                    "LH_LL_CONTINUATION"
+                ]
+            }
+        }
+    },
+    "risk": {
+        "risk_per_trade_pct": 1.0,
+        "max_risk_per_trade_usd": 50
+    }
+}

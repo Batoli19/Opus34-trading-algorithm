@@ -28,6 +28,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from market_math import pip_size as _pip_size
+
 logger = logging.getLogger("TRAIL")
 
 
@@ -52,20 +54,20 @@ class StructureTrailingManager:
         self._state: Dict[int, TrailingState] = {}
 
         self._base_defaults = {
-            "fractal_left": int(self.cfg.get("fractal_left", 2)),
-            "fractal_right": int(self.cfg.get("fractal_right", 2)),
-            "swing_buffer_pips": float(self.cfg.get("swing_buffer_pips", 1.0)),
-            "min_swing_pips": float(self.cfg.get("min_swing_pips", 2.0)),
-            "min_swing_atr_mult": float(self.cfg.get("min_swing_atr_mult", 0.2)),
+            "fractal_left": int(self.cfg.get("fractal_left", 3)),
+            "fractal_right": int(self.cfg.get("fractal_right", 3)),
+            "swing_buffer_pips": float(self.cfg.get("swing_buffer_pips", 3.0)),
+            "min_swing_pips": float(self.cfg.get("min_swing_pips", 6.0)),
+            "min_swing_atr_mult": float(self.cfg.get("min_swing_atr_mult", 0.4)),
             "atr_period": int(self.cfg.get("atr_period", 14)),
             "allow_ob_trail": bool(self.cfg.get("allow_ob_trail", True)),
             "ob_min_impulse_atr_mult": float(self.cfg.get("ob_min_impulse_atr_mult", 0.8)),
             "be_enabled": bool(self.cfg.get("be_enabled", True)),
-            "be_min_profit_pips": float(self.cfg.get("be_min_profit_pips", 6.0)),
-            "be_trigger_r_multiple": float(self.cfg.get("be_trigger_r_multiple", 0.6)),
+            "be_min_profit_pips": float(self.cfg.get("be_min_profit_pips", 20.0)),
+            "be_trigger_r_multiple": float(self.cfg.get("be_trigger_r_multiple", 2.0)),
             "be_buffer_pips": float(self.cfg.get("be_buffer_pips", 0.8)),
             "lock_be_as_floor": bool(self.cfg.get("lock_be_as_floor", True)),
-            "swing_tf": str(self.cfg.get("swing_tf", "M1")).upper(),
+            "swing_tf": str(self.cfg.get("swing_tf", "M5")).upper(),
             "trailing_tf": str(self.cfg.get("trailing_tf", self.tf_cfg.get("trigger", "M5"))).upper(),
         }
 
@@ -80,22 +82,26 @@ class StructureTrailingManager:
                 "ob_min_impulse_atr_mult": 0.8,
             },
             "GBPUSD": {
-                "fractal_left": 2,
-                "fractal_right": 2,
-                "swing_buffer_pips": 1.0,
-                "min_swing_pips": 1.8,
-                "min_swing_atr_mult": 0.2,
+                "fractal_left": 3,
+                "fractal_right": 3,
+                "swing_buffer_pips": 2.0,
+                "min_swing_pips": 6.0,
+                "min_swing_atr_mult": 0.35,
                 "allow_ob_trail": True,
                 "ob_min_impulse_atr_mult": 0.9,
+                "swing_tf": "M5",
+                "trailing_tf": "M5",
             },
             "USDJPY": {
-                "fractal_left": 2,
-                "fractal_right": 2,
-                "swing_buffer_pips": 0.8,
-                "min_swing_pips": 1.5,
-                "min_swing_atr_mult": 0.2,
+                "fractal_left": 3,
+                "fractal_right": 3,
+                "swing_buffer_pips": 2.5,
+                "min_swing_pips": 8.0,
+                "min_swing_atr_mult": 0.4,
                 "allow_ob_trail": True,
-                "ob_min_impulse_atr_mult": 0.8,
+                "ob_min_impulse_atr_mult": 0.9,
+                "swing_tf": "M5",
+                "trailing_tf": "M5",
             },
             "USDCHF": {
                 "fractal_left": 2,
@@ -119,6 +125,17 @@ class StructureTrailingManager:
                 "be_min_profit_pips": 30.0,
                 "be_trigger_r_multiple": 0.8,
                 "be_buffer_pips": 3.0,
+                "swing_tf": "M5",
+                "trailing_tf": "M5",
+            },
+            "GBPJPY": {
+                "fractal_left": 3,
+                "fractal_right": 3,
+                "swing_buffer_pips": 3.0,
+                "min_swing_pips": 10.0,
+                "min_swing_atr_mult": 0.4,
+                "allow_ob_trail": True,
+                "ob_min_impulse_atr_mult": 1.0,
                 "swing_tf": "M5",
                 "trailing_tf": "M5",
             },
@@ -150,14 +167,7 @@ class StructureTrailingManager:
         digits = int(info.get("digits", 0) or 0)
         if point > 0:
             return point * 10.0 if digits in (3, 5) else point
-        s = str(symbol or "").upper()
-        if "JPY" in s:
-            return 0.01
-        if s in ("US30", "NAS100", "SPX500"):
-            return 1.0
-        if "XAU" in s or "GOLD" in s:
-            return 0.1
-        return 0.0001
+        return _pip_size(symbol)
 
     def _atr(self, candles: List[dict], period: int) -> float:
         p = max(1, int(period))

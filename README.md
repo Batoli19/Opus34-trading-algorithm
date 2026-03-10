@@ -100,7 +100,8 @@ ict_trading_bot/
 │
 ├── 📁 config/
 │   ├── settings.json            ← ⚠️ Your credentials (gitignored, never uploaded)
-│   └── settings.template.json   ← ✅ Safe template — copy this to get started
+│   ├── settings.example.json    ← ✅ Safe example — copy this to get started
+│   └── settings.template.json   ← ✅ Safe template (legacy)
 │
 ├── 📁 docs/
 │   ├── SETUP_GUIDE.md           ← Full setup instructions
@@ -118,6 +119,9 @@ ict_trading_bot/
 ### Prerequisites
 - [Python 3.10+](https://python.org/downloads)
 - [MetaTrader 5](https://metatrader5.com) installed with a broker account
+
+### Configure
+Copy `[config/settings.example.json](config/settings.example.json)` to `config/settings.json` and fill in your MT5 credentials (this file is gitignored and should never be committed).
 - A live or **demo** MT5 account
 
 ### 1. Clone the repo

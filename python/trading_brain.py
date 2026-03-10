@@ -295,16 +295,27 @@ class TradingBrain:
         return confidence
     
     # ── Check if Should Disable Setup ────────────────────────────────────────
-    def should_disable_setup(self, setup_type: str) -> bool:
+    def should_disable_setup(self, setup_type: str, symbol: Optional[str] = None) -> bool:
         """
         Disable setup if:
           • Setup is globally disabled in config
+          • Setup is disabled per-symbol in execution.per_symbol.<SYM>.disabled_setups
           • Has 50+ trades AND
           • Confidence < 60%
         """
-        # First check config
+        def _is_disabled(name: str, disabled: list) -> bool:
+            name_up = str(name or "").upper()
+            for d in disabled:
+                d_up = str(d or "").upper()
+                if not d_up:
+                    continue
+                if name_up == d_up or name_up.startswith(d_up + "_"):
+                    return True
+            return False
+
+        # First check global config
         cfg_disabled = self.config.get("disabled_setups", [])
-        if setup_type.upper() in [s.upper() for s in cfg_disabled]:
+        if _is_disabled(setup_type, cfg_disabled):
             return True
             
         exec_cfg = self.config.get("execution", {}) if isinstance(self.config.get("execution", {}), dict) else {}
@@ -315,6 +326,17 @@ class TradingBrain:
         if str(setup_type or "").upper() in forced_set:
             logger.info(f"SETUP_OVERRIDE_FORCE_ENABLED: {setup_type}")
             return False
+
+        # Per-symbol disable list (if provided)
+        if symbol:
+            per_symbol = exec_cfg.get("per_symbol", {})
+            if isinstance(per_symbol, dict):
+                sym_key = str(symbol).upper()
+                sym_cfg = per_symbol.get(sym_key) or per_symbol.get(symbol) or {}
+                if isinstance(sym_cfg, dict):
+                    sym_disabled = sym_cfg.get("disabled_setups", [])
+                    if _is_disabled(setup_type, sym_disabled):
+                        return True
         return not self.memory.is_setup_enabled(setup_type)
     
     # ── Generate Performance Report ──────────────────────────────────────────

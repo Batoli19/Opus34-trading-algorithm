@@ -1,0 +1,42 @@
+{
+    "_comment": "Baseline backtest config (pre-optimization) for comparison",
+    "inherit_from_main": true,
+    "backtest_notes": "Snapshot of original backtest_config.json from repo head for baseline metrics.",
+    "disabled_setups": [
+        "PIN_BAR"
+    ],
+    "_disabled_setups_note": "PIN_BAR had 14.3% WR and -175.6 pips in prior baseline.",
+    "execution": {
+        "enforce_killzones": true,
+        "_killzone_note": "Baseline config keeps KZ enforcement as originally defined."
+    },
+    "news": {
+        "enabled": false,
+        "_comment": "Disable news filter during backtesting (no historical news data)"
+    },
+    "notifications": {
+        "enabled": false,
+        "_comment": "No Telegram/email alerts during backtesting"
+    },
+    "risk": {
+        "max_open_trades": 3,
+        "max_daily_trades": 10000,
+        "max_daily_loss_pct": 99.0,
+        "_comment": "Relaxed risk limits for backtesting"
+    },
+    "test_mode": {
+        "enabled": false
+    },
+    "trade_management": {
+        "giveback_guard": {
+            "enabled": true,
+            "activate_at_r": 1.2,
+            "max_giveback_pct": 0.60
+        },
+        "partials": {
+            "enabled": true,
+            "tp1_r": 1.0,
+            "tp1_close_pct": 0.5
+        }
+    }
+}

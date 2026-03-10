@@ -357,6 +357,17 @@ class BacktestEngine:
             cfg_disabled = config.get("disabled_setups", [])
             self.disabled_setups = set(s.upper() for s in cfg_disabled)
 
+        # Per-symbol disabled setups (execution.per_symbol.<SYM>.disabled_setups)
+        self.disabled_setups_by_symbol: Dict[str, set] = {}
+        exec_cfg = config.get("execution", {})
+        per_symbol_cfg = exec_cfg.get("per_symbol", {}) if isinstance(exec_cfg.get("per_symbol", {}), dict) else {}
+        for sym, cfg in per_symbol_cfg.items():
+            if not isinstance(cfg, dict):
+                continue
+            ds = cfg.get("disabled_setups")
+            if ds:
+                self.disabled_setups_by_symbol[str(sym).upper()] = set(s.upper() for s in ds)
+
         # Kill zone enforcement — read from config if not explicitly provided
         if killzone_only is not None:
             self.killzone_only = killzone_only
@@ -587,7 +598,21 @@ class BacktestEngine:
             direction = str(getattr(signal.direction, "value", signal.direction))
 
             # ─── Step 5a: Check disabled setups ────────────────────────
-            if setup_name.upper() in self.disabled_setups:
+            # Uses prefix matching: disabling "FVG" blocks "FVG", "FVG_CONTINUATION",
+            # "FVG_ENTRY", etc. Exact matches still work as before.
+            def _is_setup_disabled(name: str, disabled: set) -> bool:
+                name_up = name.upper()
+                return any(
+                    name_up == d or name_up.startswith(d + "_")
+                    for d in disabled
+                )
+
+            disabled = set(self.disabled_setups)
+            sym_key = str(symbol).upper()
+            if sym_key in self.disabled_setups_by_symbol:
+                disabled |= self.disabled_setups_by_symbol[sym_key]
+
+            if _is_setup_disabled(setup_name, disabled):
                 self.signals_filtered += 1
                 self.filtered_signals.append({
                     "symbol": symbol, "time": current_time.isoformat(),
@@ -636,7 +661,7 @@ class BacktestEngine:
             sniper_skip = ""
             sniper_metrics = None
 
-            if self.sniper_filter and self.sniper_filter.enabled:
+            if self.sniper_filter and self.sniper_filter.enabled():
                 try:
                     passed, reason, metrics = self.sniper_filter.evaluate(
                         signal=signal,
@@ -829,7 +854,10 @@ class BacktestEngine:
                                 final_pips = (trade.entry_price - bar_close) / pip_size
                             
                             if trade.partial_taken:
-                                trade.pnl_pips += final_pips * 0.5
+                                mgmt_cfg_ = self.config.get("trade_management", {})
+                                part_cfg_ = mgmt_cfg_.get("partials", {})
+                                tp1_close_pct_ = float(part_cfg_.get("tp1_close_pct", 0.5))
+                                trade.pnl_pips += final_pips * (1.0 - tp1_close_pct_)
                             else:
                                 trade.pnl_pips += final_pips
                             
@@ -848,21 +876,6 @@ class BacktestEngine:
             sl_hit = False
             tp_hit = False
 
-            # Check Partial (Halfway to TP)
-            if not trade.partial_taken:
-                tp1_hit = False
-                if trade.direction == "BUY":
-                    tp1_hit = bar_high >= trade.half_rr_price
-                elif trade.direction == "SELL":
-                    tp1_hit = bar_low <= trade.half_rr_price
-                
-                if tp1_hit:
-                    trade.partial_taken = True
-                    # Log 50% of the pips up to the halfway mark
-                    partial_pips = abs(trade.half_rr_price - trade.entry_price) / pip_size
-                    trade.pnl_pips += partial_pips * 0.5
-                    logger.debug(f"PARTIAL TP1 HIT: {trade.symbol} {trade.direction} locked +{partial_pips*0.5:.1f} pips")
-
             if trade.direction == "BUY":
                 sl_hit = bar_low <= trade.sl_price
                 tp_hit = bar_high >= trade.tp_price
@@ -874,6 +887,63 @@ class BacktestEngine:
                 sl_hit = True
                 tp_hit = False
 
+            # ─── Partial TP (only if SL was NOT hit first) ─────────────
+            # Reads from trade_management.partials config.
+            # If partials are disabled or trade is too small, skips cleanly.
+            if not sl_hit and not trade.partial_taken:
+                mgmt_cfg   = self.config.get("trade_management", {})
+                part_cfg   = mgmt_cfg.get("partials", {})
+                partials_on = bool(part_cfg.get("enabled", False))
+
+                if partials_on:
+                    tp1_r         = float(part_cfg.get("tp1_r", 1.0))
+                    tp1_close_pct = float(part_cfg.get("tp1_close_pct", 0.5))
+
+                    # Compute the TP1 price from config R-multiple
+                    risk_dist = abs(trade.entry_price - trade.sl_price)
+                    if risk_dist > 0:
+                        if trade.direction == "BUY":
+                            tp1_price = trade.entry_price + risk_dist * tp1_r
+                            tp1_hit   = bar_high >= tp1_price
+                        else:
+                            tp1_price = trade.entry_price - risk_dist * tp1_r
+                            tp1_hit   = bar_low <= tp1_price
+                    else:
+                        tp1_hit = False
+
+                    if tp1_hit:
+                        trade.partial_taken = True
+                        partial_pips = abs(tp1_price - trade.entry_price) / pip_size
+                        trade.pnl_pips += partial_pips * tp1_close_pct
+
+                        # Move SL per config (BE_PLUS, BREAKEVEN, or leave)
+                        sl_mode = str(part_cfg.get("tp1_sl_mode", "BE_PLUS")).upper()
+                        if sl_mode == "BE_PLUS":
+                            be_r = float(part_cfg.get("tp1_be_plus_r", 0.05))
+                            if trade.direction == "BUY":
+                                new_sl = trade.entry_price + risk_dist * be_r
+                                if new_sl > trade.sl_price:
+                                    trade.sl_price = new_sl
+                                    trade.be_applied = True
+                            else:
+                                new_sl = trade.entry_price - risk_dist * be_r
+                                if new_sl < trade.sl_price:
+                                    trade.sl_price = new_sl
+                                    trade.be_applied = True
+                        elif sl_mode == "BREAKEVEN":
+                            if trade.direction == "BUY" and trade.entry_price > trade.sl_price:
+                                trade.sl_price = trade.entry_price
+                                trade.be_applied = True
+                            elif trade.direction == "SELL" and trade.entry_price < trade.sl_price:
+                                trade.sl_price = trade.entry_price
+                                trade.be_applied = True
+
+                        logger.debug(
+                            f"PARTIAL TP1 HIT: {trade.symbol} {trade.direction} "
+                            f"locked +{partial_pips * tp1_close_pct:.1f} pips "
+                            f"({tp1_close_pct*100:.0f}% at {tp1_r}R) SL→{trade.sl_price:.5f}"
+                        )
+
             if sl_hit:
                 trade.exit_time = current_time
                 trade.exit_price = trade.sl_price
@@ -884,7 +954,12 @@ class BacktestEngine:
                     final_pips = (trade.entry_price - trade.sl_price) / pip_size
 
                 if trade.partial_taken:
-                    trade.pnl_pips += final_pips * 0.5
+                    # Remaining position size after partial
+                    mgmt_cfg   = self.config.get("trade_management", {})
+                    part_cfg   = mgmt_cfg.get("partials", {})
+                    tp1_close_pct = float(part_cfg.get("tp1_close_pct", 0.5))
+                    remaining_pct = 1.0 - tp1_close_pct
+                    trade.pnl_pips += final_pips * remaining_pct
                 else:
                     trade.pnl_pips += final_pips
 
@@ -916,7 +991,11 @@ class BacktestEngine:
                     final_pips = (trade.entry_price - trade.tp_price) / pip_size
 
                 if trade.partial_taken:
-                    trade.pnl_pips += final_pips * 0.5
+                    mgmt_cfg   = self.config.get("trade_management", {})
+                    part_cfg   = mgmt_cfg.get("partials", {})
+                    tp1_close_pct = float(part_cfg.get("tp1_close_pct", 0.5))
+                    remaining_pct = 1.0 - tp1_close_pct
+                    trade.pnl_pips += final_pips * remaining_pct
                 else:
                     trade.pnl_pips += final_pips
 

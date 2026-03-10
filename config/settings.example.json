@@ -1,0 +1,66 @@
+{
+  "mt5": {
+    "login": 123456789,
+    "password": "YOUR_MT5_PASSWORD",
+    "server": "MetaQuotes-Demo",
+    "timeout": 10000
+  },
+  "disabled_setups": [
+    "PIN_BAR"
+  ],
+  "pairs": [
+    "USDJPY",
+    "USDCHF",
+    "GBPUSD",
+    "GBPJPY",
+    "AUDUSD",
+    "XAUUSD"
+  ],
+  "timeframes": {
+    "bias": "H4",
+    "entry": "M15",
+    "trigger": "M5"
+  },
+  "mode": {
+    "type": "hybrid"
+  },
+  "execution": {
+    "profile": "sniper",
+    "min_confidence": 0.68,
+    "min_rr": 1.6,
+    "enforce_killzones": true
+  },
+  "risk": {
+    "risk_per_trade_pct": 1.5,
+    "max_open_trades": 3,
+    "max_daily_loss_pct": 3.0,
+    "max_daily_trades": 20,
+    "max_risk_per_trade_usd": 50
+  },
+  "ict": {
+    "kill_zones": {
+      "enabled": true
+    }
+  },
+  "news": {
+    "enabled": true,
+    "provider": "forexfactory",
+    "avoid_minutes_before": 30,
+    "avoid_minutes_after": 15,
+    "impact_levels": [
+      "HIGH"
+    ],
+    "currencies": [
+      "USD",
+      "EUR",
+      "GBP"
+    ]
+  },
+  "notifications": {
+    "enabled": true
+  },
+  "dashboard": {
+    "refresh_seconds": 5
+  }
+}
+

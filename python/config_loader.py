@@ -26,6 +26,7 @@ Config sections handled:
 
 import json
 import logging
+import re
 from pathlib import Path
 
 logger = logging.getLogger("CONFIG")
@@ -403,6 +404,42 @@ def _validate(config: dict):
     # Must have at least one trading pair
     if not config.get("pairs"):
         raise ValueError("No trading pairs specified")
+
+    # Basic kill-zone sanity checks (time format + tz presence)
+    ict = config.get("ict", {}) if isinstance(config.get("ict", {}), dict) else {}
+    kz = ict.get("kill_zones", {}) if isinstance(ict.get("kill_zones", {}), dict) else {}
+    enforce_kz = bool(config.get("execution", {}).get("enforce_killzones", False))
+    if enforce_kz and not bool(kz.get("enabled", False)):
+        logger.warning("Kill zones enforcement is ON but ict.kill_zones.enabled is false.")
+
+    hhmm = re.compile(r"^(?:[01]\\d|2[0-3]):[0-5]\\d$")
+    for name in ("london_open", "ny_open", "london_close"):
+        section = kz.get(name)
+        if not isinstance(section, dict):
+            continue
+        start = str(section.get("start", "")).strip()
+        end = str(section.get("end", "")).strip()
+        tz = str(section.get("tz", "")).strip()
+        if start and not hhmm.match(start):
+            raise ValueError(f"ict.kill_zones.{name}.start must be HH:MM (got {start!r})")
+        if end and not hhmm.match(end):
+            raise ValueError(f"ict.kill_zones.{name}.end must be HH:MM (got {end!r})")
+        if (start or end) and not tz:
+            raise ValueError(f"ict.kill_zones.{name}.tz is required when start/end is set")
+
+    # Execution gate sanity checks
+    exec_cfg = config.get("execution", {}) if isinstance(config.get("execution", {}), dict) else {}
+    min_rr = float(exec_cfg.get("min_rr", 0.0) or 0.0)
+    if min_rr and min_rr < 1.0:
+        logger.warning("execution.min_rr < 1.0 is unusual (got %.2f)", min_rr)
+    min_conf = float(exec_cfg.get("min_confidence", 0.0) or 0.0)
+    if min_conf and not (0.0 <= min_conf <= 1.0):
+        raise ValueError(f"execution.min_confidence must be in [0,1] (got {min_conf})")
+
+    # Risk sanity checks
+    max_risk_usd = float(risk.get("max_risk_per_trade_usd", 0.0) or 0.0)
+    if max_risk_usd < 0:
+        raise ValueError("risk.max_risk_per_trade_usd must be >= 0")
 
     logger.info(f"✅  Config validation passed")
 

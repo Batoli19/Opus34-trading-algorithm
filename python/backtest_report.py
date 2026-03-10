@@ -336,11 +336,10 @@ class BacktestReport:
 
             # Header row
             writer.writerow([
-                "symbol", "direction", "setup_type", "entry_time", "exit_time",
-                "entry_price", "exit_price", "sl_price", "tp_price",
-                "pnl_pips", "rr_achieved", "exit_reason",
-                "confidence", "killzone", "htf_bias",
-                "sniper_passed", "sniper_skip_reason",
+                "symbol", "direction", "setup_type", "entry_price", "sl_price", "tp_price",
+                "confidence", "entry_time", "exit_time", "exit_price", "exit_reason",
+                "pnl_pips", "rr_achieved", "killzone", "htf_bias", "sniper_passed",
+                "sniper_skip_reason", "partial_taken", "trail_count", "be_applied", "peak_r",
             ])
 
             # Data rows (sorted by entry time)
@@ -349,20 +348,24 @@ class BacktestReport:
                     t.symbol,
                     t.direction,
                     t.setup_type,
-                    t.entry_time.strftime("%Y-%m-%d %H:%M") if t.entry_time else "",
-                    t.exit_time.strftime("%Y-%m-%d %H:%M") if t.exit_time else "",
                     f"{t.entry_price:.5f}",
-                    f"{t.exit_price:.5f}" if t.exit_price else "",
                     f"{t.sl_price:.5f}",
                     f"{t.tp_price:.5f}",
+                    f"{t.confidence:.3f}",
+                    t.entry_time.strftime("%Y-%m-%d %H:%M") if t.entry_time else "",
+                    t.exit_time.strftime("%Y-%m-%d %H:%M") if t.exit_time else "",
+                    f"{t.exit_price:.5f}" if t.exit_price else "",
+                    t.exit_reason or "",
                     f"{t.pnl_pips:.2f}",
                     f"{t.rr_achieved:.2f}",
-                    t.exit_reason or "",
-                    f"{t.confidence:.3f}",
                     t.killzone,
                     t.htf_bias,
                     t.sniper_passed,
                     t.sniper_skip_reason,
+                    bool(getattr(t, "partial_taken", False)),
+                    int(getattr(t, "trail_count", 0)),
+                    bool(getattr(t, "be_applied", False)),
+                    f"{getattr(t, 'peak_r', 0.0):.2f}",
                 ])
 
         logger.info(f"Trade results exported to: {filepath}")

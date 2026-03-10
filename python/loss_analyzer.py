@@ -715,6 +715,14 @@ class LossAnalyzer:
             if cooldown_seconds > 0 and age_seconds < cooldown_seconds:
                 continue
 
+            # Governance: never allow a rule to block unless it meets minimum evidence thresholds.
+            min_sample = max(1, int(self.al_cfg.get("min_rule_sample_size", 10) or 10))
+            min_precision = float(self.al_cfg.get("min_rule_precision", 0.65) or 0.65)
+            if int(rule.sample_size or 0) < min_sample:
+                continue
+            if self._rule_precision(rule) < min_precision:
+                continue
+
             threshold_hit, opposing_count, check_hit = self._rule_triggers(rule, opposing)
             if not (threshold_hit and check_hit):
                 continue

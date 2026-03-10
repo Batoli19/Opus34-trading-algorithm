@@ -28,11 +28,12 @@ import asyncio
 import logging
 import time
 from collections import deque
-from datetime import datetime, timedelta, timezone, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
 
+from engine_services import EntryService, LearningService, TradeManagementService
 from mt5_connector import MT5Connector
 from ict_strategy import ICTStrategy, Signal, Direction
 from risk_manager import RiskManager
@@ -125,6 +126,11 @@ class TradingEngine:
         self._adaptive_last_validate_at: Optional[datetime] = None
         self._last_open_tickets: set[int] = set()
 
+        # Lightweight modularization: loop orchestration delegates to services.
+        self.entries = EntryService(self)
+        self.trade_management = TradeManagementService(self)
+        self.learning = LearningService(self)
+
     async def _startup(self) -> bool:
         logger.info("Connecting to MT5...")
         if not self.mt5.connect():
@@ -184,10 +190,16 @@ class TradingEngine:
         except Exception as e:
             logger.error(f"Shared Learning DB close error: {e}")
 
+    def _record_skip(self, symbol: str, reason: str, **details) -> None:
+        payload = {"ts": datetime.now(timezone.utc).isoformat(), "symbol": symbol, "reason": str(reason)}
+        for k, v in details.items():
+            payload[k] = v
+        self._skip_reasons.append(payload)
+
     async def _scan_loop(self):
         while not self.shutdown.is_set():
             try:
-                await self._scan_all_pairs()
+                await self.entries.scan_all_pairs()
             except Exception as e:
                 logger.error(f"Scan error: {e}", exc_info=True)
             await asyncio.sleep(self._scan_interval)
@@ -195,9 +207,8 @@ class TradingEngine:
     async def _manage_loop(self):
         while not self.shutdown.is_set():
             try:
-                await self.manage_open_positions()
-                await self._fallback_closed_trade_sync()
-                self._maybe_validate_adaptive_rules()
+                await self.trade_management.manage()
+                self.learning.maybe_validate_adaptive_rules()
             except Exception as e:
                 logger.error(f"Manage error: {e}", exc_info=True)
             await asyncio.sleep(self._manage_interval)
@@ -296,11 +307,13 @@ class TradingEngine:
             pending_orders = [o for o in pending_orders if self._is_order_still_pending(o.get("ticket"))]
             if pending_orders:
                 logger.info(f"SKIP_ENTRY_PENDING_EXISTS: symbol={symbol} pending={len(pending_orders)}")
+                self._record_skip(symbol, "PENDING_EXISTS", pending=len(pending_orders))
                 return False
 
         existing = [p for p in open_positions if p["symbol"] == symbol]
         if existing:
             logger.info(f"SKIP_ENTRY_OPEN_POSITION: symbol={symbol} open={len(existing)}")
+            self._record_skip(symbol, "OPEN_POSITION", open=len(existing))
             return False
         paper_trade_only = False
 
@@ -308,16 +321,19 @@ class TradingEngine:
             can_enter, cd_reason = self.cooldowns.can_enter(symbol)
             if not can_enter:
                 logger.info(f"SKIP_ENTRY_COOLDOWN: symbol={symbol} reason={cd_reason} remaining=0")
+                self._record_skip(symbol, "COOLDOWN", detail=str(cd_reason))
                 return False
 
         blocked, cd_reason, remaining = self.risk.should_cooldown(symbol)
         if blocked:
             logger.info(f"SKIP_ENTRY_COOLDOWN: symbol={symbol} reason={cd_reason} remaining={remaining}")
+            self._record_skip(symbol, "COOLDOWN", detail=str(cd_reason), remaining=int(remaining))
             return False
 
         max_open = int(self.cfg.get("risk", {}).get("max_open_trades", 0))
         if max_open > 0 and len(open_positions) >= max_open:
             logger.warning(f"SKIP_ENTRY_MAXOPEN: open={len(open_positions)} max={max_open}")
+            self._record_skip(symbol, "MAX_OPEN_TRADES", open=len(open_positions), max=max_open)
             return False
 
         if symbol == "XAUUSD":
@@ -327,10 +343,12 @@ class TradingEngine:
                 x_count = self.memory.count_trades_for_symbol_between("XAUUSD", start_utc, end_utc)
                 if x_count >= xcap:
                     logger.warning(f"SKIP_ENTRY_XAUUSD_CAP: {x_count}/{xcap} trades today")
+                    self._record_skip(symbol, "XAUUSD_CAP", used=int(x_count), cap=int(xcap))
                     return False
 
         if guard_rails.get("triggered"):
             logger.warning(f"SKIP_ENTRY_GUARDRAILS: reason={guard_rails.get('reason', 'UNKNOWN')}")
+            self._record_skip(symbol, "GUARDRAILS", detail=str(guard_rails.get("reason", "UNKNOWN")))
             return False
 
         last = self._last_signals.get(symbol)
@@ -339,11 +357,13 @@ class TradingEngine:
             if elapsed < self._signal_cooldown:
                 remaining = max(0, int(self._signal_cooldown - elapsed))
                 logger.info(f"SKIP_ENTRY_SIGNAL_COOLDOWN: symbol={symbol} remaining={remaining}")
+                self._record_skip(symbol, "SIGNAL_COOLDOWN", remaining=int(remaining))
                 return False
 
         blocked_news, reason = self.news.is_blocked(symbol)
         if blocked_news:
             logger.info(f"SKIP_ENTRY_NEWS: symbol={symbol} reason={reason}")
+            self._record_skip(symbol, "NEWS", detail=str(reason))
             return False
 
         can_trade, reason = self.risk.can_trade(
@@ -415,6 +435,7 @@ class TradingEngine:
 
         if not candles_h4 or not candles_h1 or not candles_m15 or not tick:
             logger.warning(f"Incomplete data for {symbol} - skipping")
+            self._record_skip(symbol, "INCOMPLETE_DATA")
             return False
 
         signal = self.strategy.analyze(
@@ -601,7 +622,7 @@ class TradingEngine:
                 )
                 return True
 
-            if not self.brain.should_disable_setup(signal.setup_type.value):
+            if not self.brain.should_disable_setup(signal.setup_type.value, symbol):
                 logger.info(
                     f"ICT_ENTRY_CONTEXT: symbol={symbol} setup={setup_name} htf_bias={metrics.htf_bias} "
                     f"sweep={metrics.sweep_detected} disp_strength={metrics.displacement_strength:.2f} "

@@ -1,0 +1,102 @@
+ICT Backtest Breakdown Report
+========================================================================
+
+OVERALL SUMMARY
+Total trades: 87
+Win rate: 41.38%
+Profit factor: 0.54
+Total pips: -322.80
+Avg pips/trade: -3.71
+Expectancy/trade ($50 risk): +213.43
+Avg win R: 11.62 | Avg loss R: 0.92
+Trades/week (avg): 1.45
+Weekly run rate: +309.47 vs $300 target
+Gap to target: -9.47
+
+BY SETUP TYPE (sorted by PF desc)
+Setup | Trades | Win% | Total Pips | PF | Avg Pips | Verdict
+LIQUIDITY_SWEEP_REVERSAL |    22 |  54.5% |     -79.3 | 0.67 |   -3.60 | DISABLE
+LH_LL_CONTINUATION |    65 |  36.9% |    -243.5 | 0.47 |   -3.75 | DISABLE
+
+BY PAIR
+Pair | Trades | Win% | Total Pips | PF
+GBPJPY |    48 |  31.2% |    -276.2 | 0.41
+GBPUSD |    15 |  66.7% |     -19.7 | 0.72
+USDJPY |    24 |  45.8% |     -26.9 | 0.83
+Primary bleeder: GBPJPY
+
+BY KILL ZONE
+Kill Zone | Trades | Win% | Total Pips | Flag
+LONDON_OPEN |    31 |  45.2% |    -134.1 | OK
+NY_OPEN |    32 |  28.1% |    -211.8 | RESTRICT
+LONDON_CLOSE |    24 |  54.2% |     +23.1 | OK
+
+BY DIRECTION (per pair)
+Pair | Dir | Trades | Win% | Total Pips | PF
+GBPJPY | BUY |     4 |  50.0% |     -22.8 | 0.59
+GBPJPY | SELL |    44 |  29.5% |    -253.4 | 0.39
+GBPUSD | SELL |    15 |  66.7% |     -19.7 | 0.72
+USDJPY | BUY |     7 |  57.1% |     -50.1 | 0.25
+USDJPY | SELL |    17 |  41.2% |     +23.2 | 1.25
+
+HTF BIAS ALIGNMENT
+Group | Trades | Win% | Total Pips | PF
+Aligned |    28 |  39.3% |    -132.6 | 0.45
+Conflict |    20 |  45.0% |     -97.4 | 0.46
+Neutral |    39 |  41.0% |     -92.8 | 0.67
+
+BY EXIT REASON
+Reason | Trades | Total Pips | Avg Pips
+SL_HIT |    51 |    -700.1 |  -13.73
+TRAILED_SL |    19 |    +194.4 |  +10.23
+GIVEBACK_GUARD |    16 |    +174.2 |  +10.89
+TP_HIT |     1 |      +8.6 |   +8.64
+
+SNIPER FILTER EFFECTIVENESS
+Filtered signals: 18762
+Allowed trades: 87
+Allowed trade win rate: 41.38%
+Most common filter reasons:
+  DISABLED_SETUP:HH_HL_CONTINUATION: 6413
+  OUTSIDE_KILLZONE: 3571
+  DISABLED_SETUP:CONTINUATION_OB: 3244
+  DISABLED_SETUP:CHOCH: 2786
+  LOW_RR_HARD_FLOOR: 1187
+  DISABLED_SETUP:FVG_CONTINUATION: 883
+  DISABLED_SETUP:LIQUIDITY_GRAB_CONTINUATION: 471
+  LOW_RR: 98
+  SL_TOO_WIDE_PIPS: 85
+  LATE_ENTRY: 24
+CRITICAL: sniper_passed is 100% True in results.
+
+TIME OF DAY HEATMAP (UTC hour)
+Hour | Trades | Win% | Total Pips
+07 |     4 |  50.0% |      +4.4
+08 |    11 |  45.5% |     -74.0
+09 |    14 |  42.9% |     -52.6
+10 |     2 |  50.0% |     -11.9
+12 |    15 |  26.7% |     -89.8
+13 |    13 |  38.5% |     -67.5
+14 |     4 |   0.0% |     -54.5
+15 |     9 |  77.8% |     +70.8
+16 |    12 |  41.7% |     -39.1
+17 |     3 |  33.3% |      -8.6
+
+MONTHLY PERFORMANCE
+Month | Trades | Win% | Total Pips | PF
+2025-01 |    31 |  48.4% |    -107.0 | 0.56
+2025-02 |    15 |  73.3% |     +72.2 | 2.74
+2025-03 |     3 |   0.0% |     -26.4 | 0.00
+2025-04 |     5 |   0.0% |     -87.7 | 0.00
+2025-05 |     4 |   0.0% |     -70.1 | 0.00
+2025-06 |     4 |  75.0% |     +39.0 | 19.46
+2025-07 |     3 |   0.0% |     -47.6 | 0.00
+2025-08 |     3 |   0.0% |     -40.1 | 0.00
+2025-09 |     4 |  50.0% |      -6.9 | 0.66
+2025-10 |     3 | 100.0% |     +39.9 |  inf
+2025-12 |     3 |  33.3% |      -1.9 | 0.92
+2026-01 |     4 |  25.0% |     -26.5 | 0.31
+2026-02 |     4 |   0.0% |     -34.0 | 0.00
+2026-03 |     1 |   0.0% |     -25.6 | 0.00
+Best month: 2025-02 (+72.2 pips)
+Worst month: 2025-01 (-107.0 pips)

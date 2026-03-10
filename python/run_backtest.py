@@ -207,6 +207,10 @@ Examples:
     # Set debug logging if verbose mode
     if args.verbose:
         logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        # Reduce noisy loggers for long backtests
+        for noisy in ("ICT", "ICT_SETUPS", "TRAIL", "SNIPER"):
+            logging.getLogger(noisy).setLevel(logging.WARNING)
 
     # ─── Load configuration ────────────────────────────────────────────
     config = load_config(args.config)
@@ -286,6 +290,62 @@ Examples:
     # Export results to CSV
     output_path = args.output
     report.export_csv(output_path)
+
+    # ─── Summary (Task 1 requirement) ────────────────────────────────
+    closed = [t for t in trades if t.exit_reason]
+    winners = [t for t in closed if t.pnl_pips > 0]
+    losers = [t for t in closed if t.pnl_pips < 0]
+    total_trades = len(closed)
+    total_pips = sum(t.pnl_pips for t in closed)
+    win_rate = (len(winners) / total_trades * 100.0) if total_trades else 0.0
+    gross_profit = sum(t.pnl_pips for t in winners)
+    gross_loss = abs(sum(t.pnl_pips for t in losers))
+    profit_factor = (gross_profit / gross_loss) if gross_loss > 0 else float("inf")
+
+    # Trades/week average
+    trade_times = [t.entry_time for t in closed if t.entry_time]
+    if trade_times:
+        t0 = min(trade_times)
+        t1 = max(trade_times)
+        span_days = max(1.0, (t1 - t0).days + 1)
+        trades_per_week = total_trades / (span_days / 7.0)
+    else:
+        trades_per_week = 0.0
+
+    # Filter reasons summary
+    reason_counts = {}
+    for s in engine.filtered_signals:
+        reason = str(s.get("skip_reason", "UNKNOWN"))
+        reason_counts[reason] = reason_counts.get(reason, 0) + 1
+
+    logger.info("\nBACKTEST SUMMARY")
+    logger.info(f"  Trades: {total_trades} | Winners: {len(winners)} | Losers: {len(losers)} | Win rate: {win_rate:.2f}%")
+    logger.info(f"  Total pips: {total_pips:+.2f} | Profit factor: {profit_factor:.2f}")
+    logger.info(f"  Signals generated: {engine.signals_generated} | Filtered: {engine.signals_filtered}")
+    logger.info(f"  Trades/week (avg): {trades_per_week:.2f}")
+
+    if reason_counts:
+        logger.info("  Filter reasons:")
+        for reason, count in sorted(reason_counts.items(), key=lambda x: -x[1]):
+            logger.info(f"    {reason:<35} {count:>5}")
+
+    # Persist filtered signals + summary for downstream analysis
+    try:
+        out_dir = Path(__file__).resolve().parent.parent
+        with open(out_dir / "backtest_filtered_signals.json", "w", encoding="utf-8") as f:
+            json.dump(engine.filtered_signals, f, indent=2, default=str)
+        with open(out_dir / "backtest_meta.json", "w", encoding="utf-8") as f:
+            json.dump({
+                "signals_generated": engine.signals_generated,
+                "signals_filtered": engine.signals_filtered,
+                "total_trades": total_trades,
+                "total_pips": total_pips,
+                "win_rate": win_rate,
+                "profit_factor": profit_factor,
+                "trades_per_week": trades_per_week,
+            }, f, indent=2)
+    except Exception as e:
+        logger.warning(f"Could not write backtest meta files: {e}")
 
     # ─── 2-Pass Adaptive Learning ───────────────────────────────────
     if args.learn:

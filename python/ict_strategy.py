@@ -26,6 +26,7 @@ from enum import Enum
 from typing import Optional, List, Tuple
 
 from ict_advanced_setups import ICTSetupsLibrary
+from market_math import pip_size as _pip_size, to_pips as _to_pips, from_pips as _from_pips
 
 logger = logging.getLogger("ICT")
 
@@ -104,19 +105,15 @@ class ICTStrategy:
     def get_pip_size(self, symbol: str) -> float:
         if symbol in self.pip_size:
             return self.pip_size[symbol]
-        if "JPY" in symbol:
-            return 0.01
-        if symbol in ("US30", "NAS100", "SPX500"):
-            return 1.0
-        if "XAU" in symbol or "GOLD" in symbol:
-            return 0.1
-        return 0.0001
+        ps = _pip_size(symbol)
+        self.pip_size[symbol] = ps
+        return ps
 
     def to_pips(self, price_diff: float, symbol: str) -> float:
-        return abs(price_diff) / self.get_pip_size(symbol)
+        return _to_pips(price_diff, symbol)
 
     def from_pips(self, pips: float, symbol: str) -> float:
-        return pips * self.get_pip_size(symbol)
+        return _from_pips(pips, symbol)
 
     # ── 1) HTF Bias (H4 multi-factor) ────────────────────────────────────────
 
@@ -875,51 +872,15 @@ class ICTStrategy:
 
         candidates: List[Signal] = []
 
-        sig = self.sniper_entry(candles_m5, symbol, bias)
-        if sig:
-            candidates.append(sig)
+        # Phase 3: Pure Execution confirmation patterns
+        # Identify if any local M5 patterns are pointing in our HTF bias directions.
+        # These are no longer standalone trades, but confirmations.
+        local_engulfing_bull = self.detect_engulfing(candles_m5, symbol, Direction.BULLISH)
+        local_engulfing_bear = self.detect_engulfing(candles_m5, symbol, Direction.BEARISH)
+        local_sniper_bull = self.sniper_entry(candles_m5, symbol, Direction.BULLISH)
+        local_sniper_bear = self.sniper_entry(candles_m5, symbol, Direction.BEARISH)
 
-        # 2) Stop Hunt
-        sig = self.stop_hunt_signal(candles_m15, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 3) Engulfing
-        sig = self.detect_engulfing(candles_m5, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 4) Turtle Soup
-        sig = self.turtle_soup_signal(candles_m15, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 5) Pin Bar
-        sig = self.detect_pin_bar(candles_m5, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 6) Order Block
-        sig = self.order_block_signal(candles_m15, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 7) FVG
-        sig = self.fvg_signal(candles_m15, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 8) Manipulation scalp
-        sig = self.manipulation_scalp(candles_m1, symbol, bias)
-        if sig:
-            candidates.append(sig)
-
-        # 9) Regular scalp
-        sig = self.scalp_signal(candles_m1, symbol, bias, spread_pips)
-        if sig:
-            candidates.append(sig)
-
-        # 10) ADVANCED SETUPS SCORING ENGINE
+        # 1) ADVANCED SETUPS SCORING ENGINE (Deep Institutional Logic)
         adv_signals = self.advanced_setups.scan_all_setups(
             candles_h4=candles_h4,
             candles_m15=candles_m15,
@@ -932,7 +893,7 @@ class ICTStrategy:
             mapped_sig = Signal(
                 symbol=symbol,
                 direction=direction,
-                setup_type=adv_signal.setup_type,  # Duck types with old Enums perfectly
+                setup_type=adv_signal.setup_type,
                 entry=adv_signal.entry_price,
                 sl=adv_signal.sl_price,
                 tp=adv_signal.tp_price,
@@ -942,8 +903,45 @@ class ICTStrategy:
                 valid=adv_signal.valid,
                 sniper_entry=False
             )
+            
+            # Phase 3 Execution Pipeline confirmation 
+            # Inject tight M5 logic into the valid HTF macro setups
+            if direction == Direction.BULLISH:
+                if local_sniper_bull:
+                    mapped_sig.entry = local_sniper_bull.entry
+                    mapped_sig.sl = local_sniper_bull.sl
+                    mapped_sig.sniper_entry = True
+                    mapped_sig.confidence = min(mapped_sig.confidence + 0.15, 1.0)
+                    mapped_sig.reason += " + [M5 Sniper Confirmed]"
+                elif local_engulfing_bull:
+                    mapped_sig.entry = local_engulfing_bull.entry
+                    mapped_sig.sl = local_engulfing_bull.sl
+                    mapped_sig.sniper_entry = True
+                    mapped_sig.confidence = min(mapped_sig.confidence + 0.10, 1.0)
+                    mapped_sig.reason += " + [M5 Engulfing Confirmed]"
+
+            elif direction == Direction.BEARISH:
+                if local_sniper_bear:
+                    mapped_sig.entry = local_sniper_bear.entry
+                    mapped_sig.sl = local_sniper_bear.sl
+                    mapped_sig.sniper_entry = True
+                    mapped_sig.confidence = min(mapped_sig.confidence + 0.15, 1.0)
+                    mapped_sig.reason += " + [M5 Sniper Confirmed]"
+                elif local_engulfing_bear:
+                    mapped_sig.entry = local_engulfing_bear.entry
+                    mapped_sig.sl = local_engulfing_bear.sl
+                    mapped_sig.sniper_entry = True
+                    mapped_sig.confidence = min(mapped_sig.confidence + 0.10, 1.0)
+                    mapped_sig.reason += " + [M5 Engulfing Confirmed]"
+
             candidates.append(mapped_sig)
 
+        if not candidates:
+            return None
+
+        # PRE-FILTER: Discard invalid signals explicitly labeled by the Confluence Engine (e.g. against HTF)
+        candidates = [c for c in candidates if getattr(c, 'valid', True)]
+        
         if not candidates:
             return None
 
@@ -957,6 +955,8 @@ class ICTStrategy:
 
         kz_indicator = f"[{kz_name}]" if in_kz else "[OUTSIDE_KZ]"
         sniper_tag = " 🎯 SNIPER" if best.sniper_entry else ""
+        
+        # Add blocked warning flag to log if there are blocked candidates around
         logger.info(
             f"📊  {symbol} {kz_indicator}{sniper_tag} | {best.setup_type.value} | "
             f"{best.direction.value} | Conf: {best.confidence:.0%} | "

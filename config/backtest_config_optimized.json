@@ -1,0 +1,106 @@
+{
+    "_comment": "Optimized backtest config (post-fix + filter tuning).",
+    "_change_summary": [
+        "Baseline (2026-03-10): trades=418, win_rate=49.28%, PF=0.49, total_pips=-1608.8, trades/week=6.93",
+        "Optimized (2026-03-10): trades=43, win_rate=69.77%, PF=1.07, total_pips=+13.75, trades/week=5.90"
+    ],
+    "inherit_from_main": true,
+
+    "disabled_setups": [
+        "PIN_BAR",
+        "FVG",
+        "CHOCH",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION"
+    ],
+    "_disabled_setups_note": [
+        "Prefix matching enforced in backtester.py and live gate.",
+        "Baseline PF < 0.8 across all three pairs:",
+        "  CHOCH: PF 0.58 (418-trade baseline)",
+        "  HH_HL_CONTINUATION: PF 0.48",
+        "  LIQUIDITY_GRAB_CONTINUATION: PF 0.56",
+        "FVG remains disabled by design in this backtest.",
+        "PIN_BAR stays disabled (already weak in prior runs)."
+    ],
+
+    "execution": {
+        "enforce_killzones": true,
+        "_killzone_note": "Kept ON. Baseline KZ performance was negative across all sessions; enforcement reduces noise.",
+        "min_rr": 2.5,
+        "min_confidence": 0.68,
+        "_filter_notes": [
+            "min_rr raised 1.6 -> 2.5 to target higher-quality setups.",
+            "min_confidence kept at 0.68 (confidence buckets showed no WR lift above 0.68)."
+        ],
+        "per_symbol": {
+            "GBPJPY": {
+                "min_rr": 2.0,
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LH_LL_CONTINUATION",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ],
+                "_note": "JPY pairs are noisy; these three setups were net negative on GBPJPY in baseline."
+            },
+            "GBPUSD": {
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ],
+                "_note": "Keep LH_LL_CONTINUATION on GBPUSD (PF 1.62 in optimized run)."
+            },
+            "USDJPY": {
+                "disabled_setups": [
+                    "LH_LL_CONTINUATION"
+                ],
+                "_note": "USDJPY LH_LL_CONTINUATION negative; keep CONTINUATION_OB and LSR for now."
+            }
+        }
+    },
+
+    "news": {
+        "enabled": false,
+        "_comment": "No historical news data during backtesting"
+    },
+
+    "notifications": {
+        "enabled": false,
+        "_comment": "No Telegram/email alerts during backtesting"
+    },
+
+    "risk": {
+        "max_open_trades": 3,
+        "max_daily_trades": 10000,
+        "max_daily_loss_pct": 99.0,
+        "_comment": "Relaxed risk limits for backtesting visibility"
+    },
+
+    "test_mode": {
+        "enabled": false
+    },
+
+    "trade_management": {
+        "_comment": [
+            "Partials use tp1_r and tp1_close_pct (no hardcoded 50%).",
+            "tp1_r=1.0, tp1_close_pct=0.5, tp1_sl_mode=BE_PLUS"
+        ],
+        "partials": {
+            "enabled": true,
+            "tp1_r": 1.0,
+            "tp1_close_pct": 0.5,
+            "tp1_sl_mode": "BE_PLUS",
+            "tp1_be_plus_r": 0.05
+        },
+        "giveback_guard": {
+            "enabled": true,
+            "activate_at_r": 1.2,
+            "max_giveback_pct": 0.6
+        }
+    },
+
+    "pairs": [
+        "USDJPY",
+        "GBPUSD",
+        "GBPJPY"
+    ]
+}

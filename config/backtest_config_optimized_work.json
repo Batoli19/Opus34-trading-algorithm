@@ -1,0 +1,103 @@
+{
+    "_comment": "Backtest config — inherits from settings.json and overrides for backtesting",
+    "inherit_from_main": true,
+
+    "disabled_setups": [
+        "PIN_BAR",
+        "FVG",
+        "CHOCH",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION"
+    ],
+    "_disabled_setups_note": [
+        "Prefix matching is enforced in backtester.py.",
+        "Global disables (PF < 0.8 across all three pairs):",
+        "  CHOCH — PF: GBPJPY 0.78, GBPUSD 0.59, USDJPY 0.35",
+        "  HH_HL_CONTINUATION — PF: GBPJPY 0.49, GBPUSD 0.69, USDJPY 0.44",
+        "  LIQUIDITY_GRAB_CONTINUATION — PF: GBPJPY 0.58, GBPUSD 0.47, USDJPY 0.43",
+        "FVG remains disabled by design in this backtest.",
+        "Add exact names or prefixes here — all matching is case-insensitive."
+    ],
+
+    "execution": {
+        "enforce_killzones": true,
+        "_killzone_note": "60% of trades were in DEAD_ZONE — KZ enforcement filters noise",
+        "min_rr": 2.5,
+        "min_confidence": 0.68,
+        "_filter_notes": [
+            "min_rr raised 1.6 → 2.5 to target higher-quality setups.",
+            "min_confidence kept at 0.68 (confidence buckets showed no WR lift above 0.68)."
+        ],
+        "per_symbol": {
+            "GBPJPY": {
+                "min_rr": 2.0,
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LH_LL_CONTINUATION",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ]
+            },
+            "GBPUSD": {
+                "disabled_setups": [
+                    "CONTINUATION_OB",
+                    "LIQUIDITY_SWEEP_REVERSAL"
+                ]
+            },
+            "USDJPY": {
+                "disabled_setups": [
+                    "LH_LL_CONTINUATION"
+                ]
+            }
+        }
+    },
+
+    "news": {
+        "enabled": false,
+        "_comment": "No historical news data available during backtesting"
+    },
+
+    "notifications": {
+        "enabled": false,
+        "_comment": "No Telegram/email alerts during backtesting"
+    },
+
+    "risk": {
+        "max_open_trades": 3,
+        "max_daily_trades": 10000,
+        "max_daily_loss_pct": 99.0,
+        "_comment": "Relaxed risk limits — see all possible trades during backtest"
+    },
+
+    "test_mode": {
+        "enabled": false
+    },
+
+    "trade_management": {
+        "_comment": [
+            "Partials now driven by tp1_r and tp1_close_pct — no more hardcoded halfway/50%.",
+            "tp1_r=1.0 means partial fires at exactly 1R profit.",
+            "tp1_close_pct=0.5 means 50% of position closed at TP1.",
+            "Remaining 50% runs to full TP or SL.",
+            "tp1_sl_mode=BE_PLUS moves SL to entry+0.05R after partial fires.",
+            "Set tp1_close_pct=0.6 if you want 60% closed at TP1 (matches settings.json)."
+        ],
+        "partials": {
+            "enabled": true,
+            "tp1_r": 1.0,
+            "tp1_close_pct": 0.5,
+            "tp1_sl_mode": "BE_PLUS",
+            "tp1_be_plus_r": 0.05
+        },
+        "giveback_guard": {
+            "enabled": true,
+            "activate_at_r": 1.2,
+            "max_giveback_pct": 0.6
+        }
+    },
+
+    "pairs": [
+        "USDJPY",
+        "GBPUSD",
+        "GBPJPY"
+    ]
+}

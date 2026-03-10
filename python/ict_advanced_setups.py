@@ -163,39 +163,54 @@ class ICTSetupsLibrary:
         )
 
     def detect_continuation_ob(self, candles: list, symbol: str, direction: str) -> Optional[ICTSetupSignal]:
+        """
+        Continuation Order Block — ENHANCED NARRATIVE.
+        Impulse move MUST leave an FVG behind to be considered a valid OB.
+        """
         if len(candles) < 20: return None
         impulse_start = None
-        for i in range(len(candles) - 6, max(10, len(candles) - 20)):
+        fvgs = self._find_fvgs(candles)
+        for i in range(len(candles) - 6, max(10, len(candles) - 20), -1):
             slice_ = candles[i:i + 5]
             bull = sum(1 for c in slice_ if c['close'] > c['open'])
             bear = sum(1 for c in slice_ if c['close'] < c['open'])
             pip  = self._get_pip_size(symbol)
             if direction == "BUY" and bull >= 4:
                 move = candles[i + 4]['high'] - candles[i]['low']
-                if move / pip > 50: impulse_start = i; break
+                if move / pip > 50:
+                    # Validate displacement left an FVG
+                    if any(f.direction == "BULLISH" and i <= f.candle_index <= i+4 for f in fvgs):
+                        impulse_start = i; break
             if direction == "SELL" and bear >= 4:
                 move = candles[i]['high'] - candles[i + 4]['low']
-                if move / pip > 50: impulse_start = i; break
+                if move / pip > 50:
+                    if any(f.direction == "BEARISH" and i <= f.candle_index <= i+4 for f in fvgs):
+                        impulse_start = i; break
         if impulse_start is None: return None
         ob_candle = None
         for i in range(impulse_start - 1, max(0, impulse_start - 10), -1):
             if direction == "BUY"  and candles[i]['close'] < candles[i]['open']: ob_candle = candles[i]; break
             if direction == "SELL" and candles[i]['close'] > candles[i]['open']: ob_candle = candles[i]; break
         if not ob_candle: return None
+        
         current = candles[-1]['close']
         ob_lo, ob_hi = ob_candle['low'], ob_candle['high']
+        ob_mid = (ob_hi + ob_lo) / 2.0
+        
+        # Enter at OB Midpoint for precision RR
         if direction == "BUY":
             if not (ob_lo <= current <= ob_hi * 1.002): return None
-            entry, sl, tp = current, ob_lo * 0.998, current + (current - ob_lo * 0.998) * 2
+            entry, sl, tp = current, ob_lo * 0.998, current + (current - ob_lo * 0.998) * 3
         else:
             if not (ob_hi >= current >= ob_lo * 0.998): return None
-            entry, sl, tp = current, ob_hi * 1.002, current - (ob_hi * 1.002 - current) * 2
+            entry, sl, tp = current, ob_hi * 1.002, current - (ob_hi * 1.002 - current) * 3
+            
         return ICTSetupSignal(
             setup_type=SetupType.CONTINUATION_OB, direction=direction,
-            entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.80,
-            reason=f"Continuation OB {direction} at {ob_lo:.5f}-{ob_hi:.5f}",
+            entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.88,
+            reason=f"OB+FVG {direction} at {ob_lo:.5f}-{ob_hi:.5f}",
             timeframe="M15", symbol=symbol, detected_at=datetime.utcnow(),
-            structure_context={'ob_high': ob_hi, 'ob_low': ob_lo}
+            structure_context={'ob_high': ob_hi, 'ob_low': ob_lo, 'ob_mid': ob_mid}
         )
 
     def detect_fvg_continuation(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
@@ -262,29 +277,53 @@ class ICTSetupsLibrary:
         return None
 
     def detect_choch(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
+        """
+        Change of Character (CHOCH) — ENHANCED NARRATIVE.
+        Uptrend: price sweeps liquidity upward, then breaks BELOW previous HL → bearish CHOCH.
+        Downtrend: price sweeps liquidity downward, then breaks ABOVE previous LH → bullish CHOCH.
+        *Must be preceded by a liquidity sweep to be valid.*
+        """
         if len(candles) < self.structure_lookback: return None
         swings = self._find_swing_points(candles)
         highs = [s for s in swings if s.swing_type == "HIGH"]
         lows  = [s for s in swings if s.swing_type == "LOW"]
         if len(highs) < 3 or len(lows) < 3: return None
         last = candles[-1]
+
+        # Bullish CHOCH (was bearish, now breaking above LH)
         if highs[-2].price < highs[-3].price and last['high'] > highs[-2].price:
-            entry, sl, tp = last['close'], lows[-1].price * 0.998, last['close'] + (last['close'] - lows[-1].price * 0.998) * 2
+            # ENFORCEMENT: Did we sweep a recent low right before this CHOCH?
+            recent_lows = [l.price for l in lows[-4:-1]]
+            if not recent_lows: return None
+            lowest_recent = min(recent_lows)
+            sweep_occurred = any(c['low'] < lowest_recent for c in candles[-15:-1])
+            if not sweep_occurred: return None  # Block isolated random breaks
+
+            entry, sl, tp = last['close'], lows[-1].price * 0.998, last['close'] + (last['close'] - lows[-1].price * 0.998) * 2.5
             return ICTSetupSignal(
                 setup_type=SetupType.CHOCH, direction="BUY",
-                entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.78,
-                reason=f"Bullish CHOCH — broke above LH {highs[-2].price:.5f}",
+                entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.82,
+                reason=f"Bullish CHOCH (Sweep-Confirmed) — broke above LH {highs[-2].price:.5f}",
                 timeframe="M15", symbol=symbol, detected_at=datetime.utcnow(),
-                structure_context={'choch_level': highs[-2].price, 'previous_trend': 'BEARISH', 'new_trend': 'BULLISH'}
+                structure_context={'choch_level': highs[-2].price, 'new_trend': 'BULLISH', 'sweep_confirmed': True}
             )
+
+        # Bearish CHOCH (was bullish, now breaking below HL)
         if lows[-2].price > lows[-3].price and last['low'] < lows[-2].price:
-            entry, sl, tp = last['close'], highs[-1].price * 1.002, last['close'] - (highs[-1].price * 1.002 - last['close']) * 2
+            # ENFORCEMENT: Did we sweep a recent high right before this CHOCH?
+            recent_highs = [h.price for h in highs[-4:-1]]
+            if not recent_highs: return None
+            highest_recent = max(recent_highs)
+            sweep_occurred = any(c['high'] > highest_recent for c in candles[-15:-1])
+            if not sweep_occurred: return None
+
+            entry, sl, tp = last['close'], highs[-1].price * 1.002, last['close'] - (highs[-1].price * 1.002 - last['close']) * 2.5
             return ICTSetupSignal(
                 setup_type=SetupType.CHOCH, direction="SELL",
-                entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.78,
-                reason=f"Bearish CHOCH — broke below HL {lows[-2].price:.5f}",
+                entry_price=entry, sl_price=sl, tp_price=tp, confidence=0.82,
+                reason=f"Bearish CHOCH (Sweep-Confirmed) — broke below HL {lows[-2].price:.5f}",
                 timeframe="M15", symbol=symbol, detected_at=datetime.utcnow(),
-                structure_context={'choch_level': lows[-2].price, 'previous_trend': 'BULLISH', 'new_trend': 'BEARISH'}
+                structure_context={'choch_level': lows[-2].price, 'new_trend': 'BEARISH', 'sweep_confirmed': True}
             )
         return None
 
@@ -408,11 +447,36 @@ class ICTSetupsLibrary:
         return 0.0001
 
     def _score_confluence(self, signals: List[ICTSetupSignal], candles_h4: list, candles_m15: list) -> List[ICTSetupSignal]:
+        """
+        Boost confidence when multiple setups align at the same price/direction.
+        ENHANCEMENT: Hard-block setups that trade directly into an opposing H4 trend (unless Reversal pattern).
+        """
         if not signals: return signals
         h4_trend = self._determine_trend(candles_h4) if candles_h4 else "RANGING"
+        valid_signals = []
+
         for sig in signals:
+            # TREND GUARD: If we have a strong HTF trend, block structural continuations against it
+            reversal_setups = [
+                SetupType.LIQUIDITY_SWEEP_REVERSAL, SetupType.STOP_HUNT_REVERSAL,
+                SetupType.CHOCH, SetupType.EXTERNAL_LIQUIDITY, SetupType.LONDON_REVERSAL
+            ]
+            
+            # If it's a structural trend-following setup but goes against the raw established H4 macro bias, invalidate it.
+            if sig.setup_type not in reversal_setups and h4_trend != "RANGING":
+                if (sig.direction == "BUY" and h4_trend == "BEARISH") or \
+                   (sig.direction == "SELL" and h4_trend == "BULLISH"):
+                    sig.valid = False
+                    sig.reason += f" [BLOCKED BY H4 {h4_trend} BIAS]"
+            
+            # Additional HTF alignment confidence boost
             if (sig.direction == "BUY" and h4_trend == "BULLISH") or (sig.direction == "SELL" and h4_trend == "BEARISH"):
-                sig.confidence = min(sig.confidence + 0.05, 0.99)
+                sig.confidence = min(sig.confidence + 0.10, 0.99)
+                
             agreeing = sum(1 for s in signals if s is not sig and s.direction == sig.direction and abs(s.entry_price - sig.entry_price) / sig.entry_price < 0.001)
-            if agreeing >= 1: sig.confidence = min(sig.confidence + 0.03 * agreeing, 0.99)
-        return signals
+            if agreeing >= 1: sig.confidence = min(sig.confidence + 0.05 * agreeing, 0.99)
+            
+            if sig.valid:
+                valid_signals.append(sig)
+                
+        return valid_signals
