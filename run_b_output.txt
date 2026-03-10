@@ -1,0 +1,144 @@
+2026-03-10 19:20:08  INFO      [RUN_BT]  Using backtest config: C:\Users\user\Documents\BAC\ict_trading_bot\config\backtest_config.json
+2026-03-10 19:20:08  WARNING   [CONFIG]  CONFIG_TRAILING: risk.trailing_stop disabled because trailing_structure.enabled=true
+2026-03-10 19:20:08  INFO      [RUN_BT]  Config normalization applied
+2026-03-10 19:20:08  INFO      [BACKTEST]  Trailing manager: ON (structure-based trailing)
+2026-03-10 19:20:08  INFO      [RUN_BT]  
+2026-03-10 19:20:08  INFO      [RUN_BT]  🚀 Starting backtest...
+2026-03-10 19:20:08  INFO      [RUN_BT]  
+2026-03-10 19:20:08  INFO      [BACKTEST]  Starting backtest for 3 symbols: ['USDJPY', 'GBPUSD', 'AUDUSD']
+2026-03-10 19:20:08  INFO      [BACKTEST]  Sniper filter: ON
+2026-03-10 19:20:08  INFO      [BACKTEST]  Kill zone only: ON
+2026-03-10 19:20:08  INFO      [BACKTEST]  Disabled setups: ['CONTINUATION_OB', 'FVG', 'LH_LL_CONTINUATION', 'PIN_BAR']
+2026-03-10 19:20:08  INFO      [BACKTEST]  Trailing stops: ON
+2026-03-10 19:20:08  INFO      [BACKTEST]  Max open trades: 3
+2026-03-10 19:20:08  INFO      [BACKTEST]  Loaded 120 candles: USDJPY_H4
+2026-03-10 19:20:08  INFO      [BACKTEST]  Loaded 475 candles: USDJPY_H1
+2026-03-10 19:20:08  INFO      [BACKTEST]  Loaded 1,899 candles: USDJPY_M15
+2026-03-10 19:20:08  INFO      [BACKTEST]  Loaded 5,695 candles: USDJPY_M5
+2026-03-10 19:20:09  INFO      [BACKTEST]  Loaded 28,445 candles: USDJPY_M1
+2026-03-10 19:20:09  INFO      [BACKTEST]  Loaded 120 candles: GBPUSD_H4
+2026-03-10 19:20:09  INFO      [BACKTEST]  Loaded 475 candles: GBPUSD_H1
+2026-03-10 19:20:09  INFO      [BACKTEST]  Loaded 1,899 candles: GBPUSD_M15
+2026-03-10 19:20:09  INFO      [BACKTEST]  Loaded 5,695 candles: GBPUSD_M5
+2026-03-10 19:20:11  INFO      [BACKTEST]  Loaded 28,447 candles: GBPUSD_M1
+2026-03-10 19:20:11  INFO      [BACKTEST]  Loaded 120 candles: AUDUSD_H4
+2026-03-10 19:20:11  INFO      [BACKTEST]  Loaded 475 candles: AUDUSD_H1
+2026-03-10 19:20:11  INFO      [BACKTEST]  Loaded 1,899 candles: AUDUSD_M15
+2026-03-10 19:20:11  INFO      [BACKTEST]  Loaded 5,695 candles: AUDUSD_M5
+2026-03-10 19:20:13  INFO      [BACKTEST]  Loaded 28,454 candles: AUDUSD_M1
+2026-03-10 19:20:13  INFO      [BACKTEST]  Processing USDJPY: 5,695 M5 bars (2026-02-02 to 2026-02-27)
+2026-03-10 19:20:17  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: USDJPY BUY pnl=+10.8 pips | peak_R=55.71 now_R=35.61 gb=0.36
+2026-03-10 19:20:44  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: USDJPY BUY pnl=+3.5 pips | peak_R=19.10 now_R=-3.88 gb=1.20
+2026-03-10 19:20:52  INFO      [BACKTEST]    USDJPY: bar 5,000/5,695 (2026-02-25) | trades=11 open=0
+2026-03-10 19:20:56  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: USDJPY BUY pnl=+23.1 pips | peak_R=25.06 now_R=16.25 gb=0.35
+2026-03-10 19:20:58  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: USDJPY BUY pnl=+6.1 pips | peak_R=10.97 now_R=2.58 gb=0.76
+2026-03-10 19:20:58  INFO      [BACKTEST]  Processing GBPUSD: 5,695 M5 bars (2026-02-02 to 2026-02-27)
+2026-03-10 19:21:01  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: GBPUSD SELL pnl=+13.4 pips | peak_R=33.24 now_R=16.28 gb=0.51
+2026-03-10 19:21:03  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: GBPUSD BUY pnl=+8.5 pips | peak_R=19.45 now_R=8.99 gb=0.54
+2026-03-10 19:21:05  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: GBPUSD SELL pnl=+8.8 pips | peak_R=21.80 now_R=14.00 gb=0.36
+2026-03-10 19:21:16  INFO      [BACKTEST]    GBPUSD: bar 5,000/5,695 (2026-02-25) | trades=29 open=0
+2026-03-10 19:21:17  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: GBPUSD BUY pnl=+9.1 pips | peak_R=56.09 now_R=22.53 gb=0.60
+2026-03-10 19:21:19  INFO      [BACKTEST]  Processing AUDUSD: 5,695 M5 bars (2026-02-02 to 2026-02-27)
+2026-03-10 19:21:27  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: AUDUSD SELL pnl=+11.4 pips | peak_R=34.20 now_R=11.45 gb=0.67
+2026-03-10 19:21:41  INFO      [BACKTEST]    AUDUSD: bar 5,000/5,695 (2026-02-25) | trades=46 open=0
+2026-03-10 19:21:44  INFO      [BACKTEST]  GIVEBACK_GUARD EXIT: AUDUSD BUY pnl=+9.9 pips | peak_R=46.05 now_R=27.67 gb=0.40
+2026-03-10 19:21:44  INFO      [BACKTEST]  
+2026-03-10 19:21:44  INFO      [BACKTEST]  ═══ Backtest Complete ═══
+2026-03-10 19:21:44  INFO      [BACKTEST]    Total trades:      48
+2026-03-10 19:21:44  INFO      [BACKTEST]    Winners:           31
+2026-03-10 19:21:44  INFO      [BACKTEST]    Losers:            17
+2026-03-10 19:21:44  INFO      [BACKTEST]    Signals generated: 4173
+2026-03-10 19:21:44  INFO      [BACKTEST]    Signals filtered:  4125
+2026-03-10 19:21:44  INFO      [BACKTEST]    Win rate:          64.6%
+2026-03-10 19:21:44  INFO      [BACKTEST]    Total PnL (pips):  -38.9
+2026-03-10 19:21:44  INFO      [REPORT]  Trade results exported to: run_b_results.csv
+2026-03-10 19:21:44  INFO      [RUN_BT]  
+BACKTEST SUMMARY
+2026-03-10 19:21:44  INFO      [RUN_BT]    Trades: 48 | Winners: 31 | Losers: 17 | Win rate: 64.58%
+2026-03-10 19:21:44  INFO      [RUN_BT]    Total pips: -38.87 | Profit factor: 0.88
+2026-03-10 19:21:44  INFO      [RUN_BT]    Signals generated: 4173 | Filtered: 4125
+2026-03-10 19:21:44  INFO      [RUN_BT]    Trades/week (avg): 17.68
+2026-03-10 19:21:44  INFO      [RUN_BT]    Filter reasons:
+2026-03-10 19:21:44  INFO      [RUN_BT]      OUTSIDE_KILLZONE                     1517
+2026-03-10 19:21:44  INFO      [RUN_BT]      DISABLED_SETUP:LH_LL_CONTINUATION    1403
+2026-03-10 19:21:44  INFO      [RUN_BT]      LOW_RR_HARD_FLOOR                     465
+2026-03-10 19:21:44  INFO      [RUN_BT]      DISABLED_SETUP:CONTINUATION_OB        358
+2026-03-10 19:21:44  INFO      [RUN_BT]      DISABLED_SETUP:FVG_CONTINUATION       229
+2026-03-10 19:21:44  INFO      [RUN_BT]      KILLZONE_LIMIT                         78
+2026-03-10 19:21:44  INFO      [RUN_BT]      LATE_ENTRY                             49
+2026-03-10 19:21:44  INFO      [RUN_BT]      LOW_RR                                 26
+
+
+════════════════════════════════════════════════════════════════════════
+  📊  BACKTEST PERFORMANCE REPORT
+════════════════════════════════════════════════════════════════════════
+
+  OVERALL RESULTS
+  ──────────────────────────────────────────────────
+  Total trades:           38
+  Winners:                21  |  Losers: 17
+  Win rate:               55.3%
+  Total PnL:              -143.6 pips
+  Expectancy:             -3.78 pips/trade
+  Profit factor:          0.57
+  Avg win / Avg loss:     +9.0 / -19.6 pips
+  Max win / Max loss:     +25.9 / -51.5 pips
+  Avg RR achieved:        2.88
+  Max consec. losses:     6
+  Max drawdown:           175.3 pips
+
+────────────────────────────────────────────────────────────────────────
+  📋  PER-SETUP BREAKDOWN
+────────────────────────────────────────────────────────────────────────
+  🟡 CHOCH                trades=16   WR= 50.0%  PnL=   -91.7  exp= -5.73  PF= 0.54  maxDD= 153.6
+  🟢 HH_HL_CONTINUATION   trades=15   WR= 66.7%  PnL=   +14.8  exp= +0.99  PF= 1.32  maxDD=  26.0
+  🟢 LIQUIDITY_SWEEP_REVERSAL trades=4    WR= 75.0%  PnL=   -30.9  exp= -7.72  PF= 0.40  maxDD=  51.5
+  🔴 LIQUIDITY_GRAB_CONTINUATION trades=3    WR=  0.0%  PnL=   -35.8  exp=-11.94  PF= 0.00  maxDD=  35.8
+
+────────────────────────────────────────────────────────────────────────
+  💱  PER-SYMBOL BREAKDOWN
+────────────────────────────────────────────────────────────────────────
+  🟡 AUDUSD               trades=12   WR= 50.0%  PnL=   -61.0  exp= -5.09  PF= 0.35  maxDD=  61.0
+  🟡 GBPUSD               trades=15   WR= 46.7%  PnL=   -57.3  exp= -3.82  PF= 0.63  maxDD= 117.9
+  🟢 USDJPY               trades=11   WR= 72.7%  PnL=   -25.3  exp= -2.30  PF= 0.70  maxDD=  57.0
+
+────────────────────────────────────────────────────────────────────────
+  ⏰  PER-KILL-ZONE BREAKDOWN
+────────────────────────────────────────────────────────────────────────
+  🟢 LONDON_CLOSE         trades=16   WR= 62.5%  PnL=  -112.4  exp= -7.03  PF= 0.40  maxDD= 112.4
+  🟡 NY_OPEN              trades=22   WR= 50.0%  PnL=   -31.2  exp= -1.42  PF= 0.79  maxDD=  95.3
+
+────────────────────────────────────────────────────────────────────────
+  📈  EQUITY CURVE
+────────────────────────────────────────────────────────────────────────
+  Final PnL:          -143.6 pips
+  Peak PnL:           +31.7 pips
+  Max Drawdown:       175.3 pips
+  DD as % of peak:    553.6%
+
+────────────────────────────────────────────────────────────────────────
+  🚫  SNIPER FILTER ANALYSIS
+────────────────────────────────────────────────────────────────────────
+  Total signals filtered: 4125
+  Filter reasons:
+    OUTSIDE_KILLZONE                     1517 (37%)
+    DISABLED_SETUP:LH_LL_CONTINUATION    1403 (34%)
+    LOW_RR_HARD_FLOOR                     465 (11%)
+    DISABLED_SETUP:CONTINUATION_OB        358 (9%)
+    DISABLED_SETUP:FVG_CONTINUATION       229 (6%)
+    KILLZONE_LIMIT                         78 (2%)
+    LATE_ENTRY                             49 (1%)
+    LOW_RR                                 26 (1%)
+
+════════════════════════════════════════════════════════════════════════
+
+
+  📄 Results exported to: run_b_results.csv
+
+  📊 Signal Pipeline Summary:
+     Signals generated:  4173
+     Filtered by sniper: 4125 (99%)
+     Trades taken:       48 (1%)
+
+  💡 Tip: Run with --no-sniper to compare raw vs filtered performance
+

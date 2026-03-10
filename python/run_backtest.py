@@ -231,6 +231,8 @@ Examples:
     except ImportError:
         logger.warning("config_loader not available — using raw config")
 
+    print(f"DEBUG tp1_be_plus_r = {config.get('trade_management',{}).get('partials',{}).get('tp1_be_plus_r')}")
+
     # ─── Parse date range ──────────────────────────────────────────────
     start_date = None
     end_date = None

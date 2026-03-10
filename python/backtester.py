@@ -622,10 +622,38 @@ class BacktestEngine:
                     "entry": signal.entry, "sl": signal.sl, "tp": signal.tp,
                 })
                 continue
+                
+            direction_filters = self.config.get("direction_filters", {})
+            if sym_key in direction_filters:
+                allowed_dirs = direction_filters[sym_key]
+                if direction not in allowed_dirs:
+                    self.signals_filtered += 1
+                    self.filtered_signals.append({
+                        "symbol": symbol, "time": current_time.isoformat(),
+                        "setup_type": setup_name, "direction": direction,
+                        "confidence": signal.confidence,
+                        "skip_reason": f"FILTERED_DIRECTION:{direction}",
+                        "entry": signal.entry, "sl": signal.sl, "tp": signal.tp,
+                    })
+                    continue
 
             # ─── Step 5b: Kill zone enforcement ────────────────────────
             in_kz, kz_name = self.strategy.in_kill_zone(current_time)
             kz_name = kz_name or "NONE"
+            
+            kz_filters = self.config.get("killzone_pair_filters", {})
+            if sym_key in kz_filters:
+                allowed_kzs = kz_filters[sym_key]
+                if kz_name not in allowed_kzs:
+                    self.signals_filtered += 1
+                    self.filtered_signals.append({
+                        "symbol": symbol, "time": current_time.isoformat(),
+                        "setup_type": setup_name, "direction": direction,
+                        "confidence": signal.confidence,
+                        "skip_reason": f"FILTERED_KILLZONE:{kz_name}",
+                        "entry": signal.entry, "sl": signal.sl, "tp": signal.tp,
+                    })
+                    continue
 
             if self.killzone_only and not in_kz:
                 self.signals_filtered += 1

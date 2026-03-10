@@ -73,13 +73,20 @@ class StructureTrailingManager:
 
         self._symbol_defaults = {
             "AUDUSD": {
-                "fractal_left": 1,
-                "fractal_right": 1,
-                "swing_buffer_pips": 0.8,
-                "min_swing_pips": 1.2,
-                "min_swing_atr_mult": 0.2,
+                "fractal_left": 3,
+                "fractal_right": 3,
+                "swing_buffer_pips": 1.5,
+                "min_swing_pips": 5.0,
+                "min_swing_atr_mult": 0.35,
                 "allow_ob_trail": True,
                 "ob_min_impulse_atr_mult": 0.8,
+                "swing_tf": "M5",
+                "trailing_tf": "M5",
+                "be_enabled": False,
+                "be_min_profit_pips": 15.0,
+                "be_trigger_r_multiple": 2.0,
+                "be_buffer_pips": 1.5,
+                "lock_be_as_floor": True,
             },
             "GBPUSD": {
                 "fractal_left": 3,
