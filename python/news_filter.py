@@ -92,7 +92,7 @@ class NewsFilter:
             return
 
         try:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
 
             # Don't re-fetch if we updated less than 1 hour ago
             if (self.last_update and
@@ -140,7 +140,7 @@ class NewsFilter:
                         return []
                     data = await resp.json()
 
-            today = datetime.now(timezone.utc).date()
+            today = datetime.utcnow().date()
 
             for item in data:
                 # Parse the event time from ISO format
@@ -199,7 +199,10 @@ class NewsFilter:
             return False, ""
 
         if now is None:
-            now = datetime.now(timezone.utc)
+            now = datetime.utcnow()
+        
+        # FORCE NAIVE
+        now = now.replace(tzinfo=None)
 
         # Get the configured blackout windows
         before = timedelta(minutes=self.cfg.get("avoid_minutes_before", 30))
@@ -215,8 +218,9 @@ class NewsFilter:
                 continue
 
             # Calculate the blackout window around this event
-            window_start = event.time - before  # 30 min before event
-            window_end   = event.time + after    # 15 min after event
+            # event.time is already stripped in _fetch_forexfactory
+            window_start = event.time - before
+            window_end   = event.time + after
 
             # Check if current time falls within the blackout window
             if window_start <= now <= window_end:
@@ -246,9 +250,9 @@ class NewsFilter:
         Returns:
             List of NewsEvent objects within the window.
         """
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow().replace(tzinfo=None)
         cutoff = now + timedelta(hours=hours_ahead)
-        return [e for e in self.events if now <= e.time <= cutoff]
+        return [e for e in self.events if now <= e.time.replace(tzinfo=None) <= cutoff]
 
     def _get_pair_currencies(self, symbol: str) -> list[str]:
         """

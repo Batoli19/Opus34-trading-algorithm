@@ -276,7 +276,7 @@ class ICTSetupsLibrary:
                 )
         return None
 
-    def detect_choch(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
+    def detect_choch(self, candles: list, symbol: str, session_start: datetime = None) -> Optional[ICTSetupSignal]:
         """
         Change of Character (CHOCH) — ENHANCED NARRATIVE.
         Uptrend: price sweeps liquidity upward, then breaks BELOW previous HL → bearish CHOCH.
@@ -284,6 +284,12 @@ class ICTSetupsLibrary:
         *Must be preceded by a liquidity sweep to be valid.*
         """
         if len(candles) < self.structure_lookback: return None
+        
+        # SESSION ISOLATION: Filter out candles before session start if provided
+        if session_start:
+            candles = [c for c in candles if c.get('time', datetime.utcnow()) >= session_start]
+            if len(candles) < 10: return None # Need enough data within session
+
         swings = self._find_swing_points(candles)
         highs = [s for s in swings if s.swing_type == "HIGH"]
         lows  = [s for s in swings if s.swing_type == "LOW"]
@@ -327,8 +333,14 @@ class ICTSetupsLibrary:
             )
         return None
 
-    def detect_liquidity_sweep_reversal(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
+    def detect_liquidity_sweep_reversal(self, candles: list, symbol: str, session_start: datetime = None) -> Optional[ICTSetupSignal]:
         if len(candles) < 20: return None
+        
+        # SESSION ISOLATION
+        if session_start:
+            candles = [c for c in candles if c.get('time', datetime.utcnow()) >= session_start]
+            if len(candles) < 5: return None
+
         recent_highs = [c['high'] for c in candles[-20:-2]]
         max_high = max(recent_highs)
         equal_highs = [h for h in recent_highs if abs(h - max_high) / max_high < self.equal_level_tol]
@@ -342,6 +354,7 @@ class ICTSetupsLibrary:
                 liquidity_context={'sweep_level': max_high, 'sweep_type': 'BUY_SIDE', 'equal_highs_count': len(equal_highs)}
             )
         recent_lows = [c['low'] for c in candles[-20:-2]]
+        if not recent_lows: return None
         min_low = min(recent_lows)
         equal_lows = [l for l in recent_lows if abs(l - min_low) / min_low < self.equal_level_tol]
         if len(equal_lows) >= 2 and last['low'] < min_low and last['close'] > min_low * 1.001:
@@ -362,10 +375,11 @@ class ICTSetupsLibrary:
         symbol: str,
         prev_day_high: float = None,
         prev_day_low: float  = None,
+        session_start: datetime = None,
     ) -> List[ICTSetupSignal]:
         signals = []
         enabled = self.enabled_setups
-
+ 
         run_map = [
             (SetupType.HH_HL_CONTINUATION,          lambda: self.detect_hh_hl_continuation(candles_m15, symbol)),
             (SetupType.LH_LL_CONTINUATION,          lambda: self.detect_lh_ll_continuation(candles_m15, symbol)),
@@ -373,8 +387,8 @@ class ICTSetupsLibrary:
             (SetupType.CONTINUATION_OB,             lambda: self.detect_continuation_ob(candles_m15, symbol, "SELL")),
             (SetupType.FVG_CONTINUATION,            lambda: self.detect_fvg_continuation(candles_m15, symbol)),
             (SetupType.LIQUIDITY_GRAB_CONTINUATION, lambda: self.detect_liquidity_grab_continuation(candles_m15, symbol)),
-            (SetupType.CHOCH,                       lambda: self.detect_choch(candles_m15, symbol)),
-            (SetupType.LIQUIDITY_SWEEP_REVERSAL,    lambda: self.detect_liquidity_sweep_reversal(candles_m15, symbol)),
+            (SetupType.CHOCH,                       lambda: self.detect_choch(candles_m15, symbol, session_start)),
+            (SetupType.LIQUIDITY_SWEEP_REVERSAL,    lambda: self.detect_liquidity_sweep_reversal(candles_m15, symbol, session_start)),
         ]
 
         for setup_type, detector in run_map:

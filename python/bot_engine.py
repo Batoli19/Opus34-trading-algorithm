@@ -28,7 +28,7 @@ import asyncio
 import logging
 import time
 from collections import deque
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, time
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -907,6 +907,31 @@ class TradingEngine:
                 adaptive_reason,
             )
 
+        # HARD ENTRY GATE — Block Judas Swing (11:00 - 13:30 UTC)
+        now_utc = datetime.now(timezone.utc).time()
+        gate_start = time(11, 0)
+        gate_end = time(13, 30)
+        # Check if symbol is a NY pair impacted by this window
+        ny_pairs = ["GBPUSD", "AUDUSD", "XAUUSD", "US30", "NAS100"]
+        
+        if signal.symbol.upper() in ny_pairs:
+            if gate_start <= now_utc < gate_end:
+                logger.warning(
+                    "SKIP_ENTRY_HARDGATE_JUDAS: symbol=%s time=%s reason=MANIP_WINDOW_NR",
+                    signal.symbol,
+                    now_utc.isoformat(),
+                )
+                self._skip_reasons.append(
+                    {
+                        "ts": datetime.now(timezone.utc).isoformat(),
+                        "symbol": signal.symbol,
+                        "setup_type": signal.setup_type.value,
+                        "reason": "HARDGATE_JUDAS",
+                        "detail": "Blocked between 11:00-13:30 UTC",
+                    }
+                )
+                return
+
         result = None
         if planned_mode == "LIMIT" and hasattr(self.mt5, "place_limit_order"):
             result = self.mt5.place_limit_order(
@@ -957,6 +982,8 @@ class TradingEngine:
                 return
 
             in_kill_zone, kz_name = self.strategy.in_kill_zone()
+
+
             kz_name = kz_name or "NONE"
             self.sniper_filter.register_entry(
                 signal.symbol,

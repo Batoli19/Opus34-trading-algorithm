@@ -195,7 +195,7 @@ class ICTStrategy:
     # ── 2) Kill Zone Check ───────────────────────────────────────────────────
 
     def in_kill_zone(self, now: datetime = None) -> Tuple[bool, str]:
-        """Returns (is_in_kill_zone, zone_name). Times are UTC unless you pass localized 'now'."""
+        """Returns (is_in_kill_zone, zone_name)."""
         kz_cfg = self.cfg.get("kill_zones", {})
         if not kz_cfg.get("enabled", True):
             return True, "ALWAYS"
@@ -215,12 +215,12 @@ class ICTStrategy:
         # Build dynamic zones from config
         zones = {
             "LONDON_OPEN": (
-                parse_time(kz_cfg.get("london_open", {}).get("start", "07:00"), 7),
-                parse_time(kz_cfg.get("london_open", {}).get("end", "10:00"), 10)
+                parse_time(kz_cfg.get("london_open", {}).get("start", "06:00"), 6),
+                parse_time(kz_cfg.get("london_open", {}).get("end", "09:00"), 9)
             ),
             "NY_OPEN": (
-                parse_time(kz_cfg.get("ny_open", {}).get("start", "12:00"), 12),
-                parse_time(kz_cfg.get("ny_open", {}).get("end", "15:00"), 15)
+                parse_time(kz_cfg.get("ny_open", {}).get("start", "13:30"), 13),
+                parse_time(kz_cfg.get("ny_open", {}).get("end", "16:00"), 16)
             ),
             "LONDON_CLOSE": (
                 parse_time(kz_cfg.get("london_close", {}).get("start", "15:00"), 15),
@@ -232,6 +232,35 @@ class ICTStrategy:
             if start <= t <= end:
                 return True, name
         return False, "DEAD_ZONE"
+
+    def get_session_start(self, now: datetime = None) -> Optional[datetime]:
+        """Exposes the session start datetime for current kill zone."""
+        in_kz, kz_name = self.in_kill_zone(now)
+        if not in_kz or kz_name == "ALWAYS":
+            return None
+        
+        if now is None:
+            now = datetime.now(timezone.utc)
+            
+        kz_cfg = self.cfg.get("kill_zones", {})
+        
+        def parse_time(t_str, default_h):
+            try:
+                h, m = map(int, t_str.split(":"))
+                return dtime(h, m)
+            except:
+                return dtime(default_h, 0)
+
+        zones = {
+            "LONDON_OPEN": parse_time(kz_cfg.get("london_open", {}).get("start", "06:00"), 6),
+            "NY_OPEN": parse_time(kz_cfg.get("ny_open", {}).get("start", "13:30"), 13),
+            "LONDON_CLOSE": parse_time(kz_cfg.get("london_close", {}).get("start", "15:00"), 15),
+        }
+        
+        start = zones.get(kz_name)
+        if start:
+            return now.replace(hour=start.hour, minute=start.minute, second=0, microsecond=0)
+        return None
 
     # ── 3) Fair Value Gaps (FVG) ─────────────────────────────────────────────
 
@@ -878,6 +907,7 @@ class ICTStrategy:
         Kill zone bonus: +10% confidence when in kill zones (no hard filter).
         """
         in_kz, kz_name = self.in_kill_zone()
+        kz_start = self.get_session_start()
         kz_bonus = 0.10 if in_kz else 0.0
 
         if in_kz:
@@ -905,6 +935,7 @@ class ICTStrategy:
             candles_m15=candles_m15,
             candles_m5=candles_m5,
             symbol=symbol,
+            session_start=kz_start,
         )
         
         for adv_signal in adv_signals:
