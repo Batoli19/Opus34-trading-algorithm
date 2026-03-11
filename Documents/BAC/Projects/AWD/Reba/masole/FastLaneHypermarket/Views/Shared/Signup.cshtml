@@ -1,0 +1,548 @@
+﻿@{
+    Layout = null;
+    ViewData["Title"] = "FastLane - Sign Up";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-light: #f8fafc;
+            --bg-white: #ffffff;
+            --primary: #2563eb;
+            --primary-light: #3b82f6;
+            --primary-dark: #1d4ed8;
+            --accent: #10b981;
+            --text-dark: #1e293b;
+            --text-light: #64748b;
+            --border: #e2e8f0;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Poppins", sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        /* Signup Container */
+        .signup-container {
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .signup-card {
+            background: var(--bg-white);
+            padding: 40px 35px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-lg);
+            animation: fadeIn 0.8s ease-out;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .signup-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 4px;
+                background: linear-gradient(90deg, var(--primary), var(--primary-light));
+            }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .logo-icon {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            margin: 0 auto 15px auto;
+            box-shadow: var(--shadow);
+        }
+
+        .title {
+            color: var(--text-dark);
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: var(--text-light);
+            font-size: 0.95rem;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .brand {
+            color: var(--primary);
+            font-weight: 600;
+        }
+
+        /* Role Toggle */
+        .role-toggle {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 25px;
+            justify-content: center;
+        }
+
+            .role-toggle label {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: var(--text-light);
+                cursor: pointer;
+                font-size: 0.9rem;
+                transition: color 0.3s ease;
+                padding: 8px 16px;
+                border-radius: 8px;
+                border: 1px solid var(--border);
+                background: var(--bg-white);
+            }
+
+            .role-toggle input[type="radio"] {
+                accent-color: var(--primary);
+            }
+
+            .role-toggle label:hover {
+                border-color: var(--primary);
+            }
+
+            .role-toggle input[type="radio"]:checked + label {
+                background: rgba(37, 99, 235, 0.1);
+                border-color: var(--primary);
+                color: var(--primary);
+            }
+
+        /* Form Styles */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+            .form-row .form-group {
+                flex: 1;
+            }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--text-dark);
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--bg-white);
+            color: var(--text-dark);
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            font-family: "Poppins", sans-serif;
+            box-shadow: var(--shadow);
+        }
+
+            .form-group input:focus,
+            .form-group select:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            }
+
+            .form-group input::placeholder {
+                color: var(--text-light);
+            }
+
+        /* Button */
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: "Poppins", sans-serif;
+            margin-top: 10px;
+            border: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            color: white;
+            box-shadow: var(--shadow);
+        }
+
+            .btn-primary:hover {
+                background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+                transform: translateY(-2px);
+                box-shadow: var(--shadow-lg);
+            }
+
+            .btn-primary:active {
+                transform: translateY(0);
+            }
+
+        /* Login Link */
+        .login-link {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 0.9rem;
+            color: var(--text-light);
+        }
+
+            .login-link a {
+                color: var(--primary);
+                text-decoration: none;
+                font-weight: 600;
+                margin-left: 5px;
+                transition: color 0.3s ease;
+            }
+
+                .login-link a:hover {
+                    color: var(--primary-dark);
+                }
+
+        /* Animations */
+        @@keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* Responsive Design */
+        @@media (max-width: 600px) {
+            .signup-card {
+                padding: 30px 25px;
+                margin: 10px;
+            }
+
+            .title {
+                font-size: 1.6rem;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .role-toggle {
+                flex-direction: column;
+                gap: 10px;
+                align-items: stretch;
+            }
+        }
+
+        /* Loading State */
+        .btn-primary.loading {
+            position: relative;
+            color: transparent;
+        }
+
+            .btn-primary.loading::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 18px;
+                height: 18px;
+                border: 2px solid transparent;
+                border-top: 2px solid white;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+            }
+
+        @@keyframes spin {
+            0% {
+                transform: translate(-50%, -50%) rotate(0deg);
+            }
+
+            100% {
+                transform: translate(-50%, -50%) rotate(360deg);
+            }
+        }
+
+        /* Password Strength Indicator */
+        .password-strength {
+            margin-top: 5px;
+            font-size: 0.8rem;
+            height: 4px;
+            border-radius: 2px;
+            background: var(--border);
+            overflow: hidden;
+        }
+
+        .password-strength-fill {
+            height: 100%;
+            transition: all 0.3s ease;
+        }
+
+        /* Background pattern */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: radial-gradient(circle at 20% 80%, rgba(37, 99, 235, 0.03) 0%, transparent 50%), radial-gradient(circle at 80% 20%, rgba(59, 130, 246, 0.02) 0%, transparent 50%);
+            z-index: -1;
+        }
+
+        /* Alerts */
+        .alert {
+            padding: 16px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 1px solid;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 500;
+        }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+            border-color: rgba(239, 68, 68, 0.2);
+        }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border-color: rgba(16, 185, 129, 0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-container">
+        <div class="signup-card fade-in">
+            <div class="auth-header">
+                <div class="logo-icon">
+                    <i class="fas fa-bolt"></i>
+                </div>
+                <h2 class="title">Create Your <span class="brand">FastLane</span> Account</h2>
+                <p class="subtitle">Join as a Customer or Staff Member</p>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+                </div>
+            }
+            @if (TempData["Success"] != null)
+            {
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> @TempData["Success"]
+                </div>
+            }
+
+            <form id="signupForm" asp-action="Signup" asp-controller="Account" method="post">
+                @Html.AntiForgeryToken()
+
+                <!-- 🔘 Role -->
+                <div class="role-toggle">
+                    <input type="radio" name="Role" value="Customer" id="customerRole" checked />
+                    <label for="customerRole">Customer</label>
+
+                    <input type="radio" name="Role" value="Staff" id="staffRole" />
+                    <label for="staffRole">Staff</label>
+                </div>
+
+                <div class="form-group">
+                    <label>First Name</label>
+                    <input type="text" name="Firstname" placeholder="Enter your first name" required />
+                </div>
+
+                <div class="form-group">
+                    <label>Surname</label>
+                    <input type="text" name="Surname" placeholder="Enter your surname" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select name="Gender" required>
+                            <option value="">Select Gender</option>
+                            <option>Male</option>
+                            <option>Female</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" name="DOB" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Country</label>
+                    <input type="text" name="Country" placeholder="e.g. Botswana" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" name="Email" placeholder="Enter email address" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <input type="text" name="CellNumber" placeholder="+267..." required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" name="Password" placeholder="Create a strong password" required id="password" />
+                    <div class="password-strength">
+                        <div class="password-strength-fill" id="passwordStrength"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" name="ConfirmPassword" placeholder="Confirm your password" required id="confirmPassword" />
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="submitBtn">Create Account</button>
+
+                <p class="login-link">
+                    Already have an account? <a href="/Account/Login">Login here</a>
+                </p>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('signupForm');
+            const passwordInput = document.getElementById('password');
+            const confirmPasswordInput = document.getElementById('confirmPassword');
+            const passwordStrength = document.getElementById('passwordStrength');
+            const submitBtn = document.getElementById('submitBtn');
+
+            // Password strength indicator
+            passwordInput.addEventListener('input', function() {
+                const password = this.value;
+                let strength = 0;
+
+                if (password.length >= 8) strength += 25;
+                if (/[A-Z]/.test(password)) strength += 25;
+                if (/[0-9]/.test(password)) strength += 25;
+                if (/[^A-Za-z0-9]/.test(password)) strength += 25;
+
+                passwordStrength.style.width = strength + '%';
+
+                if (strength < 50) {
+                    passwordStrength.style.background = '#ef4444';
+                } else if (strength < 75) {
+                    passwordStrength.style.background = '#f59e0b';
+                } else {
+                    passwordStrength.style.background = '#10b981';
+                }
+            });
+
+            // Form validation
+            form.addEventListener('submit', function (e) {
+                const password = passwordInput.value;
+                const confirmPassword = confirmPasswordInput.value;
+
+                if (password !== confirmPassword) {
+                    alert('Passwords do not match!');
+                    e.preventDefault();
+                    return;
+                }
+
+                if (password.length < 8) {
+                    alert('Password must be at least 8 characters long!');
+                    e.preventDefault();
+                    return;
+                }
+
+                // Show loading state
+                submitBtn.classList.add('loading');
+                submitBtn.disabled = true;
+            });
+
+            // Real-time password match indicator
+            confirmPasswordInput.addEventListener('input', function() {
+                if (this.value && passwordInput.value) {
+                    if (this.value === passwordInput.value) {
+                        this.style.borderColor = '#10b981';
+                    } else {
+                        this.style.borderColor = '#ef4444';
+                    }
+                } else {
+                    this.style.borderColor = '#e2e8f0';
+                }
+            });
+
+            // Add focus effects
+            document.querySelectorAll('.form-group input, .form-group select').forEach(input => {
+                input.addEventListener('focus', function() {
+                    this.style.boxShadow = '0 0 0 3px rgba(37, 99, 235, 0.1)';
+                });
+
+                input.addEventListener('blur', function() {
+                    this.style.boxShadow = 'var(--shadow)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

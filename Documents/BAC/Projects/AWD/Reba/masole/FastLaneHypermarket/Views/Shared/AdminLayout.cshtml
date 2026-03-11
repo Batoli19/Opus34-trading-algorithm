@@ -1,0 +1,57 @@
+﻿@{
+    var title = ViewData["Title"] ?? "FastLane Admin Panel";
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@title</title>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/admin-dark.css" />
+</head>
+<body>
+    <div class="admin-layout">
+        <!-- Sidebar -->
+        <aside class="admin-sidebar">
+            <div class="logo">
+                <i class="fas fa-bolt"></i>
+                <h2>Fast<span>Lane</span></h2>
+            </div>
+
+            <ul class="sidebar-links">
+                <li><a asp-controller="Admin" asp-action="AdminDashboard" class="active"><i class="fas fa-chart-line"></i> Dashboard</a></li>
+                <li><a asp-controller="Admin" asp-action="Staff"><i class="fas fa-user-tie"></i> Staff</a></li>
+                <li><a asp-controller="Admin" asp-action="Products"><i class="fas fa-box"></i> Products</a></li>
+                <li><a asp-controller="Admin" asp-action="Customers"><i class="fas fa-users"></i> Customers</a></li>
+                <li><a asp-controller="Admin" asp-action="Sales"><i class="fas fa-receipt"></i> Sales</a></li>
+                <li><a asp-controller="Admin" asp-action="Reports"><i class="fas fa-database"></i> Reports</a></li>
+                <li><a asp-controller="Admin" asp-action="Settings"><i class="fas fa-cogs"></i> Settings</a></li>
+            </ul>
+
+            <div class="logout">
+                <a asp-controller="Home" asp-action="Login"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Area -->
+        <main class="admin-main">
+            <header class="admin-header">
+                <h1>@title</h1>
+                <div class="admin-user">
+                    <img src="~/images/admin-avatar.png" alt="Admin" />
+                    <span>Super Admin</span>
+                </div>
+            </header>
+
+            <div class="admin-body">
+                @RenderBody()
+            </div>
+        </main>
+    </div>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

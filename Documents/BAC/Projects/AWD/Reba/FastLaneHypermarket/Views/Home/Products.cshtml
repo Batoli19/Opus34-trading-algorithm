@@ -1,0 +1,694 @@
+﻿@model List<FastLaneHypermarket.Models.Product>
+
+<section class="products-showcase">
+    <div class="container">
+        <!-- Showcase Header -->
+        <div class="showcase-header">
+            <h1>Premium Products</h1>
+            <p>Discover our curated collection of high-quality items</p>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" id="productsGrid">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var p in Model)
+                {
+                    <div class="product-card" data-product-id="@p.ProductCode" data-category="@p.Category">
+                        <div class="card-inner">
+                            <!-- Front of Card -->
+                            <div class="card-front">
+                                <div class="img-wrap">
+                                    <img src="@p.ImageUrl" alt="@p.ProductName"
+                                         onerror="this.src='/images/products/default.jpg'" />
+                                    <div class="category-chip">@p.Category</div>
+
+                                    <!-- Stock Badge -->
+                                    @if (p.Quantity == 0)
+                                    {
+                                        <div class="stock-badge out-of-stock">Out of Stock</div>
+                                    }
+                                    else if (p.Quantity <= p.ReorderLevel)
+                                    {
+                                        <div class="stock-badge low-stock">Low Stock</div>
+                                    }
+                                </div>
+
+                                <div class="info">
+                                    <h3 class="product-title">@p.ProductName</h3>
+
+                                    @if (!string.IsNullOrEmpty(p.Size))
+                                    {
+                                        <p class="size">Size: @p.Size</p>
+                                    }
+
+                                    <div class="price-box">
+                                        <span class="price">P @p.SellingPrice.ToString("N2")</span>
+                                        @if (p.PurchasePrice > 0 && p.PurchasePrice < p.SellingPrice)
+                                        {
+                                            <span class="old-price">P @p.PurchasePrice.ToString("N2")</span>
+                                        }
+                                    </div>
+
+                                    <div class="stock">
+                                        <i class="fas fa-box"></i>
+                                        <span>@(p.Quantity > 0 ? $"{p.Quantity} in stock" : "Out of Stock")</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hover Actions -->
+                            <div class="card-hover">
+                                @if (p.Quantity > 0)
+                                {
+                                    <button class="btn-cart"
+                                            onclick="event.stopPropagation(); addToCart(@p.ProductCode)">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                    </button>
+
+                                    <button class="btn-whatsapp"
+                                            onclick="event.stopPropagation(); orderOnWhatsApp(@p.ProductCode, @Html.Raw(System.Text.Json.JsonSerializer.Serialize(p.ProductName)), @p.SellingPrice)">
+                                        <i class="fab fa-whatsapp"></i> Buy via WhatsApp
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-out" disabled>
+                                        <i class="fas fa-times-circle"></i> Out of Stock
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <h3>No Products Available</h3>
+                    <p>Check back later for new arrivals</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+
+<style>
+    <section class="products-showcase">
+    <div class="container">
+        <!-- Showcase Header -->
+        <div class="showcase-header">
+            <h1>Premium Products</h1>
+            <p>Discover our curated collection of high-quality items</p>
+        </div>
+
+        <!-- Products Grid -->
+        <div class="products-grid" id="productsGrid">
+            @if (Model != null && Model.Any())
+            {
+                foreach (var p in Model)
+                {
+                    <div class="product-card" data-product-id="@p.ProductCode" data-category="@p.Category">
+                        <div class="card-inner">
+                            <!-- Front of Card -->
+                            <div class="card-front">
+                                <div class="img-wrap">
+                                    <img src="@p.ImageUrl" alt="@p.ProductName"
+                                         onerror="this.src='/images/products/default.jpg'" />
+                                    <div class="category-chip">@p.Category</div>
+
+                                    <!-- Stock Badge -->
+                                    @if (p.Quantity == 0)
+                                    {
+                                        <div class="stock-badge out-of-stock">Out of Stock</div>
+                                    }
+                                    else if (p.Quantity <= p.ReorderLevel)
+                                    {
+                                        <div class="stock-badge low-stock">Low Stock</div>
+                                    }
+                                </div>
+
+                                <div class="info">
+                                    <h3 class="product-title">@p.ProductName</h3>
+
+                                    @if (!string.IsNullOrEmpty(p.Size))
+                                    {
+                                        <p class="size">Size: @p.Size</p>
+                                    }
+
+                                    <div class="price-box">
+                                        <span class="price">P @p.SellingPrice.ToString("N2")</span>
+                                        @if (p.PurchasePrice > 0 && p.PurchasePrice < p.SellingPrice)
+                                        {
+                                            <span class="old-price">P @p.PurchasePrice.ToString("N2")</span>
+                                        }
+                                    </div>
+
+                                    <div class="stock">
+                                        <i class="fas fa-box"></i>
+                                        <span>@(p.Quantity > 0 ? $"{p.Quantity} in stock" : "Out of Stock")</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Hover Actions -->
+                            <div class="card-hover">
+                                @if (p.Quantity > 0)
+                                {
+                                    <button class="btn-cart"
+                                            onclick="event.stopPropagation(); addToCart(@p.ProductCode)">
+                                        <i class="fas fa-cart-plus"></i> Add to Cart
+                                    </button>
+
+                                    <button class="btn-whatsapp"
+                                            onclick="event.stopPropagation(); orderOnWhatsApp(@p.ProductCode, '@p.ProductName.Replace("'", "\\'")', @p.SellingPrice)">
+                                        <i class="fab fa-whatsapp"></i> Buy via WhatsApp
+                                    </button>
+                                }
+                                else
+                                {
+                                    <button class="btn-out" disabled>
+                                        <i class="fas fa-times-circle"></i> Out of Stock
+                                    </button>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="empty-state">
+                    <i class="fas fa-box-open"></i>
+                    <h3>No Products Available</h3>
+                    <p>Check back later for new arrivals</p>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+<style>
+    /* ====== Modern Product Showcase ====== */
+    .products-showcase {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        padding: 80px 0;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    /* ====== Modern Header ====== */
+    .showcase-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .showcase-header h1 {
+        font-size: 3.5rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 12px;
+        line-height: 1.1;
+    }
+
+    .showcase-header p {
+        font-size: 1.25rem;
+        color: #64748b;
+        font-weight: 400;
+        max-width: 500px;
+        margin: 0 auto;
+    }
+
+    /* ====== Modern Grid ====== */
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 32px;
+    }
+
+    /* ====== Modern Card ====== */
+    .product-card {
+        background: white;
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        cursor: pointer;
+    }
+
+    .product-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-inner {
+        position: relative;
+    }
+
+    /* Card Visual */
+    .img-wrap {
+        position: relative;
+        height: 280px;
+        overflow: hidden;
+    }
+
+    .img-wrap img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .product-card:hover .img-wrap img {
+        transform: scale(1.1);
+    }
+
+    .category-chip {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        color: #475569;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        z-index: 2;
+    }
+
+    .stock-badge {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        z-index: 2;
+    }
+
+    .stock-badge.out-of-stock {
+        background: #ef4444;
+        color: white;
+    }
+
+    .stock-badge.low-stock {
+        background: #f59e0b;
+        color: white;
+    }
+
+    /* Card Content */
+    .info {
+        padding: 24px;
+    }
+
+    .product-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 8px;
+        line-height: 1.4;
+    }
+
+    .size {
+        color: #64748b;
+        font-size: 0.9rem;
+        margin-bottom: 12px;
+    }
+
+    .price-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+
+    .price {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #059669;
+    }
+
+    .old-price {
+        font-size: 1rem;
+        color: #94a3b8;
+        text-decoration: line-through;
+    }
+
+    .stock {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #64748b;
+        font-size: 0.875rem;
+    }
+
+    /* Hover Actions */
+    .card-hover {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(8px);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        gap: 12px;
+        padding: 24px;
+        opacity: 0;
+        transition: all 0.3s ease;
+    }
+
+    .product-card:hover .card-hover {
+        opacity: 1;
+    }
+
+    .btn-cart, .btn-whatsapp, .btn-out {
+        border: none;
+        padding: 14px 20px;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        width: 100%;
+        max-width: 200px;
+    }
+
+    .btn-cart {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-cart:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-whatsapp {
+        background: transparent;
+        color: #475569;
+        border: 2px solid #e2e8f0;
+    }
+
+    .btn-whatsapp:hover {
+        border-color: #667eea;
+        color: #667eea;
+        transform: translateY(-2px);
+    }
+
+    .btn-out {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+    }
+
+    /* ====== Empty State ====== */
+    .empty-state {
+        grid-column: 1 / -1;
+        text-align: center;
+        padding: 80px 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 24px;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        color: #1e293b;
+        margin-bottom: 12px;
+        font-weight: 600;
+    }
+
+    .empty-state p {
+        color: #64748b;
+        margin-bottom: 32px;
+        max-width: 400px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    /* ====== Responsive Design ====== */
+    @@media (max-width: 768px) {
+        .products-showcase {
+            padding: 40px 0;
+        }
+
+        .container {
+            padding: 0 16px;
+        }
+
+        .showcase-header h1 {
+            font-size: 2.5rem;
+        }
+
+        .products-grid {
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .img-wrap {
+            height: 240px;
+        }
+    }
+</style>
+
+@section Scripts {
+<script>
+
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeProductClicks();
+        initializeProductSearch();
+        initializeCategoryFilter();
+    });
+
+       async function addToCart(productId) {
+        try {
+            const response = await fetch('/Cart/AddToCart', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ productId })
+            });
+
+            const result = await response.json();
+
+            if (result.requiresLogin) {
+                showLoginPrompt(); // ✅ FIXED
+                return;
+            }
+
+            if (result.success) {
+                showNotification(result.message || "✅ Added to cart!", "success");
+                setTimeout(() => {
+                    window.location.href = '/Home/Cart';
+                }, 1500);
+            } else {
+                showNotification(result.message || "⚠️ Could not add product to cart.", "error");
+            }
+
+        } catch (error) {
+            console.error('Error adding to cart:', error);
+            showNotification('❌ Something went wrong. Please try again.', 'error');
+        }
+    }
+
+    function showLoginRequiredAlert() {
+        // Check if SweetAlert2 is available
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: "Login Required 🔒",
+                text: "You need to log in to add products to your cart.",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#2ecc71",
+                cancelButtonColor: "#e74c3c",
+                confirmButtonText: "Login Now",
+                cancelButtonText: "Maybe Later",
+                background: "#1e1e1e",
+                color: "#f1f1f1"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/Account/Login';
+                }
+            });
+        } else {
+            // Fallback to native confirm if SweetAlert2 is not available
+            if (confirm("You need to log in to add products to your cart.\n\nWould you like to log in now?")) {
+                window.location.href = '/Account/Login';
+            }
+        }
+    }
+
+    function orderOnWhatsApp(productId, productName, price) {
+        const phoneNumber = "26775000000";
+        const message = `Hello! I would like to order:\n\nProduct: ${productName}\nPrice: P${price.toFixed(2)}\n\nPlease let me know about availability and delivery.`;
+        const encodedMessage = encodeURIComponent(message);
+        const whatsappUrl = `https://wa.me/${phoneNumber}?text=${encodedMessage}`;
+        window.open(whatsappUrl, '_blank');
+    }
+
+    function initializeProductClicks() {
+        document.querySelectorAll('.product-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.closest('.btn-cart') &&
+                    !e.target.closest('.btn-whatsapp') &&
+                    !e.target.closest('.btn-out')) {
+                    const productId = this.getAttribute('data-product-id');
+                    if (productId) {
+                        window.location.href = `/Home/Details/${productId}`;
+                    }
+                }
+            });
+        });
+    }
+
+    function initializeProductSearch() {
+        const searchInput = document.getElementById('productSearch');
+        if (searchInput) {
+            searchInput.addEventListener('input', debounce(function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                const productCards = document.querySelectorAll('.product-card');
+
+                productCards.forEach(card => {
+                    const productName = card.querySelector('.product-title')?.textContent.toLowerCase() || '';
+                    const category = card.getAttribute('data-category')?.toLowerCase() || '';
+
+                    const isVisible = productName.includes(searchTerm) || category.includes(searchTerm);
+                    card.style.display = isVisible ? 'block' : 'none';
+                });
+            }, 300));
+        }
+    }
+
+    function initializeCategoryFilter() {
+        const categoryFilter = document.getElementById('categoryFilter');
+        if (categoryFilter) {
+            categoryFilter.addEventListener('change', function() {
+                const selectedCategory = this.value;
+                const productCards = document.querySelectorAll('.product-card');
+
+                productCards.forEach(card => {
+                    const cardCategory = card.getAttribute('data-category');
+                    const isVisible = !selectedCategory || cardCategory === selectedCategory;
+                    card.style.display = isVisible ? 'block' : 'none';
+                });
+            });
+        }
+    }
+
+    function showNotification(message, type = 'info') {
+        const iconClass = type === 'success' ? 'check-circle' :
+                         type === 'error' ? 'exclamation-circle' : 'info-circle';
+
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <div class="notification-content">
+                <i class="fas fa-${iconClass}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+
+        Object.assign(notification.style, {
+            position: 'fixed',
+            top: '20px',
+            right: '20px',
+            background: type === 'success' ? '#d4edda' :
+                       type === 'error' ? '#f8d7da' : '#d1ecf1',
+            color: type === 'success' ? '#155724' :
+                   type === 'error' ? '#721c24' : '#0c5460',
+            padding: '12px 16px',
+            borderRadius: '8px',
+            border: `1px solid ${type === 'success' ? '#c3e6cb' :
+                              type === 'error' ? '#f5c6cb' : '#bee5eb'}`,
+            zIndex: '10001',
+            animation: 'slideInRight 0.3s ease-out',
+            maxWidth: '300px',
+            boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+        });
+
+        document.body.appendChild(notification);
+
+        setTimeout(() => {
+            notification.style.animation = 'slideOutRight 0.3s ease-in';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.remove();
+                }
+            }, 300);
+        }, 3000);
+    }
+
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Add CSS for animations
+    if (!document.querySelector('#notification-styles')) {
+        const style = document.createElement('style');
+        style.id = 'notification-styles';
+        style.textContent = `
+    @@keyframes slideInRight {
+                from {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+                to {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+            }
+
+    @@keyframes slideOutRight {
+                from {
+                    transform: translateX(0);
+                    opacity: 1;
+                }
+                to {
+                    transform: translateX(100%);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+</script>
+}

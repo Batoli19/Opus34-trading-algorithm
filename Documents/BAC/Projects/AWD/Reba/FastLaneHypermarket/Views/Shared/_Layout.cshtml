@@ -1,0 +1,492 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - FastLane Marketplace</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/Products.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #6366f1;
+            --primary-dark: #4338ca;
+            --accent: #10b981;
+            --text-dark: #1f2937;
+            --text-light: #6b7280;
+            --bg-light: #f9fafb;
+            --bg-white: #ffffff;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-light);
+            color: var(--text-dark);
+            margin: 0;
+            line-height: 1.6;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Outfit', sans-serif;
+        }
+
+        .header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 16px 0;
+            background: var(--bg-white);
+            box-shadow: var(--shadow);
+            transition: all 0.3s ease;
+        }
+
+            .header.scrolled {
+                padding: 12px 0;
+                box-shadow: var(--shadow-lg);
+            }
+
+        .header-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .logo {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.8rem;
+            color: var(--primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            color: var(--accent);
+        }
+
+        .nav-menu {
+            display: flex;
+            gap: 24px;
+            align-items: center;
+        }
+
+        .nav-link {
+            color: var(--text-dark);
+            text-decoration: none;
+            font-weight: 500;
+            position: relative;
+            padding: 8px 0;
+            transition: color 0.2s;
+        }
+
+            .nav-link:hover {
+                color: var(--primary);
+            }
+
+            .nav-link.active {
+                color: var(--primary);
+            }
+
+                .nav-link.active::after {
+                    content: '';
+                    position: absolute;
+                    bottom: 0;
+                    left: 0;
+                    right: 0;
+                    height: 2px;
+                    background: var(--primary);
+                }
+
+        .nav-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .cart-icon {
+            position: relative;
+            color: var(--text-dark);
+            font-size: 1.2rem;
+        }
+
+        .cart-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: var(--accent);
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 0.7rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            border: none;
+            cursor: pointer;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+
+            .btn-outline:hover {
+                background: var(--primary);
+                color: white;
+            }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background: var(--primary-dark);
+            }
+
+        .user-badge {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--primary), var(--accent));
+            color: white;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .user-welcome {
+            color: var(--text-dark);
+            font-weight: 500;
+            margin-right: 12px;
+        }
+
+        /* Notification */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1200;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            max-width: 400px;
+            animation: slideIn 0.3s ease;
+        }
+
+            .notification.success {
+                background: #f0fdf4;
+                color: #166534;
+                border-left: 4px solid var(--accent);
+            }
+
+            .notification.error {
+                background: #fef2f2;
+                color: #991b1b;
+                border-left: 4px solid #ef4444;
+            }
+
+        @@keyframes slideIn {
+            from
+
+        {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateX(0);
+            opacity: 1;
+        }
+
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            padding: 20px;
+        }
+
+        .modal-card {
+            width: 440px;
+            max-width: 100%;
+            background: var(--bg-white);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+
+        .modal-title {
+            margin-top: 0;
+            margin-bottom: 8px;
+            font-size: 1.5rem;
+        }
+
+        .modal-text {
+            margin: 0 0 20px;
+            color: var(--text-light);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Main content */
+        .main-content {
+            padding-top: 100px;
+            min-height: calc(100vh - 200px);
+        }
+
+        /* Footer */
+        .footer {
+            padding: 40px 0;
+            background: var(--bg-white);
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        .footer-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .footer-brand {
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+        }
+
+        .footer-text {
+            color: var(--text-light);
+            max-width: 400px;
+        }
+
+        .footer-copy {
+            color: var(--text-light);
+        }
+
+        /* Hidden token */
+        #__RequestVerificationToken {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <div class="header-container">
+            <a class="logo" asp-controller="Home" asp-action="Index">
+                <i class="fas fa-bolt logo-icon"></i>
+                FastLane
+            </a>
+
+            <nav class="nav-menu">
+                <a class="nav-link active" asp-controller="Home" asp-action="Index">Home</a>
+                <a class="nav-link" asp-controller="Home" asp-action="Products">Products</a>
+                <a class="nav-link" asp-controller="Home" asp-action="About">About</a>
+
+                <a class="nav-link cart-icon" asp-controller="Home" asp-action="Cart" title="Cart">
+                    <i class="fas fa-shopping-bag"></i>
+                    <span id="cart-count" class="cart-count">
+                        @((ViewBag.CartCount ?? 0).ToString())
+                    </span>
+                </a>
+            </nav>
+
+            <div class="nav-actions">
+                @{
+                    var userName = ViewBag.UserName as string ?? Context.Session.GetString("UserName");
+                    if (!string.IsNullOrEmpty(userName))
+                    {
+                        var parts = userName.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                        var initials = parts.Length >= 2 ? (parts[0][0].ToString() + parts[^1][0].ToString()) : (parts[0].Length > 0 ? parts[0][0].ToString() : "");
+                        <text>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <div class="user-badge">@initials.ToUpper()</div>
+                                <div class="user-welcome">Hi, @userName</div>
+                                <a class="btn btn-outline" asp-controller="Account" asp-action="Logout">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    Logout
+                                </a>
+                            </div>
+                        </text>
+                    }
+                    else
+                    {
+                        <text>
+                            <a class="btn btn-outline" asp-controller="Account" asp-action="Login">
+                                <i class="fas fa-sign-in-alt"></i>
+                                Login
+                            </a>
+                            <a class="btn btn-primary" asp-controller="Account" asp-action="Signup">
+                                <i class="fas fa-user-plus"></i>
+                                Register
+                            </a>
+                        </text>
+                    }
+                }
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content" role="main">
+        @RenderBody()
+    </main>
+
+    <footer class="footer">
+        <div class="footer-container">
+            <div>
+                <div class="footer-brand">FastLane Marketplace</div>
+                <p class="footer-text">Premium shopping experience — quality products at your fingertips.</p>
+            </div>
+            <div class="footer-copy">© @DateTime.Now.Year FastLane Marketplace</div>
+        </div>
+    </footer>
+
+    <!-- Login-required modal -->
+    <div id="loginModal" class="modal-overlay" role="dialog" aria-hidden="true">
+        <div class="modal-card">
+            <h4 class="modal-title">Sign In Required</h4>
+            <p class="modal-text">To add items to your cart, please sign in to your account.</p>
+            <div class="modal-actions">
+                <button class="btn btn-outline" id="cancelLoginPrompt">Cancel</button>
+                <button class="btn btn-primary" id="goToLogin">Sign In</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // helper: get antiforgery token
+        function getAntiForgeryToken() {
+            return document.getElementById('__RequestVerificationToken')?.value || '';
+        }
+
+        // notification
+        function showNotification(msg, type = 'success') {
+            const n = document.createElement('div');
+            n.className = 'notification ' + (type === 'success' ? 'success' : 'error');
+            n.innerHTML = `
+                <div style="font-size:1.2rem;">${type === 'success' ? '✓' : '!'}</div>
+                <div>${msg}</div>
+            `;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+
+        // show login modal
+        function showLoginPrompt() {
+            const modal = document.getElementById('loginModal');
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden', 'false');
+        }
+
+        document.getElementById('cancelLoginPrompt').addEventListener('click', () => {
+            const modal = document.getElementById('loginModal');
+            modal.style.display = 'none';
+        });
+
+        document.getElementById('goToLogin').addEventListener('click', () => {
+            window.location.href = '/Account/Login';
+        });
+
+        // Add to cart logic
+        async function addToCart(productId) {
+            try {
+                const token = getAntiForgeryToken();
+                const body = new URLSearchParams({ productId });
+                const resp = await fetch('/Cart/AddToCart', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'RequestVerificationToken': token
+                    },
+                    body
+                });
+                const result = await resp.json();
+                if (result.requiresLogin) {
+                    showLoginPrompt();
+                    return;
+                }
+                if (result.success) {
+                    showNotification(result.message || 'Added to cart successfully', 'success');
+                    // Update cart count
+                    const cartCount = document.getElementById('cart-count');
+                    if (cartCount) {
+                        const currentCount = parseInt(cartCount.textContent) || 0;
+                        cartCount.textContent = currentCount + 1;
+                    }
+                } else {
+                    showNotification(result.message || 'Could not add to cart', 'error');
+                }
+            } catch (e) {
+                console.error(e);
+                showNotification('Something went wrong', 'error');
+            }
+        }
+
+        // navbar scroll effect
+        document.addEventListener('scroll', () => {
+            const header = document.querySelector('.header');
+            if (!header) return;
+            if (window.scrollY > 40) header.classList.add('scrolled');
+            else header.classList.remove('scrolled');
+        });
+
+    </script>
+
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

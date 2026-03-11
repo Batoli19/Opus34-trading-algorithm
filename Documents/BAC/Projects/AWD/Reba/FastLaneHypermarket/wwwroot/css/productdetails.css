@@ -1,0 +1,223 @@
+﻿/* --- PREMIUM PRODUCT DETAILS --- */
+.product-details-page {
+    padding: 5rem 2rem;
+    background: radial-gradient(circle at top left, #001f3f, #000814);
+    color: #fff;
+    min-height: 100vh;
+    animation: fadeIn 0.8s ease-in;
+}
+
+.container {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
+    align-items: center;
+}
+
+/* GALLERY */
+.product-gallery {
+    position: relative;
+    text-align: center;
+}
+
+.main-image-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 20px;
+    box-shadow: 0 10px 35px rgba(0, 102, 255, 0.3);
+}
+
+.main-image {
+    width: 100%;
+    max-width: 450px;
+    border-radius: 20px;
+    transition: transform 0.4s ease;
+}
+
+    .main-image:hover {
+        transform: scale(1.05);
+    }
+
+.fade-swap {
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.thumbnail-row {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.8rem;
+}
+
+.thumbnail {
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
+    object-fit: cover;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+    .thumbnail:hover {
+        opacity: 1;
+        transform: scale(1.1);
+    }
+
+/* INFO SECTION */
+.product-info h1 {
+    font-size: 2.6rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    letter-spacing: 1px;
+}
+
+.gradient-text {
+    background: linear-gradient(90deg, #00c3ff, #3b91ff, #a0eaff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.rating {
+    color: gold;
+    margin-bottom: 1rem;
+}
+
+.price {
+    margin-bottom: 1.2rem;
+}
+
+    .price .current {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #00eaff;
+        margin-right: 10px;
+    }
+
+    .price .old {
+        text-decoration: line-through;
+        color: #999;
+    }
+
+.availability {
+    color: #0f0;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.description {
+    line-height: 1.6;
+    margin-bottom: 1.5rem;
+    color: #ddd;
+}
+
+.specs {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 1.5rem;
+}
+
+    .specs li {
+        margin-bottom: 0.4rem;
+        color: #aaddff;
+    }
+
+/* BUTTONS */
+.buttons {
+    display: flex;
+    gap: 1rem;
+}
+
+.btn-add,
+.btn-buy {
+    padding: 0.8rem 1.6rem;
+    border-radius: 10px;
+    text-decoration: none;
+    font-weight: 700;
+    transition: 0.3s ease;
+    border: none;
+}
+
+.btn-add {
+    background: linear-gradient(90deg, #007bff, #00c3ff);
+    color: #fff;
+}
+
+    .btn-add:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0,123,255,0.4);
+    }
+
+.btn-buy {
+    background: linear-gradient(90deg, #28a745, #00ff95);
+    color: #001122;
+}
+
+    .btn-buy:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0,255,150,0.3);
+    }
+
+/* TAGS */
+.tags span {
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    margin-right: 0.5rem;
+    font-size: 0.9rem;
+}
+
+/* RECOMMENDED */
+.recommended {
+    text-align: center;
+    margin-top: 4rem;
+}
+
+    .recommended h2 {
+        font-size: 1.8rem;
+        color: #00ccff;
+        margin-bottom: 1.5rem;
+    }
+
+.recommended-grid {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+}
+
+.rec-card {
+    background: rgba(0, 43, 91, 0.8);
+    border-radius: 16px;
+    padding: 1rem;
+    width: 200px;
+    transition: 0.3s;
+    backdrop-filter: blur(6px);
+}
+
+    .rec-card img {
+        width: 100%;
+        border-radius: 10px;
+        margin-bottom: 0.5rem;
+    }
+
+    .rec-card:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 10px 20px rgba(0,123,255,0.3);
+    }
+
+/* ANIMATIONS */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

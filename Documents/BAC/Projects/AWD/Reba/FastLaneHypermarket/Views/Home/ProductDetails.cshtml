@@ -1,0 +1,395 @@
+﻿@model FastLaneHypermarket.Models.Product
+
+<style>
+    /* ====== Modern Product Details Page ====== */
+    .product-details-page {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        min-height: 100vh;
+        color: #1e293b;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+        padding: 100px 20px 60px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .product-container {
+        max-width: 1200px;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+        gap: 60px;
+        background: white;
+        border-radius: 24px;
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+        padding: 50px;
+        position: relative;
+    }
+
+    .product-image {
+        position: relative;
+        overflow: hidden;
+        border-radius: 20px;
+        border: 1px solid #e2e8f0;
+        width: 100%;
+        height: 500px;
+        background: #f8fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            transition: transform 0.7s ease;
+            padding: 20px;
+        }
+
+        .product-image:hover img {
+            transform: scale(1.05);
+        }
+
+    .product-info {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 20px 0;
+    }
+
+        .product-info h1 {
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 12px;
+            line-height: 1.2;
+        }
+
+        .product-info .category {
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 16px;
+            background: #f1f5f9;
+            padding: 6px 12px;
+            border-radius: 20px;
+            display: inline-block;
+        }
+
+        .product-info .description {
+            color: #64748b;
+            margin-bottom: 30px;
+            line-height: 1.7;
+            font-size: 1.1rem;
+        }
+
+    .price-section {
+        margin-bottom: 25px;
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 16px;
+        border: 1px solid #e2e8f0;
+    }
+
+    .current-price {
+        font-size: 2.2rem;
+        color: #059669;
+        font-weight: 800;
+        margin-right: 12px;
+    }
+
+    .original-price {
+        text-decoration: line-through;
+        color: #94a3b8;
+        font-size: 1.3rem;
+        font-weight: 500;
+    }
+
+    .stock-info {
+        margin-bottom: 30px;
+        padding: 16px 20px;
+        background: #f0fdf4;
+        border-radius: 12px;
+        border: 1px solid #bbf7d0;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .stock-info.low-stock {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            color: #d97706;
+        }
+
+        .stock-info.out-of-stock {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            color: #dc2626;
+        }
+
+    .btn-section {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .btn-buy-now, .btn-whatsapp, .btn-out-of-stock {
+        border: none;
+        padding: 18px 24px;
+        border-radius: 14px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        width: 100%;
+        text-align: center;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+    }
+
+    .btn-buy-now {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .btn-buy-now:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+    .btn-whatsapp {
+        background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+        color: white;
+        box-shadow: 0 8px 20px rgba(37, 211, 102, 0.3);
+    }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(37, 211, 102, 0.4);
+        }
+
+    .btn-out-of-stock {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        border: 1px solid #e2e8f0;
+    }
+
+    /* Additional Info Section */
+    .product-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+        margin-top: 30px;
+        padding-top: 30px;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    .meta-item {
+        text-align: center;
+        padding: 20px;
+        background: #f8fafc;
+        border-radius: 12px;
+        border: 1px solid #e2e8f0;
+    }
+
+        .meta-item i {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 8px;
+        }
+
+        .meta-item .label {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 4px;
+        }
+
+        .meta-item .value {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+    /* Responsive Design */
+    @@media (max-width: 1024px) {
+        .product-container {
+            gap: 40px;
+            padding: 40px;
+        }
+
+        .product-info h1 {
+            font-size: 2.2rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .product-details-page {
+            padding: 80px 16px 40px;
+        }
+
+        .product-container {
+            grid-template-columns: 1fr;
+            padding: 30px 20px;
+            gap: 30px;
+        }
+
+        .product-image {
+            height: 350px;
+        }
+
+        .product-info h1 {
+            font-size: 2rem;
+        }
+
+        .current-price {
+            font-size: 1.8rem;
+        }
+
+        .btn-buy-now, .btn-whatsapp, .btn-out-of-stock {
+            padding: 16px 20px;
+            font-size: 1rem;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .product-container {
+            padding: 24px 16px;
+        }
+
+        .product-info h1 {
+            font-size: 1.8rem;
+        }
+
+        .current-price {
+            font-size: 1.6rem;
+        }
+
+        .product-meta {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Animation for stock status */
+    @@keyframes pulse {
+        0% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+        }
+
+        70% {
+            box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+        }
+
+        100% {
+            box-shadow: 0 0 0 0 rgba(16, 185, 129, 0);
+        }
+    }
+
+    .stock-info.in-stock {
+        animation: pulse 2s infinite;
+    }
+
+    /* Back button styling */
+    .back-button {
+        position: absolute;
+        top: 30px;
+        left: 30px;
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 12px 20px;
+        border-radius: 12px;
+        color: #64748b;
+        text-decoration: none;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+        .back-button:hover {
+            color: #667eea;
+            border-color: #667eea;
+            transform: translateX(-5px);
+        }
+</style>
+<div class="product-details-page">
+    <div class="product-container">
+        <div class="product-image">
+            <img src="@Model.ImageUrl" alt="@Model.ProductName" />
+        </div>
+
+        <div class="product-info">
+            <h1>@Model.ProductName</h1>
+            <p class="category">@Model.Category</p>
+
+          
+            <div class="price-section">
+                <span class="current-price">P @Model.SellingPrice.ToString("N2")</span>
+
+                @if (Model.PurchasePrice > 0 && Model.PurchasePrice < Model.SellingPrice)
+                {
+                    <span class="original-price">P @Model.PurchasePrice.ToString("N2")</span>
+                }
+            </div>
+
+            <p class="stock-info">
+                @if (Model.Quantity > 5)
+                {
+                    <span>In Stock: @Model.Quantity</span>
+                }
+                else if (Model.Quantity > 0)
+                {
+                    <span style="color: #ffc107;">Low Stock: @Model.Quantity left!</span>
+                }
+                else
+                {
+                    <span style="color: #ff4d4d;">Out of Stock</span>
+                }
+            </p>
+
+            <div class="btn-section">
+                @if (Model.Quantity > 0)
+                {
+                    <button class="btn-buy-now" onclick="buyNow(@Model.ProductCode, @Model.Quantity)">
+                        <i class="fas fa-bolt"></i> Buy Now
+                    </button>
+
+                    <button class="btn-whatsapp"
+                            onclick="orderOnWhatsApp(@Model.ProductCode, '@Model.ProductName.Replace("'", "\\'")', @Model.SellingPrice)">
+                        <i class="fab fa-whatsapp"></i> Order via WhatsApp
+                    </button>
+                }
+                else
+                {
+                    <button class="btn-out-of-stock" disabled>
+                        <i class="fas fa-times-circle"></i> Currently Unavailable
+                    </button>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function buyNow(productCode, quantity) {
+        alert("Buying product code " + productCode + " (qty: " + quantity + ")");
+        // Redirect or handle checkout logic here
+    }
+
+    function orderOnWhatsApp(code, name, price) {
+        const message = `Hello, I'm interested in buying "${name}" for P${price.toFixed(2)}. Product code: ${code}`;
+        const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+        window.open(url, '_blank');
+    }
+</script>

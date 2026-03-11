@@ -1,0 +1,868 @@
+﻿@model IEnumerable<FastLaneHypermarket.Models.Transaction>
+
+@{
+    Layout = "~/Views/Shared/LayoutDashboard.cshtml";
+    ViewData["Title"] = "Sales Management";
+}
+
+<style>
+    :root {
+        --bg-light: #f8fafc;
+        --bg-white: #ffffff;
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --primary-dark: #1d4ed8;
+        --accent: #10b981;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 🎯 Enhanced Page Header */
+    .page-header-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .title-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .header-title h2 {
+        color: var(--text-dark);
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        color: var(--text-light);
+        margin: 8px 0 0 0;
+        font-size: 16px;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: var(--bg-white);
+        border-radius: 12px;
+        min-width: 180px;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+
+        .stat-icon.total {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+
+        .stat-icon.items {
+            background: linear-gradient(135deg, var(--success), #34d399);
+        }
+
+        .stat-icon.revenue {
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+        }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: 800;
+        display: block;
+        line-height: 1;
+        color: var(--text-dark);
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .search-container {
+        position: relative;
+        flex: 1;
+        max-width: 500px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 14px 16px 14px 48px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 16px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-light);
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-primary, .btn-secondary, .btn-outline {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        box-shadow: var(--shadow);
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .btn-secondary {
+        background: var(--bg-white);
+        color: var(--text-dark);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+    }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+    /* 🏆 Sales Summary Cards */
+    .sales-summary-enhanced {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+
+    .summary-card-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 30px;
+        text-align: center;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+        .summary-card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        }
+
+        .summary-card-enhanced:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--primary);
+        }
+
+        .summary-card-enhanced h4 {
+            color: var(--text-light);
+            margin-bottom: 15px;
+            font-size: 14px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .summary-card-enhanced p {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--text-dark);
+            margin: 0;
+        }
+
+    /* 📊 Table Styles */
+    .table-container-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        border: 1px solid var(--border);
+        margin-bottom: 30px;
+    }
+
+    .table-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-light);
+    }
+
+    .table-info {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .table-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .table-sort {
+        padding: 8px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+
+        .table-sort:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+    .styled-table-enhanced {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+        .styled-table-enhanced thead {
+            background: var(--bg-light);
+        }
+
+        .styled-table-enhanced th {
+            padding: 20px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .styled-table-enhanced td {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dark);
+        }
+
+        .styled-table-enhanced tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+            .styled-table-enhanced tbody tr:hover {
+                background: rgba(37, 99, 235, 0.05);
+            }
+
+    .transaction-id {
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .customer-name {
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .product-name {
+        color: var(--text-light);
+    }
+
+    .amount-cell {
+        font-weight: 700;
+        color: var(--primary);
+        font-size: 15px;
+    }
+
+    .date-cell {
+        font-size: 13px;
+    }
+
+    .date {
+        display: block;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .time {
+        color: var(--text-light);
+        font-size: 12px;
+    }
+
+    .actions-cell {
+        white-space: nowrap;
+    }
+
+    .action-buttons-table {
+        display: flex;
+        gap: 6px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .styled-table-enhanced tbody tr:hover .action-buttons-table {
+        opacity: 1;
+    }
+
+    .btn-action {
+        background: none;
+        border: none;
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-action:hover {
+            background: rgba(37, 99, 235, 0.1);
+            transform: scale(1.1);
+        }
+
+    .btn-edit:hover {
+        color: var(--primary);
+    }
+
+    .btn-delete:hover {
+        color: var(--danger);
+    }
+
+    /* 🎭 Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-container {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 500px;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.3s ease-out;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+        padding: 32px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .modal-header h3 {
+            color: var(--text-dark);
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+        .modal-close:hover {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+    .modal-body {
+        padding: 32px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-dark);
+    }
+
+    .form-input, .form-select {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: var(--bg-white);
+        color: var(--text-dark);
+    }
+
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+    .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 12px;
+        justify-content: flex-end;
+        margin-top: 25px;
+        padding-top: 20px;
+        border-top: 1px solid var(--border);
+    }
+
+    /* 🎨 Animations */
+    @@keyframes modalSlideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-20px) scale(0.95);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+        }
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    /* 📱 Responsive Design */
+    @@media (max-width: 1024px) {
+        .header-main {
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header-stats {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .header-actions {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 16px;
+        }
+
+        .search-container {
+            max-width: none;
+        }
+
+        .action-buttons {
+            justify-content: space-between;
+        }
+
+        .table-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .sales-summary-enhanced {
+            grid-template-columns: 1fr;
+        }
+
+        .page-header-enhanced {
+            padding: 24px;
+        }
+
+        .modal-header,
+        .modal-body {
+            padding: 24px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .header-stats {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stat-card {
+            min-width: auto;
+            width: 100%;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-secondary, .btn-outline {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<section class="dashboard-content fade-in">
+    <!-- 🎯 Enhanced Header -->
+    <div class="page-header-enhanced">
+        <div class="header-main">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-receipt"></i>
+                </div>
+                <div>
+                    <h2>Sales Transactions</h2>
+                    <p class="subtitle">Manage and track all sales activities</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-icon total">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalTransactions">@Model.Count()</span>
+                        <span class="stat-label">Total Transactions</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon items">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number" id="totalItems">@Model.Sum(t => t.Quantity)</span>
+                        <span class="stat-label">Items Sold</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="salesSearch" class="search-input" placeholder="Search transactions, customers, products...">
+            </div>
+            <div class="action-buttons">
+                <button class="btn-secondary">
+                    <i class="fas fa-filter"></i>
+                    Filter
+                </button>
+                <button id="openAddModal" class="btn-primary">
+                    <i class="fas fa-plus"></i>
+                    New Sale
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🏆 Enhanced Sales Summary -->
+    <div class="sales-summary-enhanced">
+        <div class="summary-card-enhanced">
+            <h4>Total Revenue</h4>
+            <p id="totalAmount">₱@Model.Sum(t => t.Amount).ToString("N2")</p>
+        </div>
+        <div class="summary-card-enhanced">
+            <h4>Average Transaction</h4>
+            <p>₱@(Model.Any() ? (Model.Sum(t => t.Amount) / Model.Count()).ToString("N2") : "0.00")</p>
+        </div>
+        <div class="summary-card-enhanced">
+            <h4>Today's Sales</h4>
+            <p>₱@Model.Where(t => t.Date.Date == DateTime.Today).Sum(t => t.Amount).ToString("N2")</p>
+        </div>
+    </div>
+
+    <!-- 📊 Enhanced Table -->
+    <div class="table-container-enhanced">
+        <div class="table-header">
+            <div class="table-info">
+                Showing <strong>@Model.Count()</strong> transactions
+            </div>
+            <div class="table-actions">
+                <select class="table-sort">
+                    <option>Sort by Date</option>
+                    <option>Sort by Amount</option>
+                    <option>Sort by Customer</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="styled-table-enhanced">
+                <thead>
+                    <tr>
+                        <th>Transaction ID</th>
+                        <th>Date & Time</th>
+                        <th>Customer</th>
+                        <th>Product</th>
+                        <th>Quantity</th>
+                        <th>Price</th>
+                        <th>Amount</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="salesTable">
+                    @foreach (var t in Model)
+                    {
+                        <tr>
+                            <td class="transaction-id">#@t.TransactionId</td>
+                            <td class="date-cell">
+                                <span class="date">@t.Date.ToShortDateString()</span>
+                                <span class="time">@t.Time</span>
+                            </td>
+                            <td class="customer-name">@t.Customer?.FullName</td>
+                            <td class="product-name">@t.Product?.ProductName</td>
+                            <td>@t.Quantity</td>
+                            <td>₱@t.Price.ToString("N2")</td>
+                            <td class="amount-cell">₱@t.Amount.ToString("N2")</td>
+                            <td class="actions-cell">
+                                <div class="action-buttons-table">
+                                    <button class="btn-action btn-edit" title="Edit">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action btn-delete" title="Delete">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</section>
+
+<!-- 🎭 Add Sale Modal -->
+<div id="addSaleModal" class="modal-overlay">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h3><i class="fas fa-plus-circle"></i> New Sale</h3>
+            <button class="modal-close" id="closeModal">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <form id="addSaleForm">
+                <div class="form-group">
+                    <label class="form-label">Customer Name</label>
+                    <input type="text" id="customerName" class="form-input" placeholder="Enter customer name" required />
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Product</label>
+                    <input type="text" id="productName" class="form-input" placeholder="Enter product name" required />
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Quantity</label>
+                        <input type="number" id="quantity" class="form-input" min="1" value="1" required />
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Price (₱)</label>
+                        <input type="number" id="price" class="form-input" min="0" step="0.01" required />
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Total Amount (₱)</label>
+                    <input type="text" id="amount" class="form-input" readonly style="background: rgba(37, 99, 235, 0.05);" />
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" id="closeModal" class="btn-secondary">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-check"></i> Complete Sale
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Modal functionality
+        document.getElementById('openAddModal').addEventListener('click', function() {
+            document.getElementById('addSaleModal').style.display = 'flex';
+        });
+
+        document.getElementById('closeModal').addEventListener('click', function() {
+            document.getElementById('addSaleModal').style.display = 'none';
+        });
+
+        // Calculate amount automatically
+        const quantityInput = document.getElementById('quantity');
+        const priceInput = document.getElementById('price');
+        const amountInput = document.getElementById('amount');
+
+        function calculateAmount() {
+            const quantity = parseInt(quantityInput.value) || 0;
+            const price = parseFloat(priceInput.value) || 0;
+            amountInput.value = '₱' + (quantity * price).toFixed(2);
+        }
+
+        quantityInput.addEventListener('input', calculateAmount);
+        priceInput.addEventListener('input', calculateAmount);
+
+        // Search functionality
+        document.getElementById('salesSearch').addEventListener('input', function(e) {
+            const searchTerm = e.target.value.toLowerCase();
+            const rows = document.querySelectorAll('#salesTable tr');
+
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('addSaleModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
+            }
+        });
+
+        // Form submission
+        document.getElementById('addSaleForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // Add your form submission logic here
+            alert('Sale completed successfully!');
+            document.getElementById('addSaleModal').style.display = 'none';
+        });
+    </script>
+}

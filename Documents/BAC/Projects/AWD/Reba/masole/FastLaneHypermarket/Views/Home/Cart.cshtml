@@ -1,0 +1,504 @@
+﻿@model List<FastLaneHypermarket.Models.CartItem>
+
+<section class="cart-section fade-in">
+    <div class="container">
+        <div class="cart-header">
+            <h2 class="section-title">🛒 Your Cart</h2>
+            <p class="section-subtitle">Review your items before checkout</p>
+        </div>
+
+        @if (Model.Any())
+        {
+            <table class="cart-table">
+                <thead>
+                    <tr>
+                        <th>Product</th>
+                        <th>Price</th>
+                        <th>Quantity</th>
+                        <th>Total</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model)
+                    {
+                        <tr class="cart-row">
+                            <td class="product-info">
+                                <img src="@item.Product?.ImageUrl" alt="@item.Product?.ProductName" class="cart-img"
+                                     onerror="this.src='/images/products/default.jpg'" />
+                                <div class="cart-details">
+                                    <h4>@item.Product?.ProductName</h4>
+                                    <p class="category">@item.Product?.Category</p>
+                                </div>
+                            </td>
+                            <td>P @item.Product?.SellingPrice.ToString("N2")</td>
+                            <td>@item.Quantity</td>
+                            <td>P @((item.Product?.SellingPrice ?? 0) * item.Quantity).ToString("N2")</td>
+                            <td>
+                                <form asp-action="Remove" asp-controller="Cart" method="post">
+                                    <input type="hidden" name="cartItemId" value="@item.CartItemId" />
+                                    <button type="submit" class="btn-remove">
+                                        <i class="fas fa-trash-alt"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="cart-summary">
+                <div class="summary-box">
+                    <h3>Total:</h3>
+                    <h2>
+                        P @Model.Sum(i => (i.Product?.SellingPrice ?? 0) * i.Quantity).ToString("N2")
+                    </h2>
+                    <button id="checkoutBtn" class="btn-checkout">
+                        Proceed to Checkout
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="empty-cart">
+                <i class="fas fa-shopping-basket empty-icon"></i>
+                <h3>Your cart is empty</h3>
+                <p>Browse products and add your favorites!</p>
+                <a href="/Home/Products" class="btn-shop">
+                    Continue Shopping
+                </a>
+            </div>
+        }
+    </div>
+</section>
+
+<style>
+    /* ====== Modern Cart Section ====== */
+    body {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        color: #1e293b;
+        font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    }
+
+    .cart-section {
+        padding: 100px 0 60px;
+        background: transparent;
+        min-height: 100vh;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 24px;
+    }
+
+    .cart-header {
+        text-align: center;
+        margin-bottom: 60px;
+    }
+
+    .section-title {
+        font-size: 3rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 12px;
+    }
+
+    .section-subtitle {
+        color: #64748b;
+        font-size: 1.2rem;
+        font-weight: 400;
+    }
+
+    /* ====== Cart Table ====== */
+    .cart-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 40px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+
+        .cart-table thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .cart-table th {
+            padding: 20px 24px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.95rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .cart-table td {
+            padding: 24px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+    .cart-row:hover {
+        background: #f8fafc;
+        transition: background 0.2s ease;
+    }
+
+    /* ====== Product Info ====== */
+    .product-info {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .cart-img {
+        width: 80px;
+        height: 80px;
+        border-radius: 12px;
+        object-fit: cover;
+        border: 1px solid #e2e8f0;
+    }
+
+    .cart-details h4 {
+        margin: 0 0 6px 0;
+        color: #1e293b;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .cart-details .category {
+        color: #64748b;
+        font-size: 0.85rem;
+        background: #f1f5f9;
+        padding: 4px 10px;
+        border-radius: 12px;
+        display: inline-block;
+    }
+
+    /* ====== Remove Button ====== */
+    .btn-remove {
+        background: #fef2f2;
+        border: 1px solid #fecaca;
+        color: #dc2626;
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-remove:hover {
+            background: #dc2626;
+            color: white;
+            transform: scale(1.05);
+        }
+
+    /* ====== Cart Summary ====== */
+    .cart-summary {
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    .summary-box {
+        background: white;
+        padding: 32px;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        text-align: center;
+        min-width: 300px;
+    }
+
+        .summary-box h3 {
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .summary-box h2 {
+            color: #059669;
+            font-size: 2.5rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+        }
+
+    .btn-checkout {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        padding: 16px 32px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .btn-checkout:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+        }
+
+    /* ====== Empty Cart ====== */
+    .empty-cart {
+        text-align: center;
+        padding: 80px 20px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 10px 25px -3px rgba(0, 0, 0, 0.1);
+        margin-top: 40px;
+    }
+
+    .empty-icon {
+        font-size: 4rem;
+        color: #cbd5e1;
+        margin-bottom: 24px;
+    }
+
+    .empty-cart h3 {
+        font-size: 1.8rem;
+        color: #1e293b;
+        margin-bottom: 12px;
+        font-weight: 700;
+    }
+
+    .empty-cart p {
+        color: #64748b;
+        font-size: 1.1rem;
+        margin-bottom: 32px;
+    }
+
+    .btn-shop {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 16px 32px;
+        border-radius: 12px;
+        text-decoration: none;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+    }
+
+        .btn-shop:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 30px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+
+    /* ====== Quantity Controls ====== */
+    .quantity-controls {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .quantity-btn {
+        background: #f1f5f9;
+        border: 1px solid #e2e8f0;
+        color: #475569;
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+        .quantity-btn:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+    .quantity-display {
+        font-weight: 600;
+        color: #1e293b;
+        min-width: 40px;
+        text-align: center;
+    }
+
+    /* ====== Responsive Design ====== */
+    @@media (max-width: 1024px) {
+        .cart-table
+
+    {
+        display: block;
+        overflow-x: auto;
+    }
+
+    .section-title {
+        font-size: 2.5rem;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .cart-section
+
+    {
+        padding: 80px 0 40px;
+    }
+
+    .container {
+        padding: 0 16px;
+    }
+
+    .section-title {
+        font-size: 2.2rem;
+    }
+
+    .cart-table th,
+    .cart-table td {
+        padding: 16px 12px;
+        font-size: 0.9rem;
+    }
+
+    .product-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    .cart-img {
+        width: 60px;
+        height: 60px;
+    }
+
+    .summary-box {
+        min-width: auto;
+        width: 100%;
+    }
+
+        .summary-box h2 {
+            font-size: 2rem;
+        }
+
+    }
+
+    @@media (max-width: 480px) {
+        .section-title
+
+    {
+        font-size: 1.8rem;
+    }
+
+    .cart-table {
+        font-size: 0.8rem;
+    }
+
+        .cart-table th,
+        .cart-table td {
+            padding: 12px 8px;
+        }
+
+    .btn-checkout,
+    .btn-shop {
+        padding: 14px 24px;
+        font-size: 1rem;
+    }
+
+    }
+
+    /* ====== Animation ====== */
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .fade-in {
+        animation: fadeIn 0.6s ease-out;
+    }
+
+    /* ====== Price Styling ====== */
+    .cart-table td:nth-child(2),
+    .cart-table td:nth-child(4) {
+        font-weight: 700;
+        color: #059669;
+        font-size: 1.1rem;
+    }
+
+    .cart-table td:nth-child(3) {
+        font-weight: 600;
+        color: #475569;
+    }
+
+    /* ====== Loading State ====== */
+    .btn-checkout.loading {
+        position: relative;
+        color: transparent;
+    }
+
+        .btn-checkout.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+    2
+   @@keyframes spin {
+        0%
+
+    {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+
+    }
+</style>
+<script>
+    document.getElementById("checkoutBtn").addEventListener("click", async function () {
+        const response = await fetch('/Cart/Checkout', {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            alert("🎉 " + result.message);
+            window.location.href = "/Home/Index"; // redirect after success
+        } else {
+            alert("⚠️ " + result.message);
+        }
+    });
+</script>
+

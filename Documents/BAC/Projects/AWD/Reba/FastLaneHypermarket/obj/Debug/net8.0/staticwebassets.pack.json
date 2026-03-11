@@ -1,0 +1,405 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\obj\\Debug\\net8.0\\scopedcss\\projectbundle\\FastLaneHypermarket.bundle.scp.css",
+      "PackagePath": "staticwebassets\\FastLaneHypermarket.2ywi2kaqn1.bundle.scp.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\Cart.css",
+      "PackagePath": "staticwebassets\\css\\Cart.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\Products.css",
+      "PackagePath": "staticwebassets\\css\\Products.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\about.css",
+      "PackagePath": "staticwebassets\\css\\about.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\dashboard-layout.css",
+      "PackagePath": "staticwebassets\\css\\dashboard-layout.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\productdetails.css",
+      "PackagePath": "staticwebassets\\css\\productdetails.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\signup.css",
+      "PackagePath": "staticwebassets\\css\\signup.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\site.css",
+      "PackagePath": "staticwebassets\\css\\site.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\staff-dashboard.css",
+      "PackagePath": "staticwebassets\\css\\staff-dashboard.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\staff-products.css",
+      "PackagePath": "staticwebassets\\css\\staff-products.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\favicon.ico",
+      "PackagePath": "staticwebassets\\favicon.ico"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\387684870_819585739945857_4424008473392846351_n.webp",
+      "PackagePath": "staticwebassets\\images\\387684870_819585739945857_4424008473392846351_n.webp"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\512E4pagMfL._UF894,1000_QL80_.jpg",
+      "PackagePath": "staticwebassets\\images\\512E4pagMfL._UF894,1000_QL80_.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\assets_task_01k6r24cz0fedawh8ppc2me7n5_1759596698_img_0.webp",
+      "PackagePath": "staticwebassets\\images\\assets_task_01k6r24cz0fedawh8ppc2me7n5_1759596698_img_0.webp"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\assets_task_01k6r24cz0fedawh8ppc2me7n5_1759596698_img_1.webp",
+      "PackagePath": "staticwebassets\\images\\assets_task_01k6r24cz0fedawh8ppc2me7n5_1759596698_img_1.webp"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\default.jpg",
+      "PackagePath": "staticwebassets\\images\\default.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\default.jpgl",
+      "PackagePath": "staticwebassets\\images\\default.jpgl"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\download (1).jpg",
+      "PackagePath": "staticwebassets\\images\\download (1).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\download.jpg",
+      "PackagePath": "staticwebassets\\images\\download.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\images (2).jpg",
+      "PackagePath": "staticwebassets\\images\\images (2).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\images (3).jpg",
+      "PackagePath": "staticwebassets\\images\\images (3).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\images (4).jpg",
+      "PackagePath": "staticwebassets\\images\\images (4).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\images.jpg",
+      "PackagePath": "staticwebassets\\images\\images.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\0f62f787-1b50-4991-a535-0a795d0f4a3b_images (4).jpg",
+      "PackagePath": "staticwebassets\\images\\products\\0f62f787-1b50-4991-a535-0a795d0f4a3b_images (4).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\385cc8bd-422b-4032-a6a9-01c7d3c7976c_387684870_819585739945857_4424008473392846351_n.webp",
+      "PackagePath": "staticwebassets\\images\\products\\385cc8bd-422b-4032-a6a9-01c7d3c7976c_387684870_819585739945857_4424008473392846351_n.webp"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\474fd2b3-96cc-40f8-a3d1-4097f752f0f6_tractor.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\474fd2b3-96cc-40f8-a3d1-4097f752f0f6_tractor.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\58a25afb-01b3-4a8d-b7c3-287ebaf0c534_Fruits.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\58a25afb-01b3-4a8d-b7c3-287ebaf0c534_Fruits.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\70f6c7ab-3177-4c3c-b804-6f3502c9c380_HD-wallpaper-rolex-blue-and-black-background-watch.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\70f6c7ab-3177-4c3c-b804-6f3502c9c380_HD-wallpaper-rolex-blue-and-black-background-watch.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\7998e2c1-bcc5-4d44-8e85-2547a9fcadad_images (3).jpg",
+      "PackagePath": "staticwebassets\\images\\products\\7998e2c1-bcc5-4d44-8e85-2547a9fcadad_images (3).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\7c5c2043-9323-47f7-a5c5-0438a2bd75e2_tractor.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\7c5c2043-9323-47f7-a5c5-0438a2bd75e2_tractor.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\9d65fedf-3caa-4949-9560-1b187b818864_512E4pagMfL._UF894,1000_QL80_.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\9d65fedf-3caa-4949-9560-1b187b818864_512E4pagMfL._UF894,1000_QL80_.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\a0d720f7-6297-41a8-b3f8-f46a4524b254_images (1).jpg",
+      "PackagePath": "staticwebassets\\images\\products\\a0d720f7-6297-41a8-b3f8-f46a4524b254_images (1).jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\a801bb8f-14fe-4d8f-8af7-11bc078ec1d3_Food.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\a801bb8f-14fe-4d8f-8af7-11bc078ec1d3_Food.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\bf56850a-6c24-4588-8832-2496ef0fcdf1_yellow.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\bf56850a-6c24-4588-8832-2496ef0fcdf1_yellow.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\c78a1d2b-7854-48fc-9447-f187c2b46d62_red.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\c78a1d2b-7854-48fc-9447-f187c2b46d62_red.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\products\\d5df80c0-e7a8-4671-bf4f-328a94a5930a_HD-wallpaper-yellow-flower-sunflower-petals-nature.jpg",
+      "PackagePath": "staticwebassets\\images\\products\\d5df80c0-e7a8-4671-bf4f-328a94a5930a_HD-wallpaper-yellow-flower-sunflower-petals-nature.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\images\\tractor.jpg",
+      "PackagePath": "staticwebassets\\images\\tractor.jpg"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\js\\site.js",
+      "PackagePath": "staticwebassets\\js\\site.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\LICENSE",
+      "PackagePath": "staticwebassets\\lib\\bootstrap"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-grid.rtl.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-reboot.rtl.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap-utilities.rtl.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\css\\bootstrap.rtl.min.css.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.bundle.min.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.esm.min.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.min.js",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map",
+      "PackagePath": "staticwebassets\\lib\\bootstrap\\dist\\js\\bootstrap.min.js.map"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation-unobtrusive\\LICENSE.txt",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation-unobtrusive\\LICENSE.txt"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation-unobtrusive\\jquery.validate.unobtrusive.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation-unobtrusive\\jquery.validate.unobtrusive.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation-unobtrusive\\jquery.validate.unobtrusive.min.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation-unobtrusive\\jquery.validate.unobtrusive.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation\\LICENSE.md",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation\\LICENSE.md"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation\\dist\\additional-methods.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation\\dist\\additional-methods.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation\\dist\\additional-methods.min.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation\\dist\\additional-methods.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation\\dist\\jquery.validate.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation\\dist\\jquery.validate.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery-validation\\dist\\jquery.validate.min.js",
+      "PackagePath": "staticwebassets\\lib\\jquery-validation\\dist\\jquery.validate.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery\\LICENSE.txt",
+      "PackagePath": "staticwebassets\\lib\\jquery\\LICENSE.txt"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery\\dist\\jquery.js",
+      "PackagePath": "staticwebassets\\lib\\jquery\\dist\\jquery.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery\\dist\\jquery.min.js",
+      "PackagePath": "staticwebassets\\lib\\jquery\\dist\\jquery.min.js"
+    },
+    {
+      "Id": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\lib\\jquery\\dist\\jquery.min.map",
+      "PackagePath": "staticwebassets\\lib\\jquery\\dist\\jquery.min.map"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.FastLaneHypermarket.Microsoft.AspNetCore.StaticWebAssetEndpoints.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssetEndpoints.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.FastLaneHypermarket.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.FastLaneHypermarket.props",
+      "PackagePath": "build\\FastLaneHypermarket.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.FastLaneHypermarket.props",
+      "PackagePath": "buildMultiTargeting\\FastLaneHypermarket.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.FastLaneHypermarket.props",
+      "PackagePath": "buildTransitive\\FastLaneHypermarket.props"
+    }
+  ],
+  "ElementsToRemove": []
+}

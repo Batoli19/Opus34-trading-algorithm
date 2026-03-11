@@ -1,0 +1,332 @@
+﻿@{
+    Layout = "~/Views/Shared/AdminLayout.cshtml";
+    ViewData["Title"] = "Admin Dashboard";
+}
+<section class="dashboard fade-in">
+    <div class="overview-cards">
+        <div class="overview-card">
+            <i class="fas fa-users"></i>
+            <h4>Total Customers</h4>
+            <p>1,247</p>
+            <small>+32 this week</small>
+        </div>
+        <div class="overview-card">
+            <i class="fas fa-user-tie"></i>
+            <h4>Active Staff</h4>
+            <p>@ViewBag.TotalStaff</p>
+            <small>Currently registered</small>
+        </div>
+
+        <div class="overview-card">
+            <i class="fas fa-box"></i>
+            <h4>Products in Stock</h4>
+            <p>468</p>
+            <small>5 out of stock</small>
+        </div>
+        <div class="overview-card">
+            <i class="fas fa-dollar-sign"></i>
+            <h4>Monthly Sales</h4>
+            <p>P42,300</p>
+            <small>↑ 12% from last month</small>
+        </div>
+    </div>
+
+    <div class="chart-card">
+        <h4><i class="fas fa-chart-line"></i> Weekly Sales Trend</h4>
+        <canvas id="weeklySalesChart"></canvas>
+    </div>
+
+    <div class="system-log">
+        <h3><i class="fas fa-history"></i> Recent Activity</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>Timestamp</th>
+                    <th>User</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>2025-10-11 09:45</td>
+                    <td>Admin</td>
+                    <td>Added new stock: “Sony Headphones”</td>
+                    <td><span class="status success">Success</span></td>
+                </tr>
+                <tr>
+                    <td>2025-10-10 18:12</td>
+                    <td>Staff01</td>
+                    <td>Updated reorder level for “Wheat Flour”</td>
+                    <td><span class="status success">Success</span></td>
+                </tr>
+                <tr>
+                    <td>2025-10-09 15:30</td>
+                    <td>Customer21</td>
+                    <td>Attempted purchase (blacklisted)</td>
+                    <td><span class="status failed">Failed</span></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+<style >
+    /* 🌑 GENERAL */
+    body {
+        margin: 0;
+        font-family: "Poppins", sans-serif;
+        background: #121212;
+        color: #e0e0e0;
+        overflow-x: hidden;
+    }
+
+    .admin-layout {
+        display: flex;
+        height: 100vh;
+    }
+
+    /* ⚙️ SIDEBAR */
+    .admin-sidebar {
+        width: 260px;
+        background: linear-gradient(180deg, #000000, #0a0a0a);
+        border-right: 1px solid rgba(255,255,255,0.05);
+        color: #e0e0e0;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        padding: 25px 20px;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 40px;
+    }
+
+        .logo i {
+            font-size: 24px;
+            color: #00bfff;
+        }
+
+        .logo h2 {
+            font-size: 22px;
+            color: #fff;
+        }
+
+        .logo span {
+            color: #00bfff;
+        }
+
+    .sidebar-links {
+        list-style: none;
+        padding: 0;
+    }
+
+        .sidebar-links li {
+            margin-bottom: 18px;
+        }
+
+        .sidebar-links a {
+            text-decoration: none;
+            color: #bbb;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            border-radius: 10px;
+            transition: all 0.3s ease;
+        }
+
+            .sidebar-links a.active,
+            .sidebar-links a:hover {
+                background: linear-gradient(90deg, #007bff, #00bfff);
+                color: white;
+                box-shadow: 0 0 10px rgba(0,123,255,0.3);
+            }
+
+    .logout {
+        border-top: 1px solid rgba(255,255,255,0.1);
+        padding-top: 20px;
+    }
+
+        .logout a {
+            color: #ff4c4c;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+    /* 🌃 MAIN CONTENT */
+    .admin-main {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        background: #181818;
+    }
+
+    .admin-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 30px;
+        border-bottom: 1px solid rgba(255,255,255,0.05);
+        background: #1c1c1c;
+    }
+
+        .admin-header h1 {
+            color: #00bfff;
+            font-size: 22px;
+        }
+
+    .admin-user {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+        .admin-user img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 2px solid #00bfff;
+        }
+
+    .admin-body {
+        padding: 30px;
+        overflow-y: auto;
+    }
+
+    /* 🧊 DASHBOARD CARDS */
+    .overview-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .overview-card {
+        background: #212121;
+        border-radius: 14px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+        .overview-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0 20px rgba(0,191,255,0.2);
+        }
+
+        .overview-card i {
+            font-size: 26px;
+            color: #00bfff;
+            margin-bottom: 10px;
+        }
+
+        .overview-card h4 {
+            color: #fff;
+            margin-bottom: 5px;
+        }
+
+        .overview-card p {
+            font-size: 20px;
+            font-weight: 600;
+        }
+
+        .overview-card small {
+            color: #888;
+        }
+
+    /* 📊 CHARTS & TABLE */
+    .chart-card {
+        background: #212121;
+        border-radius: 14px;
+        padding: 20px;
+        box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        margin-bottom: 30px;
+    }
+
+        .chart-card h4 {
+            color: #00bfff;
+            margin-bottom: 15px;
+        }
+
+    /* SYSTEM LOG */
+    .system-log table {
+        width: 100%;
+        border-collapse: collapse;
+        background: #212121;
+        border-radius: 10px;
+        overflow: hidden;
+        color: #ddd;
+    }
+
+    .system-log th, .system-log td {
+        padding: 14px;
+        text-align: left;
+        border-bottom: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .system-log th {
+        background: #0d6efd;
+        color: white;
+    }
+
+    .status.success {
+        color: #28a745;
+        font-weight: 600;
+    }
+
+    .status.failed {
+        color: #ff4c4c;
+        font-weight: 600;
+    }
+
+    .fade-in {
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        const ctx = document.getElementById('weeklySalesChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+                datasets: [{
+                    label: 'Sales (P)',
+                    data: [1200, 1800, 2400, 2000, 2800, 3400, 4200],
+                    borderColor: '#00bfff',
+                    backgroundColor: 'rgba(0,191,255,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { color: '#bbb' } },
+                    y: { ticks: { color: '#bbb' } }
+                }
+            }
+        });
+    </script>
+}

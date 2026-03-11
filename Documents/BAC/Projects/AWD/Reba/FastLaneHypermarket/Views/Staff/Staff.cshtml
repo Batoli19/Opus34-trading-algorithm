@@ -1,0 +1,1213 @@
+﻿@model List<FastLaneHypermarket.Models.Staff>
+@{
+    Layout = "~/Views/Shared/LayoutDashboard.cshtml";
+    ViewData["Title"] = "Staff Management";
+}
+
+<!-- Add Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<style>
+    :root {
+        --bg-light: #f8fafc;
+        --bg-white: #ffffff;
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --primary-dark: #1d4ed8;
+        --accent: #10b981;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        --glow: 0 0 20px rgba(37, 99, 235, 0.1);
+    }
+
+    .staff-container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding: 30px;
+        animation: fadeIn 0.6s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    /* 🌟 Premium Header */
+    .page-header-enhanced {
+        background: var(--bg-white);
+        border-radius: 20px;
+        padding: 40px;
+        margin-bottom: 30px;
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border);
+        position: relative;
+        overflow: hidden;
+    }
+
+        .page-header-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(37, 99, 235, 0.05) 0%, transparent 70%);
+        }
+
+    .header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 20px;
+        position: relative;
+        z-index: 2;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .title-icon {
+        width: 70px;
+        height: 70px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 28px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .header-title h2 {
+        color: var(--text-dark);
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 800;
+    }
+
+    .subtitle {
+        color: var(--text-light);
+        margin: 12px 0 0 0;
+        font-size: 1.2rem;
+        font-weight: 400;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: 15px;
+    }
+
+    /* 📊 Premium Stats Cards */
+    .stats-overview-enhanced {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 25px;
+        margin-bottom: 35px;
+    }
+
+    .stat-card-enhanced {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 35px 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+    }
+
+        .stat-card-enhanced::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--primary), var(--primary-light));
+        }
+
+        .stat-card-enhanced:hover {
+            transform: translateY(-8px);
+            border-color: var(--primary);
+            box-shadow: var(--shadow-lg), var(--glow);
+        }
+
+    .stat-icon-enhanced {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 25px;
+        font-size: 32px;
+        color: white;
+        box-shadow: var(--shadow);
+    }
+
+        .stat-icon-enhanced.total {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+
+        .stat-icon-enhanced.active {
+            background: linear-gradient(135deg, var(--success), #34d399);
+        }
+
+        .stat-icon-enhanced.inactive {
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+        }
+
+        .stat-icon-enhanced.managers {
+            background: linear-gradient(135deg, #8b5cf6, #a78bfa);
+        }
+
+    .stat-info-enhanced h3 {
+        font-size: 3rem;
+        margin: 0 0 12px 0;
+        color: var(--text-dark);
+        font-weight: 800;
+    }
+
+    .stat-info-enhanced p {
+        font-size: 1.1rem;
+        color: var(--text-light);
+        margin: 0 0 15px 0;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .stat-trend-enhanced {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 0.9rem;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    /* 🎯 Premium Action Buttons */
+    .btn-premium, .btn-outline-premium {
+        padding: 14px 28px;
+        border: none;
+        border-radius: 14px;
+        font-weight: 600;
+        font-size: 15px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        text-decoration: none;
+        box-shadow: var(--shadow);
+    }
+
+    .btn-premium {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+    }
+
+        .btn-premium:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            transform: translateY(-3px);
+            box-shadow: var(--shadow-lg);
+            color: white;
+        }
+
+    .btn-outline-premium {
+        background: transparent;
+        color: var(--primary);
+        border: 2px solid var(--primary);
+    }
+
+        .btn-outline-premium:hover {
+            background: rgba(37, 99, 235, 0.1);
+            transform: translateY(-3px);
+            border-color: var(--primary-light);
+        }
+
+    /* 🏆 Premium Table */
+    .table-container-premium {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        overflow: hidden;
+        box-shadow: var(--shadow-lg);
+        margin-bottom: 30px;
+    }
+
+    .table-header-premium {
+        padding: 30px 35px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-light);
+    }
+
+    .table-title-premium h3 {
+        color: var(--text-dark);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        font-size: 1.6rem;
+        font-weight: 700;
+    }
+
+        .table-title-premium h3 i {
+            color: var(--primary);
+        }
+
+    .table-subtitle-premium {
+        color: var(--text-light);
+        font-size: 1rem;
+        margin-top: 6px;
+        font-weight: 500;
+    }
+
+    .table-controls-premium {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .search-box-premium {
+        position: relative;
+        flex: 1;
+        max-width: 400px;
+    }
+
+        .search-box-premium i {
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--primary);
+        }
+
+        .search-box-premium input {
+            width: 100%;
+            padding: 14px 18px 14px 50px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            background: var(--bg-white);
+            color: var(--text-dark);
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            box-shadow: var(--shadow);
+        }
+
+            .search-box-premium input:focus {
+                outline: none;
+                border-color: var(--primary);
+                box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+            }
+
+            .search-box-premium input::placeholder {
+                color: var(--text-light);
+            }
+
+    .filter-select-premium {
+        padding: 12px 18px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        font-size: 0.95rem;
+        min-width: 160px;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .filter-select-premium:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+    /* 👥 Staff Table Content */
+    .staff-table-premium {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+    }
+
+        .staff-table-premium thead {
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .staff-table-premium th {
+            padding: 22px 18px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-size: 13px;
+        }
+
+        .staff-table-premium td {
+            padding: 24px 18px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dark);
+            vertical-align: middle;
+            transition: all 0.3s ease;
+        }
+
+        .staff-table-premium tr {
+            transition: all 0.3s ease;
+        }
+
+            .staff-table-premium tr:hover {
+                background: rgba(37, 99, 235, 0.03);
+                transform: scale(1.01);
+            }
+
+    .staff-avatar-premium {
+        width: 60px;
+        height: 60px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.1), rgba(59, 130, 246, 0.05));
+        border: 2px solid var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 1.2rem;
+        box-shadow: var(--shadow);
+    }
+
+    .staff-info-premium {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .staff-details-premium {
+        flex: 1;
+    }
+
+    .staff-name-premium {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 8px;
+    }
+
+        .staff-name-premium strong {
+            color: var(--text-dark);
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+
+    .badge-role-premium {
+        padding: 6px 14px;
+        border-radius: 16px;
+        font-size: 0.8rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+        .badge-role-premium.manager {
+            background: rgba(139, 92, 246, 0.1);
+            color: #8b5cf6;
+            border: 1px solid rgba(139, 92, 246, 0.3);
+        }
+
+        .badge-role-premium.admin {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+            border: 1px solid rgba(37, 99, 235, 0.3);
+        }
+
+        .badge-role-premium.staff {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .badge-role-premium.cashier {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+    .staff-meta-premium {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    /* 🎭 Status System */
+    .status-badge-premium {
+        display: inline-flex;
+        align-items: center;
+        padding: 10px 18px;
+        border-radius: 20px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        gap: 10px;
+        border: 1px solid;
+        text-transform: capitalize;
+        transition: all 0.3s ease;
+    }
+
+        .status-badge-premium:hover {
+            transform: scale(1.05);
+        }
+
+    .status-active-premium {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.3);
+        box-shadow: 0 2px 8px rgba(16, 185, 129, 0.1);
+    }
+
+    .status-inactive-premium {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+        border-color: rgba(245, 158, 11, 0.3);
+        box-shadow: 0 2px 8px rgba(245, 158, 11, 0.1);
+    }
+
+    /* ⚡ Enhanced Action Menu */
+    .action-menu-premium {
+        position: relative;
+    }
+
+    .action-buttons-premium {
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .staff-table-premium tr:hover .action-buttons-premium {
+        opacity: 1;
+    }
+
+    .btn-action-premium {
+        background: none;
+        border: 1px solid var(--border);
+        padding: 10px;
+        border-radius: 10px;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: all 0.3s ease;
+        width: 42px;
+        height: 42px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-action-premium:hover {
+            background: rgba(37, 99, 235, 0.1);
+            transform: scale(1.1);
+        }
+
+    .btn-edit-premium:hover {
+        color: var(--primary);
+        border-color: var(--primary);
+        box-shadow: 0 0 10px rgba(37, 99, 235, 0.2);
+    }
+
+    .btn-status-premium:hover {
+        color: var(--success);
+        border-color: var(--success);
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .btn-deactivate-premium:hover {
+        color: var(--warning);
+        border-color: var(--warning);
+        box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+
+    .btn-message-premium:hover {
+        color: #3b82f6;
+        border-color: #3b82f6;
+        box-shadow: 0 0 10px rgba(59, 130, 246, 0.2);
+    }
+
+    /* 📱 Responsive Design */
+    @@media (max-width: 1024px) {
+        .header-main
+
+    {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .stats-overview-enhanced {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .table-header-premium {
+        flex-direction: column;
+        gap: 20px;
+        align-items: stretch;
+    }
+
+    .table-controls-premium {
+        flex-direction: column;
+    }
+
+    .search-box-premium {
+        max-width: none;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .staff-container
+
+    {
+        padding: 20px;
+    }
+
+    .stats-overview-enhanced {
+        grid-template-columns: 1fr;
+    }
+
+    .action-buttons-premium {
+        opacity: 1;
+        flex-direction: column;
+    }
+
+    .btn-action-premium {
+        width: 100%;
+        margin-bottom: 6px;
+    }
+
+    .page-header-enhanced {
+        padding: 30px 25px;
+    }
+
+    .table-header-premium {
+        padding: 25px;
+    }
+
+    .header-title h2 {
+        font-size: 2rem;
+    }
+
+    .title-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 24px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .staff-container
+
+    {
+        padding: 15px;
+    }
+
+    .header-title {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .btn-premium, .btn-outline-premium {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .stat-card-enhanced {
+        padding: 25px 20px;
+    }
+
+    .stat-info-enhanced h3 {
+        font-size: 2.5rem;
+    }
+
+    }
+
+    /* 🎨 Premium Alerts */
+    .alert-premium {
+        padding: 20px 24px;
+        border-radius: 16px;
+        margin-bottom: 25px;
+        border: 1px solid;
+        background: var(--bg-white);
+        animation: slideIn 0.5s ease-out;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        box-shadow: var(--shadow);
+    }
+
+    .alert-success-premium {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.3);
+    }
+
+    .alert-error-premium {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.3);
+    }
+
+    .alert-close-premium {
+        background: none;
+        border: none;
+        color: inherit;
+        font-size: 20px;
+        cursor: pointer;
+        margin-left: auto;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+        padding: 4px;
+        border-radius: 4px;
+    }
+
+        .alert-close-premium:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+    /* Contact Information Styling */
+    .contact-info {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .contact-item {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-light);
+    }
+
+        .contact-item a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+            transition: color 0.3s ease;
+        }
+
+            .contact-item a:hover {
+                color: var(--primary-dark);
+                text-decoration: underline;
+            }
+
+    /* Position Styling */
+    .position-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .position-icon {
+        width: 40px;
+        height: 40px;
+        background: rgba(37, 99, 235, 0.1);
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        font-size: 18px;
+    }
+
+    .position-details {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+    }
+
+    .position-title {
+        font-weight: 700;
+        color: var(--text-dark);
+        font-size: 1rem;
+    }
+
+    .position-department {
+        font-size: 0.85rem;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    /* Empty State Styling */
+    .empty-state-premium {
+        text-align: center;
+        padding: 80px 40px;
+        color: var(--text-light);
+    }
+
+        .empty-state-premium i {
+            font-size: 5rem;
+            margin-bottom: 25px;
+            opacity: 0.5;
+            color: var(--text-light);
+        }
+
+        .empty-state-premium h4 {
+            color: var(--text-dark);
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .empty-state-premium p {
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+    /* Animation for alerts */
+    @@keyframes slideIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    }
+</style>
+
+<div class="staff-container">
+    <!-- 🌟 Premium Header -->
+    <div class="page-header-enhanced">
+        <div class="header-main">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <div>
+                    <h2>Staff Management</h2>
+                    <p class="subtitle">Manage your team members and their access levels</p>
+                </div>
+            </div>
+            <div class="header-actions">
+                <a href="/Account/Signup" class="btn-premium">
+                    <i class="fas fa-user-plus"></i> Add Staff
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 📊 Premium Stats Overview -->
+    <div class="stats-overview-enhanced">
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced total">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-info-enhanced">
+                <h3 id="totalStaff">@(Model?.Count ?? 0)</h3>
+                <p>Total Staff</p>
+                <div class="stat-trend-enhanced">
+                    <i class="fas fa-chart-line"></i>
+                    <span>All team members</span>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced active">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-info-enhanced">
+                <h3 id="activeStaff">@(Model?.Count(s => s.StaffStatus == "Active") ?? 0)</h3>
+                <p>Active Staff</p>
+                <div class="stat-trend-enhanced">
+                    <i class="fas fa-bolt"></i>
+                    <span>Currently working</span>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced inactive">
+                <i class="fas fa-user-clock"></i>
+            </div>
+            <div class="stat-info-enhanced">
+                <h3 id="inactiveStaff">@(Model?.Count(s => s.StaffStatus == "Inactive") ?? 0)</h3>
+                <p>Inactive Staff</p>
+                <div class="stat-trend-enhanced">
+                    <i class="fas fa-pause"></i>
+                    <span>On leave/terminated</span>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card-enhanced">
+            <div class="stat-icon-enhanced managers">
+                <i class="fas fa-crown"></i>
+            </div>
+            <div class="stat-info-enhanced">
+                <h3 id="managerStaff">@(Model?.Count(s => s.Role == "Manager" || s.Role == "Admin") ?? 0)</h3>
+                <p>Managers & Admins</p>
+                <div class="stat-trend-enhanced">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Administrative roles</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎭 Premium Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert-premium alert-success-premium">
+            <i class="fas fa-check-circle"></i>
+            <span>@TempData["Success"]</span>
+            <button class="alert-close-premium" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert-premium alert-error-premium">
+            <i class="fas fa-exclamation-circle"></i>
+            <span>@TempData["Error"]</span>
+            <button class="alert-close-premium" onclick="this.parentElement.remove()">&times;</button>
+        </div>
+    }
+
+    <!-- 🏆 Premium Staff Table -->
+    <div class="table-container-premium">
+        <div class="table-header-premium">
+            <div class="table-title-premium">
+                <h3><i class="fas fa-list"></i> Staff Members</h3>
+                <div class="table-subtitle-premium">@(Model?.Count ?? 0) team members</div>
+            </div>
+            <div class="table-controls-premium">
+                <div class="search-box-premium">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="searchInput" placeholder="Search staff by name, email, or role...">
+                </div>
+                <select class="filter-select-premium" id="filterStatus" onchange="filterTable()">
+                    <option value="">All Status</option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+                <select class="filter-select-premium" id="filterRole" onchange="filterTable()">
+                    <option value="">All Roles</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Admin">Admin</option>
+                    <option value="Staff">Staff</option>
+                    <option value="Cashier">Cashier</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="staff-table-premium" id="staffTable">
+                <thead>
+                    <tr>
+                        <th>Staff Member</th>
+                        <th>Contact Information</th>
+                        <th>Position</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="staffTableBody">
+                    @if (Model != null && Model.Any())
+                    {
+                        foreach (var staff in Model)
+                        {
+                            <tr data-staff-id="@staff.StaffId" data-status="@staff.StaffStatus" data-role="@staff.Role">
+                                <td>
+                                    <div class="staff-info-premium">
+                                        <div class="staff-avatar-premium">
+                                            @GetInitials(staff.Firstname, staff.Surname)
+                                        </div>
+                                        <div class="staff-details-premium">
+                                            <div class="staff-name-premium">
+                                                <strong>@staff.Firstname @staff.Surname</strong>
+                                                <span class="badge-role-premium @staff.Role?.ToLower()">
+                                                    @staff.Role
+                                                </span>
+                                            </div>
+                                            <div class="staff-meta-premium">
+                                                <span>ID: @staff.StaffId</span>
+                                                <span>•</span>
+                                                <span>@staff.Gender</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="margin-bottom: 5px;">
+                                        <i class="fas fa-envelope text-muted" style="margin-right: 8px;"></i>
+                                        <a href="mailto:@staff.Email" style="color: var(--primary); text-decoration: none;">@staff.Email</a>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-phone text-muted" style="margin-right: 8px;"></i>
+                                        <span>@staff.CellNumber</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div style="display: flex; align-items: center; gap: 10px;">
+                                        <i class="fas @GetRoleIcon(staff.Role)" style="color: var(--primary);"></i>
+                                        <div>
+                                            <div style="font-weight: 600; color: var(--text);">@staff.Role</div>
+                                            <div style="font-size: 0.8rem; color: var(--muted);">Operations</div>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="status-badge-premium status-@staff.StaffStatus?.ToLower()-premium" id="status-@staff.StaffId">
+                                        <i class="fas fa-circle" style="font-size: 0.6rem;"></i>
+                                        @staff.StaffStatus
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="action-buttons-premium">
+                                        <form method="post" asp-action="ToggleStaffStatus" asp-controller="Staff" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@staff.StaffId" />
+                                            @if (staff.StaffStatus == "Active")
+                                            {
+                                                <button type="submit" class="btn-action-premium btn-deactivate-premium"
+                                                        title="Deactivate Staff"
+                                                        onclick="return confirm('Deactivate @staff.Firstname @staff.Surname?')">
+                                                    <i class="fas fa-user-slash"></i>
+                                                </button>
+                                            }
+                                            else
+                                            {
+                                                <button type="submit" class="btn-action-premium btn-status-premium"
+                                                        title="Activate Staff"
+                                                        onclick="return confirm('Activate @staff.Firstname @staff.Surname?')">
+                                                    <i class="fas fa-user-check"></i>
+                                                </button>
+                                            }
+                                        </form>
+
+                                        <button class="btn-action-premium btn-edit-premium"
+                                                title="Edit Staff"
+                                                onclick="editStaff(@staff.StaffId)">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+
+                                        <button class="btn-action-premium btn-message-premium"
+                                                title="Send Message"
+                                                onclick="sendMessage(@staff.StaffId)">
+                                            <i class="fas fa-envelope"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="5">
+                                <div style="text-align: center; padding: 60px 20px; color: var(--muted);">
+                                    <i class="fas fa-user-tie" style="font-size: 4rem; margin-bottom: 20px; opacity: 0.5;"></i>
+                                    <h4 style="color: var(--text); margin-bottom: 10px;">No Staff Members Found</h4>
+                                    <p style="margin-bottom: 20px;">Your team is empty. Start building your team by adding the first staff member.</p>
+                                    <a href="/Account/Signup" class="btn-premium">
+                                        <i class="fas fa-user-plus"></i> Add First Team Member
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeStaffPage();
+        });
+
+        function initializeStaffPage() {
+            // Search functionality with debounce
+            const searchInput = document.getElementById('searchInput');
+            if (searchInput) {
+                let searchTimeout;
+                searchInput.addEventListener('input', function() {
+                    clearTimeout(searchTimeout);
+                    searchTimeout = setTimeout(() => {
+                        filterTable();
+                    }, 300);
+                });
+            }
+
+            // Auto-dismiss alerts after 5 seconds
+            const alerts = document.querySelectorAll('.alert-premium');
+            alerts.forEach(alert => {
+                setTimeout(() => {
+                    if (alert.parentElement) {
+                        alert.remove();
+                    }
+                }, 5000);
+            });
+        }
+
+        function filterTable() {
+            const statusFilter = document.getElementById('filterStatus').value;
+            const roleFilter = document.getElementById('filterRole').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+
+            const rows = document.querySelectorAll('#staffTableBody tr');
+
+            rows.forEach(row => {
+                if (row.cells.length < 5) return; // Skip empty state row
+
+                const status = row.getAttribute('data-status');
+                const role = row.getAttribute('data-role');
+                const text = row.textContent.toLowerCase();
+
+                const statusMatch = !statusFilter || status === statusFilter;
+                const roleMatch = !roleFilter || role === roleFilter;
+                const searchMatch = !searchTerm || text.includes(searchTerm);
+
+                row.style.display = (statusMatch && roleMatch && searchMatch) ? '' : 'none';
+            });
+        }
+
+        function editStaff(staffId) {
+            showNotification('Edit feature coming soon!', 'info');
+        }
+
+        function sendMessage(staffId) {
+            showNotification('Message feature coming soon!', 'info');
+        }
+
+        function showNotification(message, type = 'info') {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification-premium ${type}`;
+            notification.innerHTML = `
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">&times;</button>
+            `;
+
+            // Add notification styles if not already added
+            if (!document.querySelector('#notification-premium-styles')) {
+                const styles = document.createElement('style');
+                styles.id = 'notification-premium-styles';
+                styles.textContent = `
+                    .notification-premium {
+                        position: fixed;
+                        top: 20px;
+                        right: 20px;
+                        padding: 16px 20px;
+                        border-radius: 12px;
+                        color: white;
+                        z-index: 10000;
+                        display: flex;
+                        align-items: center;
+                        gap: 12px;
+                        max-width: 400px;
+                        box-shadow: var(--shadow-lg);
+                        animation: slideInRight 0.3s ease-out;
+                        backdrop-filter: blur(10px);
+                    }
+                    .notification-premium.success {
+                        background: rgba(40, 167, 69, 0.9);
+                        border: 1px solid rgba(40, 167, 69, 0.4);
+                    }
+                    .notification-premium.error {
+                        background: rgba(220, 53, 69, 0.9);
+                        border: 1px solid rgba(220, 53, 69, 0.4);
+                    }
+                    .notification-premium.info {
+                        background: rgba(23, 162, 184, 0.9);
+                        border: 1px solid rgba(23, 162, 184, 0.4);
+                    }
+                    .notification-premium button {
+                        background: none;
+                        border: none;
+                        color: inherit;
+                        cursor: pointer;
+                        font-size: 18px;
+                        margin-left: auto;
+                    }
+                    @@keyframes slideInRight {
+                        from { transform: translateX(100%); opacity: 0; }
+                        to { transform: translateX(0); opacity: 1; }
+                    }
+                `;
+                document.head.appendChild(styles);
+            }
+
+            document.body.appendChild(notification);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+    </script>
+}
+
+@functions {
+    private string GetInitials(string firstname, string surname)
+    {
+        if (string.IsNullOrEmpty(firstname) || string.IsNullOrEmpty(surname))
+            return "US";
+
+        return $"{firstname[0]}{surname[0]}".ToUpper();
+    }
+
+    private string GetRoleIcon(string role)
+    {
+        return role?.ToLower() switch
+        {
+            "manager" => "fa-crown",
+            "admin" => "fa-shield-alt",
+            "cashier" => "fa-cash-register",
+            _ => "fa-user"
+        };
+    }
+}

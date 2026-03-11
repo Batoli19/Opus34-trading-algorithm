@@ -1,0 +1,772 @@
+﻿@model List<FastLaneHypermarket.Models.Customer>
+@{
+    ViewData["Title"] = "Customer Management";
+    Layout = "~/Views/Shared/LayoutDashboard.cshtml";
+}
+
+<!-- Add Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    :root {
+        --bg-light: #f8fafc;
+        --bg-white: #ffffff;
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --primary-dark: #1d4ed8;
+        --accent: #10b981;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 🎯 Enhanced Page Header */
+    .page-header-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .title-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .header-title h2 {
+        color: var(--text-dark);
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        color: var(--text-light);
+        margin: 8px 0 0 0;
+        font-size: 16px;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: var(--bg-white);
+        border-radius: 12px;
+        min-width: 180px;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+
+        .stat-icon.total {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+
+        .stat-icon.active {
+            background: linear-gradient(135deg, var(--success), #34d399);
+        }
+
+        .stat-icon.inactive {
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+        }
+
+        .stat-icon.blacklisted {
+            background: linear-gradient(135deg, var(--danger), #ef4444);
+        }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: 800;
+        display: block;
+        line-height: 1;
+        color: var(--text-dark);
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    /* 📊 Enhanced Table Container */
+    .table-container-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .table-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-light);
+    }
+
+    .table-info {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .styled-table-enhanced {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+        .styled-table-enhanced thead {
+            background: var(--bg-light);
+        }
+
+        .styled-table-enhanced th {
+            padding: 20px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .styled-table-enhanced td {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dark);
+        }
+
+        .styled-table-enhanced tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+            .styled-table-enhanced tbody tr:hover {
+                background: rgba(37, 99, 235, 0.05);
+            }
+
+    /* 🧍‍♂️ Customer Avatar */
+    .customer-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, rgba(37, 99, 235, 0.2), rgba(59, 130, 246, 0.1));
+        border: 2px solid var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 1.1rem;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+    }
+
+    .customer-row:hover .customer-avatar {
+        transform: scale(1.1);
+        box-shadow: var(--shadow-lg);
+    }
+
+    /* 💬 Status Badges */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        gap: 8px;
+        border: 1px solid;
+        text-transform: capitalize;
+        transition: all 0.3s ease;
+    }
+
+    .status-active {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .status-inactive {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+        border-color: rgba(245, 158, 11, 0.2);
+    }
+
+    .status-blacklisted {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* ⚙️ Action Buttons */
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .customer-row:hover .action-buttons {
+        opacity: 1;
+    }
+
+    .btn-sm {
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 8px 12px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        cursor: pointer;
+        min-width: 36px;
+        height: 36px;
+    }
+
+        .btn-sm i {
+            margin-right: 5px;
+            font-size: 0.9rem;
+        }
+
+    .btn-success {
+        border-color: var(--success);
+        color: var(--success);
+        background: rgba(16, 185, 129, 0.1);
+    }
+
+        .btn-success:hover {
+            background: rgba(16, 185, 129, 0.2);
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+    .btn-warning {
+        border-color: var(--warning);
+        color: var(--warning);
+        background: rgba(245, 158, 11, 0.1);
+    }
+
+        .btn-warning:hover {
+            background: rgba(245, 158, 11, 0.2);
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+    .btn-danger {
+        border-color: var(--danger);
+        color: var(--danger);
+        background: rgba(239, 68, 68, 0.1);
+    }
+
+        .btn-danger:hover {
+            background: rgba(239, 68, 68, 0.2);
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+    .btn-info {
+        border-color: var(--primary);
+        color: var(--primary);
+        background: rgba(37, 99, 235, 0.1);
+    }
+
+        .btn-info:hover {
+            background: rgba(37, 99, 235, 0.2);
+            transform: scale(1.1);
+            box-shadow: var(--shadow);
+        }
+
+    /* Dropdown Styles */
+    .dropdown-menu {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        padding: 8px;
+    }
+
+    .dropdown-item {
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: var(--text-dark);
+        background: transparent;
+        border: none;
+        width: 100%;
+        text-align: left;
+        transition: all 0.3s ease;
+        border-radius: 8px;
+        font-weight: 500;
+    }
+
+        .dropdown-item:hover {
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary);
+        }
+
+        .dropdown-item.active {
+            background: rgba(37, 99, 235, 0.2);
+            color: var(--primary);
+            border-left: 3px solid var(--primary);
+        }
+
+    /* 🌐 Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 80px 40px;
+        color: var(--text-light);
+    }
+
+        .empty-state i {
+            font-size: 5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h4 {
+            color: var(--text-dark);
+            margin-bottom: 12px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+    /* Alert Styles */
+    .alert {
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 1px solid;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    .btn-close {
+        opacity: 0.8;
+    }
+
+        .btn-close:hover {
+            opacity: 1;
+        }
+
+    /* Text Colors */
+    .text-muted {
+        color: var(--text-light) !important;
+    }
+
+    .small {
+        font-size: 0.85rem;
+    }
+
+    /* Animations */
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 768px) {
+        .header-main {
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .header-stats {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .action-buttons {
+            opacity: 1;
+            flex-direction: column;
+        }
+
+        .btn-sm {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .page-header-enhanced {
+            padding: 24px;
+        }
+
+        .table-header {
+            padding: 20px;
+        }
+    }
+
+    @@media (max-width: 480px) {
+        .header-stats {
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .stat-card {
+            min-width: auto;
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="dashboard-content fade-in">
+    <!-- 🎯 Enhanced Header with Stats -->
+    <div class="page-header-enhanced">
+        <div class="header-main">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-users"></i>
+                </div>
+                <div>
+                    <h2>Customer Management</h2>
+                    <p class="subtitle">Manage customer accounts and status efficiently</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-icon total">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count</span>
+                        <span class="stat-label">Total Customers</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon active">
+                        <i class="fas fa-user-check"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count(c => c.CustomerStatus == "Active")</span>
+                        <span class="stat-label">Active</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon inactive">
+                        <i class="fas fa-user-slash"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count(c => c.CustomerStatus == "Inactive")</span>
+                        <span class="stat-label">Inactive</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon blacklisted">
+                        <i class="fas fa-ban"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count(c => c.CustomerStatus == "Blacklisted")</span>
+                        <span class="stat-label">Blacklisted</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Premium Alerts -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle"></i>
+            <strong>Success!</strong> @TempData["Success"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Error!</strong> @TempData["Error"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    <!-- 🎯 Enhanced Table Container -->
+    <div class="table-container-enhanced">
+        <div class="table-header">
+            <div class="table-info">
+                Showing <span id="showingCount">@Model.Count</span> of <span id="totalCount">@Model.Count</span> customers
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="styled-table-enhanced">
+                <thead>
+                    <tr>
+                        <th>Customer Profile</th>
+                        <th>Contact Information</th>
+                        <th>Location Details</th>
+                        <th>Account Status</th>
+                        <th>Management</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var customer in Model)
+                    {
+                        <tr class="customer-row">
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 12px;">
+                                    <div class="customer-avatar">
+                                        @customer.Firstname[0]@customer.Surname[0]
+                                    </div>
+                                    <div>
+                                        <strong style="display: block; color: var(--text-dark);">@customer.FullName</strong>
+                                        <div class="small text-muted">
+                                            ID: @customer.CustomerId • @(customer.Age?.ToString() + " yrs" ?? "Age N/A")
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 600; color: var(--text-dark);">@customer.Email</div>
+                                <div class="small text-muted">@(customer.CellNumber ?? "No phone provided")</div>
+                            </td>
+                            <td>
+                                <div style="color: var(--text-dark);">@(customer.Country ?? "Location not specified")</div>
+                                <div class="small text-muted">@customer.Gender</div>
+                            </td>
+                            <td>
+                                <span class="status-badge status-@customer.CustomerStatus?.ToLower()">
+                                    <i class="fas @GetStatusIcon(customer.CustomerStatus)"></i>
+                                    @customer.CustomerStatus
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons">
+                                    <!-- Status Management Forms -->
+                                    @if (customer.CustomerStatus == "Active")
+                                    {
+                                        <form method="post" asp-action="DeactivateCustomer" asp-controller="Staff" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@customer.CustomerId" />
+                                            <button type="submit" class="btn-sm btn-warning"
+                                                    title="Deactivate Customer"
+                                                    onclick="return confirm('Are you sure you want to deactivate @customer.FullName?')">
+                                                <i class="fas fa-user-slash"></i>
+                                            </button>
+                                        </form>
+                                        <form method="post" asp-action="BlacklistCustomer" asp-controller="Staff" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@customer.CustomerId" />
+                                            <button type="submit" class="btn-sm btn-danger"
+                                                    title="Blacklist Customer"
+                                                    onclick="return confirm('WARNING: This will blacklist @customer.FullName. Continue?')">
+                                                <i class="fas fa-ban"></i>
+                                            </button>
+                                        </form>
+                                    }
+                                    else
+                                    {
+                                        <form method="post" asp-action="ActivateCustomer" asp-controller="Staff" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <input type="hidden" name="id" value="@customer.CustomerId" />
+                                            <button type="submit" class="btn-sm btn-success"
+                                                    title="Activate Customer"
+                                                    onclick="return confirm('Activate @customer.FullName?')">
+                                                <i class="fas fa-user-check"></i>
+                                            </button>
+                                        </form>
+                                    }
+
+                                    <!-- Quick Actions Dropdown -->
+                                    <div class="dropdown d-inline">
+                                        <button class="btn-sm btn-info dropdown-toggle" type="button"
+                                                data-bs-toggle="dropdown" title="Quick Actions"
+                                                onclick="event.stopPropagation()">
+                                            <i class="fas fa-cog"></i>
+                                        </button>
+                                        <ul class="dropdown-menu">
+                                            <li>
+                                                <form method="post" asp-action="UpdateCustomerStatus" asp-controller="Staff">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@customer.CustomerId" />
+                                                    <input type="hidden" name="status" value="Active" />
+                                                    <button type="submit" class="dropdown-item @(customer.CustomerStatus == "Active" ? "active" : "")">
+                                                        <i class="fas fa-user-check text-success me-2"></i>Set Active
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="post" asp-action="UpdateCustomerStatus" asp-controller="Staff">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@customer.CustomerId" />
+                                                    <input type="hidden" name="status" value="Inactive" />
+                                                    <button type="submit" class="dropdown-item @(customer.CustomerStatus == "Inactive" ? "active" : "")">
+                                                        <i class="fas fa-user-slash text-warning me-2"></i>Set Inactive
+                                                    </button>
+                                                </form>
+                                            </li>
+                                            <li>
+                                                <form method="post" asp-action="UpdateCustomerStatus" asp-controller="Staff">
+                                                    @Html.AntiForgeryToken()
+                                                    <input type="hidden" name="id" value="@customer.CustomerId" />
+                                                    <input type="hidden" name="status" value="Blacklisted" />
+                                                    <button type="submit" class="dropdown-item @(customer.CustomerStatus == "Blacklisted" ? "active" : "")">
+                                                        <i class="fas fa-ban text-danger me-2"></i>Set Blacklisted
+                                                    </button>
+                                                </form>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (!Model.Any())
+        {
+            <div class="empty-state">
+                <i class="fas fa-users"></i>
+                <h4>No Customers Found</h4>
+                <p class="text-muted">There are no registered customers in the system yet.</p>
+            </div>
+        }
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Auto-dismiss alerts after 5 seconds
+        const alerts = document.querySelectorAll('.alert');
+        alerts.forEach(alert => {
+            setTimeout(() => {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            }, 5000);
+        });
+
+        // Enhanced dropdown functionality
+        const dropdowns = document.querySelectorAll('.dropdown');
+        dropdowns.forEach(dropdown => {
+            dropdown.addEventListener('show.bs.dropdown', function() {
+                this.querySelector('.dropdown-menu').style.opacity = '0';
+                this.querySelector('.dropdown-menu').style.transform = 'translateY(-10px)';
+            });
+
+            dropdown.addEventListener('shown.bs.dropdown', function() {
+                this.querySelector('.dropdown-menu').style.opacity = '1';
+                this.querySelector('.dropdown-menu').style.transform = 'translateY(0)';
+                this.querySelector('.dropdown-menu').style.transition = 'all 0.3s ease';
+            });
+        });
+
+        // Enhanced confirmation dialogs
+        const dangerousButtons = document.querySelectorAll('.btn-danger');
+        dangerousButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                if (!confirm('⚠️ This is a destructive action. Are you absolutely sure?')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            });
+        });
+    });
+
+    // Premium hover effects for stat cards
+    document.querySelectorAll('.stat-card').forEach(card => {
+        card.addEventListener('mouseenter', function() {
+            this.style.transform = 'translateY(-4px)';
+        });
+
+        card.addEventListener('mouseleave', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+</script>
+
+@functions {
+    public string GetStatusIcon(string status)
+    {
+        return status?.ToLower() switch
+        {
+            "active" => "fa-check-circle",
+            "inactive" => "fa-user-slash",
+            "blacklisted" => "fa-ban",
+            _ => "fa-question-circle"
+        };
+    }
+}

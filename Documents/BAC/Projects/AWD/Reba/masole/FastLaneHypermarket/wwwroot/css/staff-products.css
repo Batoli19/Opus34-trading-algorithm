@@ -1,0 +1,180 @@
+﻿.staff-products-page {
+    padding: 25px;
+    background: #f8f9fb;
+    min-height: 100vh;
+}
+
+.top-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+    .top-header h2 {
+        color: #0a58ca;
+    }
+
+.btn-add {
+    background: #007bff;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.3s;
+}
+
+    .btn-add:hover {
+        background: #0056b3;
+    }
+
+/* TABLE */
+.products-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+    .products-table th, .products-table td {
+        padding: 14px;
+        text-align: center;
+        border-bottom: 1px solid #eee;
+    }
+
+    .products-table th {
+        background: #0a58ca;
+        color: white;
+    }
+
+.safe td {
+    background: #e6f4ea;
+}
+
+.reorder td {
+    background: #fff7e6;
+}
+
+.out td {
+    background: #fdeaea;
+}
+
+/* STATUS BADGES */
+.status {
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+    .status.active {
+        background: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .status.discontinued {
+        background: #f8d7da;
+        color: #842029;
+    }
+
+/* ACTION BUTTONS */
+.btn-edit, .btn-delete {
+    border: none;
+    cursor: pointer;
+    background: none;
+    font-size: 18px;
+}
+
+.btn-edit {
+    color: #007bff;
+}
+
+.btn-delete {
+    color: #dc3545;
+}
+
+/* MODAL */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.4);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hidden {
+    display: none;
+}
+
+.modal-content {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 500px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+}
+
+    .modal-content h3 {
+        color: #0a58ca;
+        margin-bottom: 20px;
+    }
+
+.form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+}
+
+    .form-grid input, .form-grid select {
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+    }
+
+.actions {
+    margin-top: 20px;
+    display: flex;
+    justify-content: space-between;
+}
+
+.btn-save {
+    background: #0a58ca;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.btn-cancel {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}

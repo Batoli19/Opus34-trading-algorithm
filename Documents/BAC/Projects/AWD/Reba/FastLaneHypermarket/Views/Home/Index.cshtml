@@ -1,0 +1,320 @@
+﻿@model List<FastLaneHypermarket.Models.Product>
+
+@{
+    ViewData["Title"] = "Home";
+    var featured = Model?.Take(10).ToList() ?? new List<FastLaneHypermarket.Models.Product>();
+}
+
+<style>
+    .hero-section {
+        padding: 80px 0 60px;
+        background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+        color: white;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .hero-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        align-items: center;
+        gap: 40px;
+    }
+
+    .hero-content {
+        flex: 1;
+        z-index: 2;
+    }
+
+    .hero-title {
+        font-size: 3.2rem;
+        font-weight: 700;
+        margin-bottom: 16px;
+        line-height: 1.2;
+    }
+
+    .hero-subtitle {
+        font-size: 1.2rem;
+        margin-bottom: 32px;
+        opacity: 0.9;
+        max-width: 500px;
+    }
+
+    .hero-image {
+        flex: 1;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .hero-img {
+        max-width: 100%;
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .btn-hero {
+        background: white;
+        color: var(--primary);
+        padding: 12px 28px;
+        border-radius: 8px;
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.2s;
+    }
+
+        .btn-hero:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+
+    /* Section styling */
+    .section {
+        padding: 60px 0;
+    }
+
+    .section-title {
+        text-align: center;
+        margin-bottom: 40px;
+        font-size: 2.2rem;
+        font-weight: 700;
+        color: var(--text-dark);
+    }
+
+    .section-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+    }
+
+    /* Featured products */
+    .featured-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 24px;
+    }
+
+    .product-card {
+        background: var(--bg-white);
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: all 0.3s ease;
+        border: 1px solid var(--border);
+    }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .product-image {
+        width: 100%;
+        height: 200px;
+        object-fit: cover;
+        display: block;
+    }
+
+    .product-info {
+        padding: 20px;
+    }
+
+    .product-name {
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 1.1rem;
+        color: var(--text-dark);
+    }
+
+    .product-price {
+        color: var(--primary);
+        font-weight: 700;
+        font-size: 1.2rem;
+        margin-bottom: 16px;
+    }
+
+    .product-actions {
+        display: flex;
+        gap: 10px;
+    }
+
+    .btn-add {
+        background: var(--primary);
+        color: white;
+        padding: 10px 16px;
+        border-radius: 8px;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: background 0.2s;
+    }
+
+        .btn-add:hover {
+            background: var(--primary-dark);
+        }
+
+    .btn-view {
+        background: transparent;
+        color: var(--text-dark);
+        border: 1px solid var(--border);
+        padding: 10px 16px;
+        border-radius: 8px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        transition: all 0.2s;
+    }
+
+        .btn-view:hover {
+            background: var(--bg-light);
+        }
+
+    /* All products section */
+    .products-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 30px;
+        flex-wrap: wrap;
+        gap: 16px;
+    }
+
+    .products-title {
+        font-size: 1.8rem;
+        font-weight: 600;
+        color: var(--text-dark);
+        margin: 0;
+    }
+
+    .view-all {
+        color: var(--primary);
+        font-weight: 600;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .products-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+        gap: 24px;
+    }
+
+    /* Responsive adjustments */
+    @@media (max-width: 768px) {
+        .hero-container
+
+    {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: 2.5rem;
+    }
+
+    .featured-grid,
+    .products-grid {
+        grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    }
+
+    }
+</style>
+
+<section class="hero-section">
+    <div class="hero-container">
+        <div class="hero-content">
+            <h1 class="hero-title">Premium Shopping Experience</h1>
+            <p class="hero-subtitle">Discover quality products curated just for you. Fast delivery, great prices, and exceptional service.</p>
+            <a class="btn-hero" asp-controller="Home" asp-action="Products">
+                <i class="fas fa-shopping-bag"></i>
+                Shop Now
+            </a>
+        </div>
+        <div class="hero-image">
+            <img src="@(featured.FirstOrDefault()?.ImageUrl ?? "/images/assets_task_01k6r24cz0fedawh8ppc2me7n5_1759596698_img_0.webp")" alt="Featured product" class="hero-img" />
+        </div>
+    </div>
+</section>
+
+<section class="section">
+    <div class="section-container">
+        <h2 class="section-title">Featured Products</h2>
+        <div class="featured-grid">
+            @foreach (var p in featured)
+            {
+                <div class="product-card">
+                    <img src="@p.ImageUrl" onerror="this.src='/images/products/default.jpg'" alt="@p.ProductName" class="product-image" />
+                    <div class="product-info">
+                        <h3 class="product-name">@p.ProductName</h3>
+                        <div class="product-price">P @p.SellingPrice.ToString("N2")</div>
+                        <div class="product-actions">
+                            <button class="btn-add" onclick="addToCart(@p.ProductCode)">
+                                <i class="fas fa-cart-plus"></i>
+                                Add to Cart
+                            </button>
+                            <button class="btn-view">
+                                <i class="fas fa-eye"></i>
+                                View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</section>
+
+
+@section Scripts {
+    <script>
+        // Ensure addToCart function is available
+        if (typeof addToCart !== 'function') {
+            async function addToCart(productId) {
+                try {
+                    const token = document.getElementById('__RequestVerificationToken')?.value || '';
+                    const resp = await fetch('/Cart/AddToCart', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                            'RequestVerificationToken': token
+                        },
+                        body: new URLSearchParams({ productId })
+                    });
+                    const result = await resp.json();
+                    if (result.requiresLogin) {
+                        showLoginPrompt();
+                        return;
+                    }
+                    if (result.success) {
+                        showNotification("✅ Added to cart!", "success");
+                        // Update cart count
+                        const cartCount = document.getElementById('cart-count');
+                        if (cartCount) {
+                            const currentCount = parseInt(cartCount.textContent) || 0;
+                            cartCount.textContent = currentCount + 1;
+                        }
+                    } else {
+                        showNotification(result.message || "⚠️ Could not add product to cart.", "error");
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showNotification('Something went wrong', 'error');
+                }
+            }
+        }
+    </script>
+}

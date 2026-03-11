@@ -1,0 +1,570 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\fastlanecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\fastlanecontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\fastlanecontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\fastlanecontextfactory.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\controllers\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\controllers\\appdbcontext.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\program.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\controllers\\homecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\home\\about.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\home\\about.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\appsettings.json||{90A6B3A7-C1A3-4009-A288-E2FF89E96FA0}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\product.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\controllers\\accountcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\shared\\dashboard.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\shared\\dashboard.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\staff.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\staff.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\staff\\staff.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\staff\\staff.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\customer.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\staff\\staffproducts.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\staff\\staffproducts.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\staff\\customers.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\staff\\customers.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\shared\\signup.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\shared\\signup.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\shared\\layoutdashboard.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\shared\\layoutdashboard.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\home\\cart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\home\\cart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\home\\products.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\home\\products.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\controllers\\admin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\controllers\\admin.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\_viewstart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\_viewstart.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\_viewimports.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\_viewimports.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\staff\\reports.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\staff\\reports.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\staff\\customerdetails.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\staff\\customerdetails.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\shared\\error.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\shared\\error.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\shared\\editproduct.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\shared\\editproduct.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\cart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\cart.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\errorviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\errorviewmodel.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\models\\transaction.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\models\\transaction.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\home\\cart.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\home\\cart.cshtml.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\views\\home\\privacy.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\views\\home\\privacy.cshtml||{40D31677-CBC0-4297-A9EF-89D907823A98}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\controllers\\cartitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\controllers\\cartitem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|c:\\users\\user\\documents\\bac\\awd\\reba\\fastlanehypermarket\\wwwroot\\css\\site.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}",
+      "RelativeMoniker": "D:0:0:{B1F5BA3E-D760-4C26-802E-2FC821AC1CD0}|FastLaneHypermarket\\FastLaneHypermarket.csproj|solutionrelative:fastlanehypermarket\\wwwroot\\css\\site.css||{A5401142-F49D-43DB-90B1-F57BA349E55C}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 1,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedHeight": 200,
+          "SelectedChildIndex": 9,
+          "Children": [
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{3ae79031-e1bc-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{eefa5220-e298-11d0-8f78-00a0c9110057}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{d78612c7-9962-4b83-95d9-268046dad23a}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{34e76e81-ee4a-11d0-ae2e-00a0c90fffc3}"
+            },
+            {
+              "$type": "Bookmark",
+              "Name": "ST:0:0:{0ad07096-bba9-4900-a651-0598d26f6d24}"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
+              "Title": "Product.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Product.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\Product.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Product.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\Product.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAYwB4AAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T18:31:02.553Z",
+              "IsPinned": true
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "Program.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Program.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Program.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Program.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Program.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABsAAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:01:15.918Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "About.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\About.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Home\\About.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\About.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Home\\About.cshtml",
+              "ViewState": "AgIAACUBAAAAAAAAAAAEwE4CAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-16T16:53:44.754Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "AppDbContext.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\AppDbContext.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Controllers\\AppDbContext.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\AppDbContext.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Controllers\\AppDbContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T12:59:55.093Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "FastLaneContext.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\FastLaneContext.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\FastLaneContext.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\FastLaneContext.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\FastLaneContext.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABIAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T20:58:34.554Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "FastLaneContextFactory.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\FastLaneContextFactory.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\FastLaneContextFactory.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\FastLaneContextFactory.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\FastLaneContextFactory.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:25.745Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "appsettings.json",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\appsettings.json",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\appsettings.json",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\appsettings.json",
+              "RelativeToolTip": "FastLaneHypermarket\\appsettings.json",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAwAAAAzAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.001642|",
+              "WhenOpened": "2025-11-14T13:01:10.183Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 13,
+              "Title": "StaffProducts.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\StaffProducts.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Staff\\StaffProducts.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\StaffProducts.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Staff\\StaffProducts.cshtml",
+              "ViewState": "AgIAAHMHAAAAAAAAAAAUwJsHAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:01:03.526Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
+              "Title": "Dashboard.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Dashboard.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Shared\\Dashboard.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Dashboard.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Shared\\Dashboard.cshtml",
+              "ViewState": "AgIAAIABAAAAAAAAAAAEwNsBAAAKAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-13T21:59:28.737Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "HomeController.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\HomeController.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Controllers\\HomeController.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\HomeController.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Controllers\\HomeController.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAL0AAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-20T11:11:30.716Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 12,
+              "Title": "Customer.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Customer.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\Customer.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Customer.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\Customer.cs",
+              "ViewState": "AgIAAAkAAAAAAAAAAAAiwDcAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-13T20:46:18.284Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "Staff.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Staff.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\Staff.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Staff.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\Staff.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAABYAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:22.533Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 8,
+              "Title": "AccountController.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\AccountController.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Controllers\\AccountController.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\AccountController.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Controllers\\AccountController.cs",
+              "ViewState": "AgIAAAEAAAAAAAAAAAAswCwAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-18T19:49:42.811Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 11,
+              "Title": "Staff.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Staff.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Staff\\Staff.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Staff.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Staff\\Staff.cshtml",
+              "ViewState": "AgIAAAkAAAAAAAAAAIBJwCIAAAAGAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T12:21:28.565Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 15,
+              "Title": "Signup.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Signup.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Shared\\Signup.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Signup.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Shared\\Signup.cshtml",
+              "ViewState": "AgIAAIMAAAAAAAAAAAAcwA0CAAA7AAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-13T21:34:05.399Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 14,
+              "Title": "Customers.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Customers.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Staff\\Customers.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Customers.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Staff\\Customers.cshtml",
+              "ViewState": "AgIAABgBAAAAAAAAAAAAwAMDAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-18T15:01:33.116Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 16,
+              "Title": "LayoutDashboard.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\LayoutDashboard.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Shared\\LayoutDashboard.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\LayoutDashboard.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Shared\\LayoutDashboard.cshtml",
+              "ViewState": "AgIAAJkAAAAAAAAAAAAEwEUBAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-13T18:48:27.834Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 17,
+              "Title": "Cart.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Cart.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Home\\Cart.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Cart.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Home\\Cart.cshtml",
+              "ViewState": "AgIAAPcBAAAAAAAAAAAjwFYBAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-18T12:20:49.744Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 18,
+              "Title": "Products.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Products.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Home\\Products.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Products.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Home\\Products.cshtml",
+              "ViewState": "AgIAAB8CAAAAAAAAAAAjwDwCAAAFAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-18T11:42:57.514Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 19,
+              "Title": "Admin.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\Admin.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Controllers\\Admin.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\Admin.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Controllers\\Admin.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T12:59:54.01Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 20,
+              "Title": "_ViewStart.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\_ViewStart.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\_ViewStart.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\_ViewStart.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\_ViewStart.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:01:07.292Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 21,
+              "Title": "_ViewImports.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\_ViewImports.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\_ViewImports.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\_ViewImports.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\_ViewImports.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:01:05.48Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 22,
+              "Title": "Reports.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Reports.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Staff\\Reports.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\Reports.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Staff\\Reports.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:00:58.51Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 23,
+              "Title": "CustomerDetails.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\CustomerDetails.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Staff\\CustomerDetails.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Staff\\CustomerDetails.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Staff\\CustomerDetails.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:00:55.511Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 24,
+              "Title": "Error.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Error.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Shared\\Error.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\Error.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Shared\\Error.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:00:46.73Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 25,
+              "Title": "EditProduct.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\EditProduct.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Shared\\EditProduct.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Shared\\EditProduct.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Shared\\EditProduct.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:00:43.984Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 26,
+              "Title": "Cart.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Cart.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\Cart.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Cart.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\Cart.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:31.371Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 27,
+              "Title": "ErrorViewModel.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\ErrorViewModel.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\ErrorViewModel.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\ErrorViewModel.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\ErrorViewModel.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:28.693Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 28,
+              "Title": "Transaction.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Transaction.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Models\\Transaction.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Models\\Transaction.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Models\\Transaction.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:21.395Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 29,
+              "Title": "Cart.cshtml.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Cart.cshtml.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Home\\Cart.cshtml.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Cart.cshtml.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Home\\Cart.cshtml.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T13:00:19.558Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 30,
+              "Title": "Privacy.cshtml",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Privacy.cshtml",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Views\\Home\\Privacy.cshtml",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Views\\Home\\Privacy.cshtml",
+              "RelativeToolTip": "FastLaneHypermarket\\Views\\Home\\Privacy.cshtml",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000759|",
+              "WhenOpened": "2025-11-14T13:00:15.98Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 31,
+              "Title": "CartItem.cs",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\CartItem.cs",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\Controllers\\CartItem.cs",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\Controllers\\CartItem.cs",
+              "RelativeToolTip": "FastLaneHypermarket\\Controllers\\CartItem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-11-14T12:59:59.457Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 32,
+              "Title": "site.css",
+              "DocumentMoniker": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\site.css",
+              "RelativeDocumentMoniker": "FastLaneHypermarket\\wwwroot\\css\\site.css",
+              "ToolTip": "C:\\Users\\user\\Documents\\BAC\\AWD\\Reba\\FastLaneHypermarket\\wwwroot\\css\\site.css",
+              "RelativeToolTip": "FastLaneHypermarket\\wwwroot\\css\\site.css",
+              "ViewState": "AgIAAM4FAAAAAAAAAIBJwKcHAAAAAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.003000|",
+              "WhenOpened": "2025-11-13T21:45:10.716Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

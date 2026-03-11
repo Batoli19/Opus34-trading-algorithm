@@ -1,0 +1,1948 @@
+﻿@model IEnumerable<FastLaneHypermarket.Models.Product>
+
+@{
+    Layout = "~/Views/Shared/LayoutDashboard.cshtml";
+    ViewData["Title"] = "Products Management";
+}
+
+<style>
+    :root {
+        --bg-light: #f8fafc;
+        --bg-white: #ffffff;
+        --primary: #2563eb;
+        --primary-light: #3b82f6;
+        --primary-dark: #1d4ed8;
+        --accent: #10b981;
+        --text-dark: #1e293b;
+        --text-light: #64748b;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+        --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* 🎯 Enhanced Styles */
+    .page-header-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .header-main {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 24px;
+    }
+
+    .header-title {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .title-icon {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 24px;
+    }
+
+    .header-title h2 {
+        color: var(--text-dark);
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 700;
+    }
+
+    .subtitle {
+        color: var(--text-light);
+        margin: 8px 0 0 0;
+        font-size: 16px;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 20px;
+    }
+
+    .stat-card {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: var(--bg-white);
+        border-radius: 12px;
+        min-width: 180px;
+        border: 1px solid var(--border);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .stat-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 20px;
+    }
+
+        .stat-icon.total {
+            background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        }
+
+        .stat-icon.low-stock {
+            background: linear-gradient(135deg, var(--warning), #fbbf24);
+        }
+
+        .stat-icon.out-of-stock {
+            background: linear-gradient(135deg, var(--danger), #ef4444);
+        }
+
+    .stat-number {
+        font-size: 24px;
+        font-weight: 800;
+        display: block;
+        line-height: 1;
+        color: var(--text-dark);
+    }
+
+    .stat-label {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .header-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+    }
+
+    .search-container {
+        position: relative;
+        flex: 1;
+        max-width: 500px;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-light);
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 14px 16px 14px 48px;
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        font-size: 16px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow);
+    }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        .search-input::placeholder {
+            color: var(--text-light);
+        }
+
+    .search-filters {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+    }
+
+        .search-filters select {
+            border: none;
+            background: none;
+            color: var(--text-light);
+            font-size: 14px;
+            background: var(--bg-white);
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+
+    .action-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-primary, .btn-secondary, .btn-outline {
+        padding: 12px 20px;
+        border: none;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        color: white;
+        box-shadow: var(--shadow);
+    }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, var(--primary-dark), var(--primary));
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+    .btn-secondary {
+        background: var(--bg-white);
+        color: var(--text-dark);
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+    }
+
+        .btn-secondary:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+    .btn-outline {
+        background: transparent;
+        color: var(--text-light);
+        border: 1px solid var(--border);
+    }
+
+        .btn-outline:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+        }
+
+    /* Filter Panel */
+    .filter-panel {
+        background: var(--bg-white);
+        border-radius: 16px;
+        padding: 32px;
+        margin-bottom: 24px;
+        box-shadow: var(--shadow);
+        border: 1px solid var(--border);
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 24px;
+    }
+
+        .filter-header h4 {
+            color: var(--text-dark);
+            margin: 0;
+            font-size: 1.3rem;
+            font-weight: 600;
+        }
+
+    .btn-close-filters {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+        .btn-close-filters:hover {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+    .filter-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+
+    .filter-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        color: var(--text-dark);
+        font-size: 14px;
+    }
+
+    .filter-group select,
+    .filter-group input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        font-size: 14px;
+        transition: all 0.3s ease;
+    }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+    .price-range {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+        .price-range input {
+            flex: 1;
+        }
+
+    .filter-actions {
+        display: flex;
+        gap: 16px;
+        justify-content: flex-end;
+    }
+
+    /* Modal Styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.6);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 10000;
+        backdrop-filter: blur(4px);
+    }
+
+    .modal-container {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        animation: modalSlideIn 0.3s ease-out;
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+        padding: 32px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+        .modal-header h3 {
+            color: var(--text-dark);
+            margin: 0;
+            font-size: 1.6rem;
+            font-weight: 700;
+        }
+
+    .modal-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 8px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+
+        .modal-close:hover {
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+    .form-sections {
+        padding: 0 32px;
+    }
+
+    .form-section {
+        margin-bottom: 40px;
+    }
+
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        margin-bottom: 20px;
+        color: var(--text-dark);
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+        .section-title i {
+            color: var(--primary);
+        }
+
+    .form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: 600;
+        font-size: 14px;
+        color: var(--text-dark);
+    }
+
+    .required {
+        color: var(--danger);
+    }
+
+    .form-input, .form-select, .form-textarea {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        background: var(--bg-white);
+        color: var(--text-dark);
+    }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+    .input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-prefix, .input-suffix {
+        padding: 12px;
+        background: var(--bg-light);
+        border: 1px solid var(--border);
+        color: var(--text-light);
+        font-size: 14px;
+        font-weight: 500;
+    }
+
+    .input-prefix {
+        border-right: none;
+        border-radius: 8px 0 0 8px;
+    }
+
+    .input-suffix {
+        border-left: none;
+        border-radius: 0 8px 8px 0;
+    }
+
+    .input-group .form-input {
+        border-radius: 0 8px 8px 0;
+        flex: 1;
+    }
+
+        .input-group .form-input:not(:first-child) {
+            border-radius: 8px 0 0 8px;
+        }
+
+    .form-hint {
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: 6px;
+    }
+
+    .profit-indicator {
+        font-size: 14px;
+        color: var(--success);
+        font-weight: 600;
+        margin-top: 6px;
+    }
+
+    .media-upload {
+        margin-bottom: 20px;
+    }
+
+    .upload-area {
+        border: 2px dashed var(--border);
+        border-radius: 12px;
+        padding: 60px 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        position: relative;
+        background: var(--bg-light);
+    }
+
+        .upload-area:hover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.05);
+        }
+
+        .upload-area.dragover {
+            border-color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+    .upload-icon {
+        font-size: 56px;
+        color: var(--text-light);
+        margin-bottom: 16px;
+    }
+
+    .upload-text {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: var(--text-dark);
+        font-size: 18px;
+    }
+
+    .upload-subtext {
+        font-size: 14px;
+        color: var(--text-light);
+    }
+
+    .file-input {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        opacity: 0;
+        cursor: pointer;
+    }
+
+    .image-preview {
+        display: flex;
+        gap: 16px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+    }
+
+        .image-preview img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow);
+        }
+
+    .form-actions {
+        padding: 32px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: flex-end;
+        gap: 16px;
+    }
+
+    /* Table Styles */
+    .table-container-enhanced {
+        background: var(--bg-white);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        overflow: hidden;
+        border: 1px solid var(--border);
+    }
+
+    .table-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-light);
+    }
+
+    .table-info {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    .table-actions {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .table-sort {
+        padding: 8px 16px;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-size: 14px;
+        background: var(--bg-white);
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+    }
+
+        .table-sort:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+    .btn-table-action {
+        background: none;
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: all 0.3s ease;
+    }
+
+        .btn-table-action:hover {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+    .table-wrapper {
+        overflow-x: auto;
+    }
+
+    .styled-table-enhanced {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+    }
+
+        .styled-table-enhanced thead {
+            background: var(--bg-light);
+        }
+
+        .styled-table-enhanced th {
+            padding: 20px 16px;
+            text-align: left;
+            font-weight: 600;
+            color: var(--text-dark);
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+
+        .styled-table-enhanced td {
+            padding: 20px 16px;
+            border-bottom: 1px solid var(--border);
+            color: var(--text-dark);
+        }
+
+        .styled-table-enhanced tbody tr {
+            transition: background-color 0.3s ease;
+        }
+
+            .styled-table-enhanced tbody tr:hover {
+                background: rgba(37, 99, 235, 0.05);
+            }
+
+    .sortable {
+        cursor: pointer;
+        user-select: none;
+        transition: background-color 0.3s ease;
+    }
+
+        .sortable:hover {
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .sortable span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+    .product-image {
+        position: relative;
+        width: 60px;
+        height: 60px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid var(--border);
+        box-shadow: var(--shadow);
+    }
+
+        .product-image img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        color: white;
+    }
+
+    .product-image:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .product-name .name-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .product-size {
+        font-size: 12px;
+        color: var(--text-light);
+    }
+
+    .category-tag {
+        background: rgba(37, 99, 235, 0.1);
+        color: var(--primary);
+        padding: 6px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 600;
+        border: 1px solid rgba(37, 99, 235, 0.2);
+    }
+
+    .price-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .selling-price {
+        font-weight: 700;
+        color: var(--text-dark);
+        font-size: 16px;
+    }
+
+    .cost-price {
+        font-size: 12px;
+        color: var(--text-light);
+    }
+
+    .stock-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .stock-quantity {
+        font-weight: 700;
+        min-width: 40px;
+        color: var(--text-dark);
+        font-size: 16px;
+    }
+
+    .stock-bar {
+        width: 80px;
+        height: 6px;
+        background: var(--border);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .stock-level {
+        height: 100%;
+        transition: width 0.3s ease;
+    }
+
+        .stock-level.high-stock {
+            background: var(--success);
+            width: 100%;
+        }
+
+        .stock-level.medium-stock {
+            background: var(--warning);
+            width: 60%;
+        }
+
+        .stock-level.low-stock {
+            background: var(--danger);
+            width: 30%;
+        }
+
+        .stock-level.out-of-stock {
+            background: var(--text-light);
+            width: 0%;
+        }
+
+    .status-badge {
+        padding: 8px 12px;
+        border-radius: 16px;
+        font-size: 12px;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .status-high {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-medium {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .status-low {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.2);
+    }
+
+    .status-out {
+        background: rgba(100, 116, 139, 0.1);
+        color: #64748b;
+        border: 1px solid rgba(100, 116, 139, 0.2);
+    }
+
+    .date-cell {
+        font-size: 14px;
+    }
+
+    .date {
+        display: block;
+        font-weight: 600;
+        color: var(--text-dark);
+    }
+
+    .time {
+        color: var(--text-light);
+    }
+
+    .actions-cell {
+        white-space: nowrap;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-action {
+        background: none;
+        border: none;
+        padding: 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        color: var(--text-light);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .btn-action:hover {
+            background: rgba(37, 99, 235, 0.1);
+            transform: scale(1.1);
+        }
+
+    .btn-edit:hover {
+        color: var(--primary);
+    }
+
+    .btn-view:hover {
+        color: var(--success);
+    }
+
+    .btn-duplicate:hover {
+        color: var(--warning);
+    }
+
+    .btn-delete:hover {
+        color: var(--danger);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 80px 20px;
+        color: var(--text-light);
+    }
+
+        .empty-state i {
+            font-size: 72px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+            color: var(--text-light);
+        }
+
+        .empty-state h3 {
+            margin-bottom: 12px;
+            color: var(--text-dark);
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .empty-state p {
+            margin-bottom: 24px;
+            font-size: 16px;
+        }
+
+    .pagination-container {
+        padding: 24px 32px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: var(--bg-light);
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .pagination-btn {
+        background: var(--bg-white);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: var(--text-dark);
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+        .pagination-btn:hover:not(:disabled) {
+            border-color: var(--primary);
+            color: var(--primary);
+            background: rgba(37, 99, 235, 0.1);
+        }
+
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+    .pagination-page {
+        font-size: 14px;
+        color: var(--text-light);
+        font-weight: 500;
+    }
+
+    /* Animations */
+    @@keyframes modalSlideIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(-20px) scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+
+    }
+
+    @@keyframes fadeIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    }
+
+    .fade-in {
+        animation: fadeIn 0.5s ease-in-out;
+    }
+
+    /* Alerts */
+    .alert {
+        padding: 16px 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border: 1px solid;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 500;
+    }
+
+    .alert-success {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success);
+        border-color: rgba(16, 185, 129, 0.2);
+    }
+
+    .alert-danger {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--danger);
+        border-color: rgba(239, 68, 68, 0.2);
+    }
+
+    /* Responsive Design */
+    @@media (max-width: 1024px) {
+        .header-main
+
+    {
+        flex-direction: column;
+        gap: 24px;
+    }
+
+    .header-stats {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    }
+
+    @@media (max-width: 768px) {
+        .header-actions
+
+    {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+    }
+
+    .search-container {
+        max-width: none;
+    }
+
+    .action-buttons {
+        justify-content: space-between;
+    }
+
+    .table-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: stretch;
+    }
+
+    .pagination-container {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .page-header-enhanced {
+        padding: 24px;
+    }
+
+    .modal-header,
+    .form-sections,
+    .form-actions {
+        padding: 24px;
+    }
+
+    }
+
+    @@media (max-width: 480px) {
+        .header-stats
+
+    {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .stat-card {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+
+    .btn-primary, .btn-secondary, .btn-outline {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .table-container-enhanced {
+        border-radius: 12px;
+    }
+
+    }
+</style>
+
+<!-- Success/Error Messages -->
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">
+        <i class="fas fa-check-circle"></i> @TempData["Success"]
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-circle"></i> @TempData["Error"]
+    </div>
+}
+
+<section class="dashboard-content fade-in">
+    <!-- 🎯 Enhanced Header with Stats -->
+    <div class="page-header-enhanced">
+        <div class="header-main">
+            <div class="header-title">
+                <div class="title-icon">
+                    <i class="fas fa-boxes"></i>
+                </div>
+                <div>
+                    <h2>Products Management</h2>
+                    <p class="subtitle">Manage your product inventory efficiently</p>
+                </div>
+            </div>
+            <div class="header-stats">
+                <div class="stat-card">
+                    <div class="stat-icon total">
+                        <i class="fas fa-cubes"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count()</span>
+                        <span class="stat-label">Total Products</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon low-stock">
+                        <i class="fas fa-exclamation-triangle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count(p => p.Quantity <= p.ReorderLevel && p.Quantity > 0)</span>
+                        <span class="stat-label">Low Stock</span>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon out-of-stock">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                    <div class="stat-info">
+                        <span class="stat-number">@Model.Count(p => p.Quantity == 0)</span>
+                        <span class="stat-label">Out of Stock</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="header-actions">
+            <div class="search-container">
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" id="productSearch" placeholder="Search products, categories, SKU..." class="search-input" />
+                <div class="search-filters">
+                    <select id="searchFilter">
+                        <option value="all">All Fields</option>
+                        <option value="name">Product Name</option>
+                        <option value="category">Category</option>
+                        <option value="sku">Product ID</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn-secondary" id="filterToggle">
+                    <i class="fas fa-filter"></i>
+                    Filters
+                </button>
+                <button class="btn-secondary" id="exportBtn">
+                    <i class="fas fa-download"></i>
+                    Export
+                </button>
+                <button class="btn-primary btn-add">
+                    <i class="fas fa-plus-circle"></i>
+                    Add Product
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 🎯 Advanced Filter Panel -->
+    <div class="filter-panel" id="filterPanel" style="display: none;">
+        <div class="filter-header">
+            <h4>Advanced Filters</h4>
+            <button class="btn-close-filters" id="closeFilters">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="filter-grid">
+            <div class="filter-group">
+                <label>Category</label>
+                <select id="categoryFilter" class="form-select">
+                    <option value="">All Categories</option>
+                    <option value="Groceries">Groceries</option>
+                    <option value="Electricals">Electricals</option>
+                    <option value="Farming">Farming</option>
+                    <option value="Furniture">Furniture</option>
+                    <option value="Motoring">Motoring</option>
+                    <option value="Chemicals">Chemicals</option>
+                    <option value="Clothing">Clothing</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Stock Status</label>
+                <select id="stockFilter" class="form-select">
+                    <option value="">All Status</option>
+                    <option value="in-stock">In Stock</option>
+                    <option value="low-stock">Low Stock</option>
+                    <option value="out-of-stock">Out of Stock</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <label>Price Range</label>
+                <div class="price-range">
+                    <input type="number" id="minPrice" placeholder="Min Price" class="form-input" />
+                    <span style="color: var(--muted);">to</span>
+                    <input type="number" id="maxPrice" placeholder="Max Price" class="form-input" />
+                </div>
+            </div>
+            <div class="filter-group">
+                <label>Date Added</label>
+                <select id="dateFilter" class="form-select">
+                    <option value="">Any Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                </select>
+            </div>
+        </div>
+        <div class="filter-actions">
+            <button class="btn-outline" id="resetFilters">Reset Filters</button>
+            <button class="btn-primary" id="applyFilters">Apply Filters</button>
+        </div>
+    </div>
+
+    <!-- 🎯 Enhanced Product Modal -->
+    <div id="productModal" class="modal-overlay">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h3 id="modalTitle">Add New Product</h3>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+
+            <form id="productForm" asp-action="AddProduct" asp-controller="Staff" method="post" enctype="multipart/form-data" class="product-form">
+                @Html.AntiForgeryToken()
+
+                <div class="form-sections">
+                    <!-- Basic Information Section -->
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="fas fa-info-circle"></i>
+                            Basic Information
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="ProductName" class="form-label">
+                                    Product Name <span class="required">*</span>
+                                </label>
+                                <input type="text" id="ProductName" name="ProductName" class="form-input" required
+                                       placeholder="Enter product name" />
+                                <div class="form-hint">Maximum 100 characters</div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Category" class="form-label">
+                                    Category <span class="required">*</span>
+                                </label>
+                                <select id="Category" name="Category" class="form-select" required>
+                                    <option value="">Select Category</option>
+                                    <option value="Groceries">Groceries</option>
+                                    <option value="Electricals">Electricals</option>
+                                    <option value="Farming">Farming</option>
+                                    <option value="Furniture">Furniture</option>
+                                    <option value="Motoring">Motoring</option>
+                                    <option value="Chemicals">Chemicals</option>
+                                    <option value="Clothing">Clothing</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Size" class="form-label">Size/Variant</label>
+                                <input type="text" id="Size" name="Size" class="form-input"
+                                       placeholder="e.g., 500ml, Large, 1kg" />
+                            </div>
+
+                            <div class="form-group">
+                                <label for="Quantity" class="form-label">
+                                    Stock Quantity <span class="required">*</span>
+                                </label>
+                                <input type="number" id="Quantity" name="Quantity" min="0"
+                                       class="form-input" required />
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pricing & Inventory Section -->
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="fas fa-tag"></i>
+                            Pricing & Inventory
+                        </h4>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="PurchasePrice" class="form-label">
+                                    Cost Price (P) <span class="required">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <span class="input-prefix">P</span>
+                                    <input type="number" id="PurchasePrice" name="PurchasePrice"
+                                           step="0.01" min="0.01" class="form-input" required
+                                           oninput="calculatePricing()" />
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="PercentageMarkup" class="form-label">
+                                    Markup % <span class="required">*</span>
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" id="PercentageMarkup" name="PercentageMarkup"
+                                           step="0.1" min="0" class="form-input" required
+                                           value="30" oninput="calculatePricing()" />
+                                    <span class="input-suffix">%</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="SellingPrice" class="form-label">Selling Price (P)</label>
+                                <div class="input-group">
+                                    <span class="input-prefix">P</span>
+                                    <input type="number" id="SellingPrice" name="SellingPrice"
+                                           step="0.01" class="form-input" readonly />
+                                </div>
+                                <div class="profit-indicator" id="profitIndicator">
+                                    Profit: P<span id="profitAmount">0.00</span>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="ReorderLevel" class="form-label">Reorder Level</label>
+                                <input type="number" id="ReorderLevel" name="ReorderLevel" min="0"
+                                       class="form-input" value="10" />
+                                <div class="form-hint">Alert when stock reaches this level</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Media Section -->
+                    <div class="form-section">
+                        <h4 class="section-title">
+                            <i class="fas fa-images"></i>
+                            Product Media
+                        </h4>
+                        <div class="media-upload">
+                            <div class="upload-area" id="uploadArea">
+                                <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                                <p class="upload-text">Drag & drop product images here</p>
+                                <p class="upload-subtext">or click to browse</p>
+                                <input type="file" id="imageFile" name="imageFile"
+                                       accept="image/*" class="file-input" />
+                            </div>
+                            <div class="image-preview" id="imagePreview"></div>
+                        </div>
+                        <div class="form-hint">Recommended: 800x800px, JPG/PNG, max 5MB</div>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-outline" onclick="closeModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-save"></i>
+                        Save Product
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 🎯 Enhanced Table Container -->
+    <div class="table-container-enhanced">
+        <div class="table-header">
+            <div class="table-info">
+                Showing <span id="showingCount">@Model.Count()</span> of <span id="totalCount">@Model.Count()</span> products
+            </div>
+            <div class="table-actions">
+                <select id="sortSelect" class="table-sort">
+                    <option value="newest">Newest First</option>
+                    <option value="oldest">Oldest First</option>
+                    <option value="name_asc">Name A-Z</option>
+                    <option value="name_desc">Name Z-A</option>
+                    <option value="price_high">Price: High to Low</option>
+                    <option value="price_low">Price: Low to High</option>
+                    <option value="stock_low">Stock: Low to High</option>
+                </select>
+                <button class="btn-table-action" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
+            </div>
+        </div>
+
+        <div class="table-wrapper">
+            <table class="styled-table-enhanced">
+                <thead>
+                    <tr>
+                        <th class="sortable" data-sort="id">
+                            <span>Product ID</span>
+                            <i class="fas fa-sort"></i>
+                        </th>
+                        <th>Image</th>
+                        <th class="sortable" data-sort="name">
+                            <span>Product Name</span>
+                            <i class="fas fa-sort"></i>
+                        </th>
+                        <th class="sortable" data-sort="category">
+                            <span>Category</span>
+                            <i class="fas fa-sort"></i>
+                        </th>
+                        <th>Size</th>
+                        <th class="sortable" data-sort="price">
+                            <span>Price</span>
+                            <i class="fas fa-sort"></i>
+                        </th>
+                        <th class="sortable" data-sort="stock">
+                            <span>Stock</span>
+                            <i class="fas fa-sort"></i>
+                        </th>
+                        <th>Status</th>
+                        <th>Last Updated</th>
+                        <th class="actions-header">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="productTableBody">
+                    @foreach (var product in Model)
+                    {
+                        <tr class="product-row" data-product-id="@product.ProductCode">
+                            <td class="product-id">#@product.ProductCode</td>
+                            <td>
+                                <div class="product-image">
+                                    <img src="@(product.ImageUrl ?? "/images/products/default.jpg")"
+                                         alt="@product.ProductName"
+                                         onerror="this.src='/images/products/default.jpg'" />
+                                    <div class="image-overlay">
+                                        <i class="fas fa-search-plus"></i>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="product-name">
+                                <div class="name-wrapper">
+                                    <strong>@product.ProductName</strong>
+                                    @if (!string.IsNullOrEmpty(product.Size))
+                                    {
+                                        <span class="product-size">@product.Size</span>
+                                    }
+                                </div>
+                            </td>
+                            <td>
+                                <span class="category-tag">@product.Category</span>
+                            </td>
+                            <td>
+                                <span class="size-value">@(string.IsNullOrEmpty(product.Size) ? "N/A" : product.Size)</span>
+                            </td>
+                            <td class="price-cell">
+                                <div class="price-wrapper">
+                                    <span class="selling-price">P@(product.SellingPrice.ToString("N2"))</span>
+                                    <span class="cost-price">P@(product.PurchasePrice.ToString("N2")) cost</span>
+                                </div>
+                            </td>
+                            <td class="stock-cell">
+                                <div class="stock-info">
+                                    <span class="stock-quantity">@product.Quantity</span>
+                                    <div class="stock-bar">
+                                        <div class="stock-level @GetStockLevelClass(product.Quantity, product.ReorderLevel)"></div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                @{
+                                    var statusInfo = GetStatusInfo(product.Quantity, product.ReorderLevel);
+                                }
+                                <span class="status-badge @statusInfo.Class">
+                                    <i class="@statusInfo.Icon"></i>
+                                    @statusInfo.Text
+                                </span>
+                            </td>
+                            <td class="date-cell">
+                                <span class="date">@product.DatePurchased.ToString("MMM dd, yyyy")</span>
+                                <span class="time">@product.DatePurchased.ToString("hh:mm tt")</span>
+                            </td>
+                            <td class="actions-cell">
+                                <div class="action-buttons">
+                                    <button class="btn-action btn-edit" onclick="editProduct(@product.ProductCode)"
+                                            title="Edit Product">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn-action btn-view" onclick="viewProduct(@product.ProductCode)"
+                                            title="View Details">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    <button class="btn-action btn-duplicate" onclick="duplicateProduct(@product.ProductCode)"
+                                            title="Duplicate Product">
+                                        <i class="fas fa-copy"></i>
+                                    </button>
+                                    <button class="btn-action btn-delete" onclick="deleteProduct(@product.ProductCode, '@product.ProductName.Replace("'", "\\'")')"
+                                            title="Delete Product">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!Model.Any())
+                    {
+                        <tr class="no-products">
+                            <td colspan="10">
+                                <div class="empty-state">
+                                    <i class="fas fa-box-open"></i>
+                                    <h3>No Products Found</h3>
+                                    <p>Get started by adding your first product to the inventory.</p>
+                                    <button class="btn-primary btn-add">
+                                        <i class="fas fa-plus"></i>
+                                        Add First Product
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="pagination-container">
+            <div class="pagination-controls">
+                <button class="pagination-btn" id="prevPage" disabled>
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <span class="pagination-page">Page 1 of 1</span>
+                <button class="pagination-btn" id="nextPage" disabled>
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+            <div class="table-info">
+                Total: @Model.Count() products
+            </div>
+        </div>
+    </div>
+</section>
+
+@functions {
+    public string GetStockLevelClass(int quantity, int reorderLevel)
+    {
+        if (quantity == 0) return "out-of-stock";
+        if (quantity <= reorderLevel) return "low-stock";
+        if (quantity <= reorderLevel * 2) return "medium-stock";
+        return "high-stock";
+    }
+
+    public dynamic GetStatusInfo(int quantity, int reorderLevel)
+    {
+        if (quantity == 0)
+            return new { Class = "status-out", Text = "Out of Stock", Icon = "fas fa-times-circle" };
+        if (quantity <= reorderLevel)
+            return new { Class = "status-low", Text = "Low Stock", Icon = "fas fa-exclamation-triangle" };
+        if (quantity <= reorderLevel * 2)
+            return new { Class = "status-medium", Text = "In Stock", Icon = "fas fa-check-circle" };
+        return new { Class = "status-high", Text = "In Stock", Icon = "fas fa-check-circle" };
+    }
+}
+
+ @section Scripts {
+    <script>
+        // Simple and clean JavaScript
+        document.addEventListener('DOMContentLoaded', function() {
+            // Modal functionality
+            const modal = document.getElementById('productModal');
+            const addButton = document.querySelector('.btn-add');
+
+            if (addButton) {
+                addButton.addEventListener('click', function() {
+                    document.getElementById('modalTitle').textContent = 'Add New Product';
+                    modal.style.display = 'flex';
+                    resetForm();
+                });
+            }
+
+            // Close modal when clicking outside
+            window.addEventListener('click', function(e) {
+                if (e.target === modal) {
+                    closeModal();
+                }
+            });
+
+            // Image upload functionality
+            initializeImageUpload();
+
+            // Simple form validation on submit
+            const form = document.getElementById('productForm');
+            if (form) {
+                form.addEventListener('submit', function(e) {
+                    if (!validateForm()) {
+                        e.preventDefault(); // Only prevent if validation fails
+                        return false;
+                    }
+                    // If validation passes, let the form submit normally
+                    // Show loading state
+                    const submitBtn = this.querySelector('button[type="submit"]');
+                    const originalText = submitBtn.innerHTML;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+                    submitBtn.disabled = true;
+
+                    // The form will now submit normally to the server
+                });
+            }
+
+            // Other UI functionality (search, filters, etc.)
+            initializeUI();
+        });
+
+        function validateForm() {
+            const productName = document.getElementById('ProductName').value.trim();
+            const category = document.getElementById('Category').value;
+            const quantity = document.getElementById('Quantity').value;
+            const purchasePrice = document.getElementById('PurchasePrice').value;
+
+            let errors = [];
+
+            if (!productName) errors.push('Product Name is required');
+            if (!category) errors.push('Category is required');
+            if (!quantity || quantity < 0) errors.push('Valid stock quantity is required');
+            if (!purchasePrice || purchasePrice <= 0) errors.push('Valid cost price is required');
+
+            if (errors.length > 0) {
+                alert('Please fix the following errors:\n\n• ' + errors.join('\n• '));
+                return false;
+            }
+
+            return true;
+        }
+
+        function calculatePricing() {
+            const costPrice = parseFloat(document.getElementById('PurchasePrice').value) || 0;
+            const markup = parseFloat(document.getElementById('PercentageMarkup').value) || 0;
+            const sellingPrice = costPrice * (1 + (markup / 100));
+            const profit = sellingPrice - costPrice;
+
+            document.getElementById('SellingPrice').value = sellingPrice.toFixed(2);
+            document.getElementById('profitAmount').textContent = profit.toFixed(2);
+
+            // Update profit indicator color
+            const profitIndicator = document.getElementById('profitIndicator');
+            profitIndicator.style.color = profit >= 0 ? '#28a745' : '#dc3545';
+        }
+
+        function initializeImageUpload() {
+            const uploadArea = document.getElementById('uploadArea');
+            const fileInput = document.getElementById('imageFile');
+            const preview = document.getElementById('imagePreview');
+
+            if (!uploadArea || !fileInput) return;
+
+            uploadArea.addEventListener('click', () => fileInput.click());
+
+            uploadArea.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                uploadArea.classList.add('dragover');
+            });
+
+            uploadArea.addEventListener('dragleave', () => {
+                uploadArea.classList.remove('dragover');
+            });
+
+            uploadArea.addEventListener('drop', (e) => {
+                e.preventDefault();
+                uploadArea.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    fileInput.files = files;
+                    handleFileSelect(files[0]);
+                }
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) {
+                    handleFileSelect(e.target.files[0]);
+                }
+            });
+        }
+
+        function handleFileSelect(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please select an image file.');
+                return;
+            }
+
+            if (file.size > 5 * 1024 * 1024) {
+                alert('File size must be less than 5MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const preview = document.getElementById('imagePreview');
+                preview.innerHTML = '';
+
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                preview.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function closeModal() {
+            document.getElementById('productModal').style.display = 'none';
+        }
+
+        function resetForm() {
+            document.getElementById('productForm').reset();
+            document.getElementById('imagePreview').innerHTML = '';
+            calculatePricing();
+        }
+
+        function initializeUI() {
+            // Search functionality
+            const searchInput = document.getElementById('productSearch');
+            if (searchInput) {
+                searchInput.addEventListener('input', debounce(performSearch, 300));
+            }
+
+            // Filter functionality
+            const filterToggle = document.getElementById('filterToggle');
+            const filterPanel = document.getElementById('filterPanel');
+            const closeFilters = document.getElementById('closeFilters');
+
+            if (filterToggle && filterPanel) {
+                filterToggle.addEventListener('click', () => {
+                    filterPanel.style.display = filterPanel.style.display === 'none' ? 'block' : 'none';
+                });
+            }
+
+            if (closeFilters) {
+                closeFilters.addEventListener('click', () => {
+                    filterPanel.style.display = 'none';
+                });
+            }
+
+            // Apply filters
+            const applyFiltersBtn = document.getElementById('applyFilters');
+            const resetFiltersBtn = document.getElementById('resetFilters');
+
+            if (applyFiltersBtn) applyFiltersBtn.addEventListener('click', applyFilters);
+            if (resetFiltersBtn) resetFiltersBtn.addEventListener('click', resetFilters);
+
+            // Refresh button
+            const refreshBtn = document.getElementById('refreshBtn');
+            if (refreshBtn) refreshBtn.addEventListener('click', () => location.reload());
+        }
+
+        function performSearch() {
+            const term = document.getElementById('productSearch').value.toLowerCase();
+            const filter = document.getElementById('searchFilter').value;
+
+            document.querySelectorAll('.product-row').forEach(row => {
+                let text = '';
+
+                switch (filter) {
+                    case 'name':
+                        text = row.querySelector('.product-name').textContent.toLowerCase();
+                        break;
+                    case 'category':
+                        text = row.querySelector('.category-tag').textContent.toLowerCase();
+                        break;
+                    case 'sku':
+                        text = row.querySelector('.product-id').textContent.toLowerCase();
+                        break;
+                    default: // all
+                        text = row.textContent.toLowerCase();
+                }
+
+                row.style.display = text.includes(term) ? '' : 'none';
+            });
+
+            updateShowingCount();
+        }
+
+        function applyFilters() {
+            const category = document.getElementById('categoryFilter').value;
+            const stockStatus = document.getElementById('stockFilter').value;
+            const minPrice = document.getElementById('minPrice').value;
+            const maxPrice = document.getElementById('maxPrice').value;
+
+            document.querySelectorAll('.product-row').forEach(row => {
+                let show = true;
+
+                // Category filter
+                if (category && row.querySelector('.category-tag').textContent !== category) {
+                    show = false;
+                }
+
+                // Stock status filter
+                if (stockStatus) {
+                    const statusClass = row.querySelector('.status-badge').className;
+                    if (stockStatus === 'in-stock' && !statusClass.includes('status-high') && !statusClass.includes('status-medium')) {
+                        show = false;
+                    } else if (stockStatus === 'low-stock' && !statusClass.includes('status-low')) {
+                        show = false;
+                    } else if (stockStatus === 'out-of-stock' && !statusClass.includes('status-out')) {
+                        show = false;
+                    }
+                }
+
+                // Price filter
+                const price = parseFloat(row.querySelector('.selling-price').textContent.replace('P', ''));
+                if (minPrice && price < parseFloat(minPrice)) {
+                    show = false;
+                }
+                if (maxPrice && price > parseFloat(maxPrice)) {
+                    show = false;
+                }
+
+                row.style.display = show ? '' : 'none';
+            });
+
+            updateShowingCount();
+            document.getElementById('filterPanel').style.display = 'none';
+        }
+
+        function resetFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('stockFilter').value = '';
+            document.getElementById('minPrice').value = '';
+            document.getElementById('maxPrice').value = '';
+            document.getElementById('dateFilter').value = '';
+
+            document.querySelectorAll('.product-row').forEach(row => {
+                row.style.display = '';
+            });
+
+            updateShowingCount();
+        }
+
+        function updateShowingCount() {
+            const visibleRows = document.querySelectorAll('.product-row[style=""]').length;
+            const totalRows = document.querySelectorAll('.product-row').length;
+            const showingCount = document.getElementById('showingCount');
+            if (showingCount) {
+                showingCount.textContent = visibleRows;
+            }
+        }
+
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            };
+        }
+
+        // Product actions
+        function editProduct(productId) {
+            window.location.href = `/Staff/EditProduct?productCode=${productId}`;
+        }
+
+        function viewProduct(productId) {
+            alert(`View product ${productId} details - This would open a detailed view`);
+        }
+
+        function duplicateProduct(productId) {
+            if (confirm('Duplicate this product?')) {
+                // Implement duplicate functionality
+            }
+        }
+
+                        function deleteProduct(productId, productName) {
+                    if (confirm(`Are you sure you want to delete "${productName}"? This action cannot be undone.`)) {
+                        // Create a hidden form dynamically
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = '/Staff/DeleteProduct';
+
+                        // Add AntiForgery token (required by ASP.NET)
+                        const csrfToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+                        const tokenInput = document.createElement('input');
+                        tokenInput.type = 'hidden';
+                        tokenInput.name = '__RequestVerificationToken';
+                        tokenInput.value = csrfToken;
+                        form.appendChild(tokenInput);
+
+                        // Add productCode as hidden input
+                        const idInput = document.createElement('input');
+                        idInput.type = 'hidden';
+                        idInput.name = 'productCode';
+                        idInput.value = productId;
+                        form.appendChild(idInput);
+
+                        // Add the form to the page and submit
+                        document.body.appendChild(form);
+                        form.submit();
+
+
+            }
+        }
+
+    </script>
+}

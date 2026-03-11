@@ -1,0 +1,227 @@
+﻿@{
+    Layout = "~/Views/Shared/LayoutDashboard.cshtml";
+    ViewData["Title"] = "Reports & Analytics";
+}
+
+<section class="dashboard-content fade-in">
+    <div class="page-header">
+        <h2><i class="fas fa-chart-line"></i> Reports & Analytics</h2>
+    </div>
+
+    <!-- 🔹 TOP METRICS -->
+    <div class="report-metrics">
+        <div class="metric-card">
+            <h4>Total Sales (This Month)</h4>
+            <p>P <span id="monthlySales">42,300</span></p>
+            <small><i class="fas fa-arrow-up text-success"></i> +12% from last month</small>
+        </div>
+
+        <div class="metric-card">
+            <h4>Total Profit</h4>
+            <p>P <span id="totalProfit">9,850</span></p>
+            <small><i class="fas fa-arrow-up text-success"></i> +8% growth</small>
+        </div>
+
+        <div class="metric-card">
+            <h4>Out of Stock Items</h4>
+            <p><span id="outOfStock">4</span></p>
+            <small><i class="fas fa-exclamation-circle text-danger"></i> Needs restocking</small>
+        </div>
+
+        <div class="metric-card">
+            <h4>Active Customers</h4>
+            <p><span id="activeCustomers">187</span></p>
+            <small><i class="fas fa-users text-primary"></i> +5 new this week</small>
+        </div>
+    </div>
+
+    <!-- 📊 CHARTS SECTION -->
+    <div class="charts-grid">
+        <div class="chart-card">
+            <h4><i class="fas fa-chart-pie"></i> Sales by Category</h4>
+            <canvas id="categoryChart"></canvas>
+        </div>
+
+        <div class="chart-card">
+            <h4><i class="fas fa-chart-bar"></i> Monthly Revenue Trend</h4>
+            <canvas id="revenueChart"></canvas>
+        </div>
+    </div>
+
+    <!-- 🧾 STOCK STATUS TABLE -->
+    <div class="report-table">
+        <h4><i class="fas fa-boxes"></i> Stock Levels Overview</h4>
+        <table class="styled-table">
+            <thead>
+                <tr>
+                    <th>Product Code</th>
+                    <th>Product</th>
+                    <th>Category</th>
+                    <th>Quantity</th>
+                    <th>Reorder Level</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr class="status-safe">
+                    <td>P101</td>
+                    <td>Bluetooth Speaker</td>
+                    <td>Electronics</td>
+                    <td>120</td>
+                    <td>30</td>
+                    <td>Safe</td>
+                </tr>
+                <tr class="status-reorder">
+                    <td>P102</td>
+                    <td>LED Bulb</td>
+                    <td>Electricals</td>
+                    <td>25</td>
+                    <td>40</td>
+                    <td>Reorder</td>
+                </tr>
+                <tr class="status-out">
+                    <td>P103</td>
+                    <td>Fertilizer</td>
+                    <td>Farming</td>
+                    <td>0</td>
+                    <td>20</td>
+                    <td>Out of Stock</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</section>
+<style>
+    /* 📊 Reports Page */
+    .report-metrics {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 20px;
+        margin-bottom: 30px;
+    }
+
+    .metric-card {
+        background: white;
+        padding: 20px;
+        border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        text-align: center;
+        transition: transform 0.3s;
+    }
+
+        .metric-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .metric-card h4 {
+            color: #0a58ca;
+            margin-bottom: 10px;
+        }
+
+        .metric-card p {
+            font-size: 24px;
+            font-weight: 700;
+            color: #212529;
+        }
+
+        .metric-card small {
+            color: #6c757d;
+        }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
+        gap: 25px;
+        margin-bottom: 40px;
+    }
+
+    .chart-card {
+        background: white;
+        border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        padding: 20px;
+    }
+
+        .chart-card h4 {
+            margin-bottom: 15px;
+            color: #0a58ca;
+        }
+
+    .report-table {
+        background: white;
+        padding: 25px;
+        border-radius: 14px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+        .report-table h4 {
+            color: #0a58ca;
+            margin-bottom: 15px;
+        }
+
+    .status-safe td:last-child {
+        color: green;
+        font-weight: 600;
+    }
+
+    .status-reorder td:last-child {
+        color: #ffc107;
+        font-weight: 600;
+    }
+
+    .status-out td:last-child {
+        color: red;
+        font-weight: 600;
+    }
+
+</style>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // 🥧 Category Chart
+        const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+        new Chart(categoryCtx, {
+            type: 'doughnut',
+            data: {
+                labels: ['Groceries', 'Electronics', 'Furniture', 'Clothing', 'Motoring'],
+                datasets: [{
+                    data: [35, 25, 15, 10, 15],
+                    backgroundColor: ['#0a58ca', '#36a2eb', '#4bc0c0', '#ffce56', '#ff6384'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                plugins: { legend: { position: 'bottom' } },
+                responsive: true
+            }
+        });
+
+        // 📈 Revenue Trend Chart
+        const revenueCtx = document.getElementById('revenueChart').getContext('2d');
+        new Chart(revenueCtx, {
+            type: 'line',
+            data: {
+                labels: ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'Revenue (P)',
+                    data: [15000, 21000, 26000, 22000, 28000, 31000, 42300],
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0,123,255,0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    pointRadius: 5,
+                    pointHoverRadius: 7
+                }]
+            },
+            options: {
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true }
+                },
+                responsive: true
+            }
+        });
+    </script>
+}
