@@ -784,67 +784,74 @@ class BacktestEngine:
 
             # ─── Apply trailing stop before checking exits ─────────────
             if self.trailing_manager and self.use_trailing:
-                try:
-                    # Build position dict in the format trailing_manager expects
-                    position = {
-                        "ticket": id(trade),  # Unique ID for state tracking
-                        "symbol": trade.symbol,
-                        "type": trade.direction,
-                        "open_price": trade.entry_price,
-                        "sl": trade.sl_price,
-                        "tp": trade.tp_price,
-                        "open_time": trade.entry_time,
-                    }
+                # Check trail_only_after_tp1 gate
+                mgmt_cfg = self.config.get("trade_management", {})
+                part_cfg = mgmt_cfg.get("partials", {})
+                trail_only_after_tp1 = bool(part_cfg.get("trail_only_after_tp1", False))
 
-                    # Get candle windows for trailing analysis
-                    candles_m5 = self.replay.get_candles(
-                        trade.symbol, "M5", current_time, count=50
-                    )
-                    candles_m1 = self.replay.get_candles(
-                        trade.symbol, "M1", current_time, count=50
-                    )
+                # Only trail if: (a) gate is disabled, OR (b) partial already taken
+                if not trail_only_after_tp1 or trade.partial_taken:
+                    try:
+                        # Build position dict in the format trailing_manager expects
+                        position = {
+                            "ticket": id(trade),  # Unique ID for state tracking
+                            "symbol": trade.symbol,
+                            "type": trade.direction,
+                            "open_price": trade.entry_price,
+                            "sl": trade.sl_price,
+                            "tp": trade.tp_price,
+                            "open_time": trade.entry_time,
+                        }
 
-                    # Simulate bid/ask from bar close (spread = 0 in backtest)
-                    bid = bar_close
-                    ask = bar_close
+                        # Get candle windows for trailing analysis
+                        candles_m5 = self.replay.get_candles(
+                            trade.symbol, "M5", current_time, count=50
+                        )
+                        candles_m1 = self.replay.get_candles(
+                            trade.symbol, "M1", current_time, count=50
+                        )
 
-                    result = self.trailing_manager.evaluate_position(
-                        position=position,
-                        candles_m5=candles_m5 or [],
-                        candles_m1=candles_m1 or [],
-                        bid=bid,
-                        ask=ask,
-                    )
+                        # Simulate bid/ask from bar close (spread = 0 in backtest)
+                        bid = bar_close
+                        ask = bar_close
 
-                    new_sl = result.get("new_sl")
-                    trail_reason = result.get("reason", "")
+                        result = self.trailing_manager.evaluate_position(
+                            position=position,
+                            candles_m5=candles_m5 or [],
+                            candles_m1=candles_m1 or [],
+                            bid=bid,
+                            ask=ask,
+                        )
 
-                    if new_sl is not None:
-                        # Store original SL the first time we trail
-                        if trade.original_sl == 0.0:
-                            trade.original_sl = trade.sl_price
+                        new_sl = result.get("new_sl")
+                        trail_reason = result.get("reason", "")
 
-                        # Only move SL in the protective direction
-                        if trade.direction == "BUY" and new_sl > trade.sl_price:
-                            trade.sl_price = new_sl
-                            trade.trail_count += 1
-                            if trail_reason == "BE_PLUS":
-                                trade.be_applied = True
-                            logger.debug(
-                                f"TRAIL: {trade.symbol} {trade.direction} "
-                                f"SL moved to {new_sl:.5f} ({trail_reason})"
-                            )
-                        elif trade.direction == "SELL" and new_sl < trade.sl_price:
-                            trade.sl_price = new_sl
-                            trade.trail_count += 1
-                            if trail_reason == "BE_PLUS":
-                                trade.be_applied = True
-                            logger.debug(
-                                f"TRAIL: {trade.symbol} {trade.direction} "
-                                f"SL moved to {new_sl:.5f} ({trail_reason})"
-                            )
-                except Exception as e:
-                    logger.debug(f"Trailing error for {trade.symbol}: {e}")
+                        if new_sl is not None:
+                            # Store original SL the first time we trail
+                            if trade.original_sl == 0.0:
+                                trade.original_sl = trade.sl_price
+
+                            # Only move SL in the protective direction
+                            if trade.direction == "BUY" and new_sl > trade.sl_price:
+                                trade.sl_price = new_sl
+                                trade.trail_count += 1
+                                if trail_reason == "BE_PLUS":
+                                    trade.be_applied = True
+                                logger.debug(
+                                    f"TRAIL: {trade.symbol} {trade.direction} "
+                                    f"SL moved to {new_sl:.5f} ({trail_reason})"
+                                )
+                            elif trade.direction == "SELL" and new_sl < trade.sl_price:
+                                trade.sl_price = new_sl
+                                trade.trail_count += 1
+                                if trail_reason == "BE_PLUS":
+                                    trade.be_applied = True
+                                logger.debug(
+                                    f"TRAIL: {trade.symbol} {trade.direction} "
+                                    f"SL moved to {new_sl:.5f} ({trail_reason})"
+                                )
+                    except Exception as e:
+                        logger.debug(f"Trailing error for {trade.symbol}: {e}")
 
             # ─── Step 1b: Update Peak R for Giveback Guard ─────────────────
             # Determine current R-gain

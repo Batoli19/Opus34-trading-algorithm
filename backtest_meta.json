@@ -1,9 +1,9 @@
 {
-  "signals_generated": 11200,
-  "signals_filtered": 11193,
-  "total_trades": 7,
-  "total_pips": 83.47999999999541,
-  "win_rate": 85.71428571428571,
-  "profit_factor": 7.956666666665763,
-  "trades_per_week": 1.1666666666666667
+  "signals_generated": 8868,
+  "signals_filtered": 8835,
+  "total_trades": 33,
+  "total_pips": 231.48430000000045,
+  "win_rate": 57.57575757575758,
+  "profit_factor": 1.4024045432555134,
+  "trades_per_week": 4.714285714285714
 }

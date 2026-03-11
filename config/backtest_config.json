@@ -6,7 +6,6 @@
         "FVG",
         "CONTINUATION_OB",
         "LH_LL_CONTINUATION",
-        "CHOCH",
         "HH_HL_CONTINUATION",
         "LIQUIDITY_GRAB_CONTINUATION"
     ],
@@ -78,12 +77,19 @@
             "tp1_r": 1.0,
             "tp1_close_pct": 0.6,
             "tp1_sl_mode": "BE_PLUS",
-            "tp1_be_plus_r": 0.5
+            "tp1_be_plus_r": 0.5,
+            "trail_only_after_tp1": true
         },
         "giveback_guard": {
             "enabled": true,
             "activate_at_r": 2.0,
             "max_giveback_pct": 0.35
         }
+    },
+    "hybrid": {
+        "allowed_kill_zones": [
+            "NY_OPEN",
+            "LONDON_CLOSE"
+        ]
     }
 }

@@ -196,7 +196,7 @@ class ICTStrategy:
 
     def in_kill_zone(self, now: datetime = None) -> Tuple[bool, str]:
         """Returns (is_in_kill_zone, zone_name). Times are UTC unless you pass localized 'now'."""
-        if not self.cfg["kill_zones"]["enabled"]:
+        if not self.cfg.get("kill_zones", {}).get("enabled", True):
             return True, "ALWAYS"
 
         if now is None:
