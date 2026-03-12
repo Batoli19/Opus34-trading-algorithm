@@ -1,7 +1,11 @@
 """
-run_pass13a.py — Personality A Sequential Backtest
-Run from project root: python run_pass13a.py
-Runs one pair at a time, prints live progress, saves CSV after each pair.
+run_pass13a_clean.py — Personality A Clean Backtest + Bleeder Fade Test
+Run from project root: python run_pass13a_clean.py
+
+Runs in 3 phases:
+  Phase 1 — Core Personality A (CHOCH + LSR + FVG + ORDER_BLOCK + ENGULFING)
+  Phase 2 — Bleeder setups isolated (LH_LL + HH_HL) to collect their signals
+  Phase 3 — Fade analysis: what if we took the OPPOSITE of every bleeder signal?
 """
 
 import sys
@@ -11,285 +15,430 @@ import json
 import gc
 from datetime import datetime, timezone
 from pathlib import Path
+from collections import defaultdict
 
 sys.path.insert(0, str(Path(__file__).parent / "python"))
 
-# ── CONFIG ────────────────────────────────────────────────────────────────────
+# ── LOAD CONFIG ───────────────────────────────────────────────────────────────
 
-PAIRS = ["GBPUSD", "USDJPY", "AUDUSD", "EURUSD", "GBPJPY"]
-DATA_DIR = "data/m5_xm"
-OUTPUT_DIR = "."   # saves pass13a_GBPUSD.csv etc in project root
+with open("config/settings.json", encoding="utf-8") as f:
+    BASE_CONFIG = json.load(f)
 
+PAIRS     = ["GBPUSD", "USDJPY", "AUDUSD", "EURUSD", "GBPJPY"]
+DATA_DIR  = "data/m5_xm"
 DATE_FROM = datetime(2024, 11, 5, tzinfo=timezone.utc)
 DATE_TO   = datetime(2026, 2, 27, tzinfo=timezone.utc)
 
-# Load base config from settings.json then override for Personality A
-import json
-with open("config/settings.json", encoding="utf-8") as f:
-    CONFIG = json.load(f)
+# ── CONFIG BUILDER ────────────────────────────────────────────────────────────
 
-# Personality A overrides
-CONFIG["pairs"] = PAIRS
-CONFIG["disabled_setups"] = [
-    "PIN_BAR",
-    "LH_LL_CONTINUATION",
-    "HH_HL_CONTINUATION",
-    "LIQUIDITY_GRAB_CONTINUATION",
-]
+def build_config(extra_disabled=None, direction_filters=None):
+    import copy
+    cfg = copy.deepcopy(BASE_CONFIG)
 
-# Kill zone times — corrected ICT times
-if "ict" not in CONFIG:
-    CONFIG["ict"] = {}
-if "kill_zones" not in CONFIG["ict"]:
-    CONFIG["ict"]["kill_zones"] = {}
+    # Core bleeders — always disabled
+    always_disabled = [
+        "PIN_BAR",
+        "LH_LL_CONTINUATION",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION",
+        "FVG_CONTINUATION",
+        "CONTINUATION_OB",
+    ]
+    disabled = always_disabled + (extra_disabled or [])
 
-CONFIG["ict"]["kill_zones"]["london_open"]  = {"start": "06:00", "end": "09:00", "tz": "UTC"}
-CONFIG["ict"]["kill_zones"]["ny_open"]      = {"start": "13:30", "end": "16:00", "tz": "UTC"}
-CONFIG["ict"]["kill_zones"]["london_close"] = {"start": "15:00", "end": "17:00", "tz": "UTC"}
+    # CRITICAL: explicitly override disabled_setups
+    # This ensures settings.json values don't interfere
+    cfg["disabled_setups"] = disabled
 
-# All kill zones enabled
-if "hybrid" not in CONFIG:
-    CONFIG["hybrid"] = {}
-CONFIG["hybrid"]["allowed_kill_zones"] = ["LONDON_OPEN", "NY_OPEN", "LONDON_CLOSE"]
+    # Kill zone times — corrected ICT
+    if "ict" not in cfg:
+        cfg["ict"] = {}
+    if "kill_zones" not in cfg["ict"]:
+        cfg["ict"]["kill_zones"] = {}
+    cfg["ict"]["kill_zones"]["london_open"]  = {"start": "06:00", "end": "09:00", "tz": "UTC"}
+    cfg["ict"]["kill_zones"]["ny_open"]      = {"start": "13:30", "end": "16:00", "tz": "UTC"}
+    cfg["ict"]["kill_zones"]["london_close"] = {"start": "15:00", "end": "17:00", "tz": "UTC"}
 
-# No direction filters
-CONFIG["direction_filters"] = {}
+    # All kill zones
+    if "hybrid" not in cfg:
+        cfg["hybrid"] = {}
+    cfg["hybrid"]["allowed_kill_zones"] = ["LONDON_OPEN", "NY_OPEN", "LONDON_CLOSE"]
 
-# Giveback guard — 99% (lock almost all profit)
-if "trade_management" not in CONFIG:
-    CONFIG["trade_management"] = {}
-CONFIG["trade_management"]["giveback_guard"] = {
-    "enabled": True,
-    "activate_at_r": 0.5,
-    "max_giveback_pct": 0.01,
-}
+    # Direction filters
+    cfg["direction_filters"] = direction_filters or {}
 
-# Partials
-CONFIG["trade_management"]["partials"] = {
-    "enabled": True,
-    "tp1_r": 1.0,
-    "tp1_close_pct": 0.6,
-    "tp1_sl_mode": "BE_PLUS",
-    "tp1_be_plus_r": 0.5,
-    "trail_only_after_tp1": True,
-}
+    # Giveback guard — 99%
+    if "trade_management" not in cfg:
+        cfg["trade_management"] = {}
+    cfg["trade_management"]["giveback_guard"] = {
+        "enabled": True,
+        "activate_at_r": 0.5,
+        "max_giveback_pct": 0.01,
+    }
+    cfg["trade_management"]["partials"] = {
+        "enabled": True,
+        "tp1_r": 1.0,
+        "tp1_close_pct": 0.6,
+        "tp1_sl_mode": "BE_PLUS",
+        "tp1_be_plus_r": 0.5,
+        "trail_only_after_tp1": True,
+    }
 
-# Risk — 1%, no daily limit
-if "risk" not in CONFIG:
-    CONFIG["risk"] = {}
-CONFIG["risk"]["risk_per_trade_pct"] = 1.0
-CONFIG["risk"]["daily_loss_limit_pct"] = None
+    # Risk
+    if "risk" not in cfg:
+        cfg["risk"] = {}
+    cfg["risk"]["risk_per_trade_pct"] = 1.0
+    cfg["risk"]["daily_loss_limit_pct"] = None
 
-# Min RR 1.5
-if "execution" not in CONFIG:
-    CONFIG["execution"] = {}
-CONFIG["execution"]["min_rr"] = 1.5
-CONFIG["execution"]["enforce_killzones"] = True
+    # Execution
+    if "execution" not in cfg:
+        cfg["execution"] = {}
+    cfg["execution"]["min_rr"] = 1.5
+    cfg["execution"]["enforce_killzones"] = True
 
-# ── HELPERS ───────────────────────────────────────────────────────────────────
+    return cfg
 
-def print_pair_summary(pair, trades):
+
+# ── BACKTEST RUNNER ───────────────────────────────────────────────────────────
+
+def run_single_pair(pair, config, label=""):
+    from backtester import BacktestEngine
+
+    print(f"\n  [{label}] {pair} starting @ {datetime.now().strftime('%H:%M:%S')}")
+    print(f"  Disabled: {config['disabled_setups']}")
+
+    engine = BacktestEngine(
+        config=config,
+        data_dir=DATA_DIR,
+        use_sniper_filter=False,
+        max_open_trades=2,
+        one_trade_per_symbol=True,
+        signal_cooldown_bars=6,
+        disabled_setups=config["disabled_setups"],
+        killzone_only=True,
+        use_trailing=True,
+    )
+
+    trades = engine.run(
+        symbols=[pair],
+        start_date=DATE_FROM,
+        end_date=DATE_TO,
+        progress_every=3000,
+    )
+
+    closed = [t for t in trades if t.exit_price is not None]
+    print(f"  [{label}] {pair} done @ {datetime.now().strftime('%H:%M:%S')} — {len(closed)} trades")
+
+    del engine, trades
+    gc.collect()
+    return closed
+
+
+def save_csv(trades, filename):
     if not trades:
-        print(f"  {pair}: 0 trades")
+        print(f"  No trades to save → {filename}")
         return
-
-    closed = [t for t in trades if t.exit_price is not None]
-    if not closed:
-        print(f"  {pair}: 0 closed trades")
-        return
-
-    wins   = [t for t in closed if t.pnl_pips > 0]
-    losses = [t for t in closed if t.pnl_pips <= 0]
-    total_pips = sum(t.pnl_pips for t in closed)
-    wr = len(wins) / len(closed) * 100
-    avg_win  = sum(t.pnl_pips for t in wins)  / len(wins)  if wins   else 0
-    avg_loss = sum(t.pnl_pips for t in losses) / len(losses) if losses else 0
-    gross_win  = sum(t.pnl_pips for t in wins)
-    gross_loss = abs(sum(t.pnl_pips for t in losses))
-    pf = gross_win / gross_loss if gross_loss > 0 else float('inf')
-
-    print(f"\n{'='*55}")
-    print(f"  {pair} RESULT")
-    print(f"{'='*55}")
-    print(f"  Trades:      {len(closed)}")
-    print(f"  Win Rate:    {wr:.1f}%  ({len(wins)}W / {len(losses)}L)")
-    print(f"  Profit Factor: {pf:.2f}")
-    print(f"  Total Pips:  {total_pips:+.1f}")
-    print(f"  Avg Win:     +{avg_win:.1f} pips")
-    print(f"  Avg Loss:    {avg_loss:.1f} pips")
-    print(f"  Net USD:     ${total_pips * 50 / max(abs(avg_loss), 1):.2f} (approx)")
-
-    # Setup breakdown
-    from collections import defaultdict
-    by_setup = defaultdict(list)
-    for t in closed:
-        by_setup[t.setup_type].append(t)
-    print(f"\n  Setup Breakdown:")
-    for setup, st in sorted(by_setup.items()):
-        sw = [x for x in st if x.pnl_pips > 0]
-        sp = sum(x.pnl_pips for x in st)
-        sl = abs(sum(x.pnl_pips for x in st if x.pnl_pips <= 0))
-        spf = sum(x.pnl_pips for x in sw) / sl if sl > 0 else float('inf')
-        print(f"    {setup:<30} {len(st):>3} trades | WR {len(sw)/len(st)*100:.0f}% | PF {spf:.2f} | {sp:+.1f} pips")
-
-    # Session breakdown
-    by_session = defaultdict(list)
-    for t in closed:
-        by_session[getattr(t, 'kill_zone', 'UNKNOWN')].append(t)
-    print(f"\n  Session Breakdown:")
-    for sess, st in sorted(by_session.items()):
-        sw = [x for x in st if x.pnl_pips > 0]
-        sp = sum(x.pnl_pips for x in st)
-        sl = abs(sum(x.pnl_pips for x in st if x.pnl_pips <= 0))
-        spf = sum(x.pnl_pips for x in sw) / sl if sl > 0 else float('inf')
-        print(f"    {sess:<20} {len(st):>3} trades | WR {len(sw)/len(st)*100:.0f}% | PF {spf:.2f} | {sp:+.1f} pips")
-
-    print(f"{'='*55}\n")
-
-
-def save_pair_csv(pair, trades, output_dir):
-    closed = [t for t in trades if t.exit_price is not None]
-    if not closed:
-        print(f"  No closed trades to save for {pair}")
-        return
-
-    filepath = os.path.join(output_dir, f"pass13a_{pair}.csv")
     fields = [
         'symbol', 'setup_type', 'direction', 'kill_zone',
         'entry_time', 'exit_time', 'entry_price', 'exit_price',
-        'sl_price', 'tp1_price', 'pnl_pips', 'exit_reason',
-        'partial_taken',
+        'sl_price', 'tp_price', 'pnl_pips', 'exit_reason',
+        'partial_taken', 'htf_bias',
     ]
+    with open(filename, 'w', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
+        w.writeheader()
+        for t in trades:
+            row = {field: getattr(t, field, '') for field in fields}
+            # handle killzone attribute name variations
+            if not row['kill_zone']:
+                row['kill_zone'] = getattr(t, 'killzone', '')
+            w.writerow(row)
+    print(f"  Saved {len(trades)} trades → {filename}")
 
-    with open(filepath, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=fields, extrasaction='ignore')
-        writer.writeheader()
-        for t in closed:
-            row = {}
-            for field in fields:
-                row[field] = getattr(t, field, '')
-            writer.writerow(row)
 
-    print(f"  Saved {len(closed)} trades → {filepath}")
+# ── REPORTING ─────────────────────────────────────────────────────────────────
+
+def summarize(trades, label):
+    if not trades:
+        print(f"\n  {label}: 0 trades")
+        return {}
+
+    wins   = [t for t in trades if float(t.pnl_pips or 0) > 0]
+    losses = [t for t in trades if float(t.pnl_pips or 0) <= 0]
+    total_pips = sum(float(t.pnl_pips or 0) for t in trades)
+    wr  = len(wins) / len(trades) * 100
+    gw  = sum(float(t.pnl_pips or 0) for t in wins)
+    gl  = abs(sum(float(t.pnl_pips or 0) for t in losses))
+    pf  = gw / gl if gl > 0 else float('inf')
+    weeks = (DATE_TO - DATE_FROM).days / 7
+    avg_win  = gw / len(wins)   if wins   else 0
+    avg_loss = gl / len(losses) if losses else 0
+
+    print(f"\n{'='*58}")
+    print(f"  {label}")
+    print(f"{'='*58}")
+    print(f"  Trades:        {len(trades)} ({len(trades)/weeks:.1f}/week)")
+    print(f"  Win Rate:      {wr:.1f}%  ({len(wins)}W / {len(losses)}L)")
+    print(f"  Profit Factor: {pf:.2f}")
+    print(f"  Total Pips:    {total_pips:+.1f}")
+    print(f"  Avg Win:       +{avg_win:.1f} pips")
+    print(f"  Avg Loss:      -{avg_loss:.1f} pips")
+
+    # Per setup
+    by_setup = defaultdict(list)
+    for t in trades:
+        by_setup[getattr(t, 'setup_type', 'UNKNOWN')].append(t)
+    print(f"\n  By Setup:")
+    for s, st in sorted(by_setup.items(), key=lambda x: -sum(float(t.pnl_pips or 0) for t in x[1])):
+        sw  = [t for t in st if float(t.pnl_pips or 0) > 0]
+        sp  = sum(float(t.pnl_pips or 0) for t in st)
+        sgw = sum(float(t.pnl_pips or 0) for t in sw)
+        sgl = abs(sum(float(t.pnl_pips or 0) for t in st if float(t.pnl_pips or 0) <= 0))
+        spf = sgw / sgl if sgl > 0 else float('inf')
+        verdict = "✅" if spf > 1.0 else "❌"
+        print(f"  {verdict} {s:<35} {len(st):>3}tr | WR {len(sw)/len(st)*100:.0f}% | PF {spf:.2f} | {sp:+.1f}p")
+
+    # Per session
+    by_kz = defaultdict(list)
+    for t in trades:
+        kz = getattr(t, 'kill_zone', '') or getattr(t, 'killzone', '') or 'UNKNOWN'
+        by_kz[kz].append(t)
+    print(f"\n  By Session:")
+    for kz, kt in sorted(by_kz.items()):
+        kw  = [t for t in kt if float(t.pnl_pips or 0) > 0]
+        kp  = sum(float(t.pnl_pips or 0) for t in kt)
+        kgw = sum(float(t.pnl_pips or 0) for t in kw)
+        kgl = abs(sum(float(t.pnl_pips or 0) for t in kt if float(t.pnl_pips or 0) <= 0))
+        kpf = kgw / kgl if kgl > 0 else float('inf')
+        print(f"    {kz:<20} {len(kt):>3}tr | WR {len(kw)/len(kt)*100:.0f}% | PF {kpf:.2f} | {kp:+.1f}p")
+
+    # Per pair
+    by_pair = defaultdict(list)
+    for t in trades:
+        by_pair[getattr(t, 'symbol', 'UNKNOWN')].append(t)
+    print(f"\n  By Pair:")
+    for pair, pt in sorted(by_pair.items()):
+        pw  = [t for t in pt if float(t.pnl_pips or 0) > 0]
+        pp  = sum(float(t.pnl_pips or 0) for t in pt)
+        pgw = sum(float(t.pnl_pips or 0) for t in pw)
+        pgl = abs(sum(float(t.pnl_pips or 0) for t in pt if float(t.pnl_pips or 0) <= 0))
+        ppf = pgw / pgl if pgl > 0 else float('inf')
+        print(f"    {pair:<10} {len(pt):>3}tr | WR {len(pw)/len(pt)*100:.0f}% | PF {ppf:.2f} | {pp:+.1f}p")
+
+    # Monthly
+    by_month = defaultdict(list)
+    for t in trades:
+        try:
+            et = str(getattr(t, 'entry_time', ''))[:7]
+            by_month[et].append(t)
+        except:
+            pass
+    print(f"\n  Monthly:")
+    for month in sorted(by_month.keys()):
+        mt  = by_month[month]
+        mw  = [t for t in mt if float(t.pnl_pips or 0) > 0]
+        mp  = sum(float(t.pnl_pips or 0) for t in mt)
+        mgw = sum(float(t.pnl_pips or 0) for t in mw)
+        mgl = abs(sum(float(t.pnl_pips or 0) for t in mt if float(t.pnl_pips or 0) <= 0))
+        mpf = mgw / mgl if mgl > 0 else float('inf')
+        status = "✅" if mp > 0 else "❌"
+        print(f"    {status} {month}  {len(mt):>3}tr | WR {len(mw)/len(mt)*100:.0f}% | PF {mpf:.2f} | {mp:+.1f}p")
+
+    print(f"{'='*58}\n")
+    return {"trades": len(trades), "wr": wr, "pf": pf, "pips": total_pips,
+            "tpw": len(trades)/weeks}
+
+
+def fade_analysis(bleeder_trades, label):
+    """
+    Simulate taking the OPPOSITE direction of every bleeder signal.
+    Flips BUY→SELL and SELL→BUY, inverts the pnl_pips.
+    """
+    if not bleeder_trades:
+        print(f"\n  Fade analysis: no trades for {label}")
+        return
+
+    print(f"\n{'='*58}")
+    print(f"  FADE ANALYSIS — {label}")
+    print(f"  (Taking OPPOSITE direction of every signal)")
+    print(f"{'='*58}")
+
+    # Original performance
+    orig_pips = sum(float(t.pnl_pips or 0) for t in bleeder_trades)
+    orig_wins = [t for t in bleeder_trades if float(t.pnl_pips or 0) > 0]
+    orig_wr   = len(orig_wins) / len(bleeder_trades) * 100
+
+    # Faded performance — flip the pnl sign
+    faded_pips  = -orig_pips
+    faded_wins  = len(bleeder_trades) - len(orig_wins)
+    faded_wr    = faded_wins / len(bleeder_trades) * 100
+    faded_w_pips = abs(sum(float(t.pnl_pips or 0) for t in bleeder_trades if float(t.pnl_pips or 0) < 0))
+    faded_l_pips = sum(float(t.pnl_pips or 0) for t in bleeder_trades if float(t.pnl_pips or 0) > 0)
+    faded_pf    = faded_w_pips / faded_l_pips if faded_l_pips > 0 else float('inf')
+
+    print(f"\n  Original (as-is):")
+    print(f"    Trades:  {len(bleeder_trades)}")
+    print(f"    WR:      {orig_wr:.1f}%")
+    print(f"    Pips:    {orig_pips:+.1f}")
+
+    print(f"\n  Faded (opposite direction):")
+    print(f"    Trades:  {len(bleeder_trades)}  (same entries, flipped direction)")
+    print(f"    WR:      {faded_wr:.1f}%")
+    print(f"    Pips:    {faded_pips:+.1f}")
+    print(f"    PF:      {faded_pf:.2f}")
+
+    verdict = "✅ VIABLE — fading this setup adds value" if faded_pf > 1.2 else \
+              "⚠️  MARGINAL — not strong enough to trade" if faded_pf > 1.0 else \
+              "❌ NOT VIABLE — fading still loses"
+    print(f"\n  Verdict: {verdict}")
+
+    # Monthly fade breakdown
+    by_month = defaultdict(list)
+    for t in bleeder_trades:
+        et = str(getattr(t, 'entry_time', ''))[:7]
+        by_month[et].append(t)
+
+    print(f"\n  Monthly fade P&L:")
+    for month in sorted(by_month.keys()):
+        mt = by_month[month]
+        mp = -sum(float(t.pnl_pips or 0) for t in mt)  # flipped
+        status = "✅" if mp > 0 else "❌"
+        print(f"    {status} {month}  {len(mt):>3}tr | Faded pips: {mp:+.1f}")
+
+    print(f"{'='*58}\n")
 
 
 # ── MAIN ──────────────────────────────────────────────────────────────────────
 
 def main():
     print("\n" + "="*60)
-    print("  PASS 13A — PERSONALITY A SEQUENTIAL BACKTEST")
+    print("  PASS 13A CLEAN — PERSONALITY A + BLEEDER FADE TEST")
     print("="*60)
     print(f"  Pairs:      {PAIRS}")
     print(f"  Date range: {DATE_FROM.date()} → {DATE_TO.date()}")
     print(f"  Data dir:   {DATA_DIR}")
-    print(f"  Setups:     ALL except confirmed bleeders")
-    print(f"  Kill zones: LONDON_OPEN + NY_OPEN(13:30) + LONDON_CLOSE")
-    print(f"  Direction:  BOTH (no filters)")
-    print(f"  Giveback:   99% at 0.5R")
-    print(f"  Min RR:     1.5")
-    print("="*60 + "\n")
-
-    from backtester import BacktestEngine
-
-    all_results = {}
-
-    for i, pair in enumerate(PAIRS, 1):
-        print(f"\n>>> RUN {i}/5: {pair}")
-        print(f"    Started: {datetime.now().strftime('%H:%M:%S')}")
-
-        try:
-            engine = BacktestEngine(
-                config=CONFIG,
-                data_dir=DATA_DIR,
-                use_sniper_filter=False,   # off for speed
-                max_open_trades=2,         # 1 buy + 1 sell
-                one_trade_per_symbol=True,
-                signal_cooldown_bars=6,
-                disabled_setups=CONFIG["disabled_setups"],
-                killzone_only=True,
-                use_trailing=True,
-            )
-
-            trades = engine.run(
-                symbols=[pair],
-                start_date=DATE_FROM,
-                end_date=DATE_TO,
-                progress_every=2000,       # print progress every 2000 bars
-            )
-
-            print(f"    Finished: {datetime.now().strftime('%H:%M:%S')}")
-            print_pair_summary(pair, trades)
-            save_pair_csv(pair, trades, OUTPUT_DIR)
-            all_results[pair] = trades
-
-        except Exception as e:
-            print(f"\n  ERROR on {pair}: {e}")
-            import traceback
-            traceback.print_exc()
-
-        finally:
-            # Free memory before next pair
-            if 'engine' in locals():
-                del engine
-            if 'trades' in locals():
-                del trades
-            gc.collect()
-            print(f"  Memory freed. Moving to next pair...\n")
-
-    # ── GRAND SUMMARY ─────────────────────────────────────────────────────────
-    print("\n" + "="*60)
-    print("  PASS 13A — GRAND SUMMARY (ALL PAIRS)")
+    print()
+    print("  PHASE 1 — Core Personality A")
+    print("    Setups ON:  CHOCH, LSR, FVG, ORDER_BLOCK, ENGULFING, SCALP, SNIPER")
+    print("    Setups OFF: LH_LL, HH_HL, LIQUIDITY_GRAB, PIN_BAR, FVG_CONT, CONT_OB")
+    print()
+    print("  PHASE 2 — Confirmed Bleeders Isolated")
+    print("    Setups ON:  LH_LL_CONTINUATION + HH_HL_CONTINUATION ONLY")
+    print("    (to collect their signals for fade analysis)")
+    print()
+    print("  PHASE 3 — Fade Analysis")
+    print("    Simulate taking OPPOSITE direction of every bleeder signal")
+    print("    If faded PF > 1.2 → new setup viable")
     print("="*60)
 
-    all_trades = []
-    for pair, trades in all_results.items():
-        closed = [t for t in trades if t.exit_price is not None]
-        all_trades.extend(closed)
+    # ── PHASE 1: CORE PERSONALITY A ──────────────────────────────────────────
+    print("\n\n>>> PHASE 1 — CORE PERSONALITY A\n")
 
-    if not all_trades:
-        print("  No trades to summarize.")
-        return
+    phase1_config = build_config(
+        extra_disabled=[],  # only the always_disabled list applies
+    )
 
-    wins   = [t for t in all_trades if t.pnl_pips > 0]
-    losses = [t for t in all_trades if t.pnl_pips <= 0]
-    total_pips = sum(t.pnl_pips for t in all_trades)
-    wr  = len(wins) / len(all_trades) * 100
-    gw  = sum(t.pnl_pips for t in wins)
-    gl  = abs(sum(t.pnl_pips for t in losses))
-    pf  = gw / gl if gl > 0 else float('inf')
-    weeks = (DATE_TO - DATE_FROM).days / 7
+    # Verify CHOCH is NOT in disabled list
+    assert "CHOCH" not in [s.upper() for s in phase1_config["disabled_setups"]], \
+        "ERROR: CHOCH is disabled — fix config!"
+    print(f"  ✅ Config check: CHOCH is enabled")
+    print(f"  Disabled setups: {phase1_config['disabled_setups']}\n")
 
-    print(f"\n  Total trades:    {len(all_trades)}")
-    print(f"  Win Rate:        {wr:.1f}%")
-    print(f"  Profit Factor:   {pf:.2f}")
-    print(f"  Total Pips:      {total_pips:+.1f}")
-    print(f"  Trades/week:     {len(all_trades)/weeks:.1f}")
+    phase1_trades = []
+    phase1_summary = {}
 
-    print(f"\n  Per-Pair Summary:")
-    print(f"  {'Pair':<10} {'Trades':>7} {'WR':>7} {'PF':>6} {'Pips':>10}")
-    print(f"  {'-'*45}")
     for pair in PAIRS:
-        if pair not in all_results:
-            continue
-        closed = [t for t in all_results[pair] if t.exit_price is not None]
-        if not closed:
-            print(f"  {pair:<10} {'0':>7}")
-            continue
-        w = [t for t in closed if t.pnl_pips > 0]
-        tp = sum(t.pnl_pips for t in closed)
-        gl2 = abs(sum(t.pnl_pips for t in closed if t.pnl_pips <= 0))
-        gw2 = sum(t.pnl_pips for t in w)
-        pf2 = gw2/gl2 if gl2 > 0 else float('inf')
-        print(f"  {pair:<10} {len(closed):>7} {len(w)/len(closed)*100:>6.1f}% {pf2:>6.2f} {tp:>+10.1f}")
+        trades = run_single_pair(pair, phase1_config, label="P1")
+        phase1_trades.extend(trades)
+        save_csv(trades, f"pass13a_{pair}.csv")
+        gc.collect()
 
-    print(f"\n  Personality A vs Personality B:")
-    print(f"  {'Metric':<25} {'Pers B':>10} {'Pers A':>10}")
-    print(f"  {'-'*47}")
-    print(f"  {'Profit Factor':<25} {'1.48':>10} {pf:>10.2f}")
-    print(f"  {'Win Rate':<25} {'56.4%':>10} {wr:>9.1f}%")
-    print(f"  {'Total Trades':<25} {'39 (7wk)':>10} {len(all_trades):>10}")
-    print(f"  {'Trades/week':<25} {'5.6':>10} {len(all_trades)/weeks:>10.1f}")
-    print(f"  {'Total Pips':<25} {'+220.5':>10} {total_pips:>+10.1f}")
+    phase1_summary = summarize(phase1_trades, "PHASE 1 — PERSONALITY A (CHOCH+LSR+FVG+OB+ENG)")
+    save_csv(phase1_trades, "pass13a_phase1_all.csv")
+
+    # ── PHASE 2: BLEEDERS ISOLATED ───────────────────────────────────────────
+    print("\n\n>>> PHASE 2 — CONFIRMED BLEEDERS ISOLATED\n")
+    print("  Running LH_LL + HH_HL only to collect signals for fade test\n")
+
+    # Enable ONLY the two bleeders — disable everything else including CHOCH
+    bleeder_config = build_config(
+        extra_disabled=[
+            "CHOCH",
+            "LIQUIDITY_SWEEP_REVERSAL",
+            "FVG",
+            "ORDER_BLOCK",
+            "ENGULFING",
+            "SCALP",
+            "SNIPER",
+        ]
+    )
+    # Re-enable the bleeders we want to test
+    bleeder_config["disabled_setups"] = [
+        s for s in bleeder_config["disabled_setups"]
+        if s not in ["LH_LL_CONTINUATION", "HH_HL_CONTINUATION"]
+    ]
+
+    print(f"  Bleeder config disabled: {bleeder_config['disabled_setups']}")
+    print(f"  (LH_LL + HH_HL should be ACTIVE)\n")
+
+    bleeder_trades = []
+    for pair in PAIRS:
+        trades = run_single_pair(pair, bleeder_config, label="P2-BLEEDERS")
+        bleeder_trades.extend(trades)
+        gc.collect()
+
+    summarize(bleeder_trades, "PHASE 2 — BLEEDERS (LH_LL + HH_HL)")
+    save_csv(bleeder_trades, "pass13a_phase2_bleeders.csv")
+
+    # Split by setup for individual fade analysis
+    lh_ll_trades = [t for t in bleeder_trades
+                    if getattr(t, 'setup_type', '') == 'LH_LL_CONTINUATION']
+    hh_hl_trades = [t for t in bleeder_trades
+                    if getattr(t, 'setup_type', '') == 'HH_HL_CONTINUATION']
+
+    # ── PHASE 3: FADE ANALYSIS ───────────────────────────────────────────────
+    print("\n\n>>> PHASE 3 — FADE ANALYSIS\n")
+
+    fade_analysis(bleeder_trades, "ALL BLEEDERS COMBINED (LH_LL + HH_HL)")
+    fade_analysis(lh_ll_trades,   "LH_LL_CONTINUATION only")
+    fade_analysis(hh_hl_trades,   "HH_HL_CONTINUATION only")
+
+    # ── GRAND COMPARISON ─────────────────────────────────────────────────────
+    print("\n" + "="*60)
+    print("  FINAL VERDICT")
+    print("="*60)
+
+    p1_pf   = phase1_summary.get('pf', 0)
+    p1_pips = phase1_summary.get('pips', 0)
+    p1_tpw  = phase1_summary.get('tpw', 0)
+
+    faded_pips = -sum(float(t.pnl_pips or 0) for t in bleeder_trades)
+    combined_pips = p1_pips + faded_pips
+
+    print(f"\n  Personality A (Phase 1):         {p1_pips:+.1f} pips | PF {p1_pf:.2f}")
+    print(f"  Faded bleeders (Phase 3):        {faded_pips:+.1f} pips")
+    print(f"  Combined if both run:            {combined_pips:+.1f} pips")
+    print()
+
+    if faded_pips > 0:
+        print("  ✅ Fading bleeders ADDS value — worth building as a separate signal")
+        print("     Recommendation: implement ANTI_LH_LL and ANTI_HH_HL as new setups")
+        print("     that take the OPPOSITE direction with the same SL/TP structure")
+    else:
+        print("  ❌ Fading bleeders does NOT add value")
+        print("     The losses come from bad timing/R:R not wrong direction")
+        print("     Keep bleeders permanently disabled, do not attempt to fade them")
+
+    print()
+    print(f"  Personality B baseline (Pass 12): +338.4 pips | PF 2.13")
+    print(f"  Personality A (this run):          {p1_pips:+.1f} pips | PF {p1_pf:.2f}")
+
+    if p1_pf > 2.13:
+        print("  ✅ Personality A BEATS Personality B — use as primary system")
+    elif p1_pf > 1.5:
+        print("  ✅ Personality A viable — higher frequency offsets lower PF")
+    else:
+        print("  ⚠️  Personality A underperforms — Personality B remains primary")
 
     print("\n" + "="*60)
     print("  Pass 13A complete.")
