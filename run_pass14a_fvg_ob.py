@@ -1,0 +1,250 @@
+"""
+run_pass14a_fvg_ob.py — FVG & ORDER_BLOCK wired-in test
+========================================================
+BEFORE RUNNING:
+  1. Copy ict_advanced_setups.py (from outputs) → python/ict_advanced_setups.py
+  2. Drop this file in project root
+  3. Run: python run_pass14a_fvg_ob.py
+
+Tests three configs against the same 16-month dataset:
+  CONFIG A — Personality B baseline (CHOCH + LSR only, validated PF 2.13)
+  CONFIG B — Personality B + FVG_ENTRY added
+  CONFIG C — Personality B + ORDER_BLOCK added
+  CONFIG D — Personality B + FVG_ENTRY + ORDER_BLOCK together
+
+Pairs:    EURUSD, USDJPY, GBPUSD (proven trio — no GBPJPY/AUDUSD bleeders)
+Sessions: London Open + London Close ONLY (no NY_OPEN bleeder)
+"""
+
+import sys, os, gc, json, csv
+from datetime import datetime, timezone
+from pathlib import Path
+from collections import defaultdict
+
+sys.path.insert(0, str(Path(__file__).parent / "python"))
+
+with open("config/settings.json", encoding="utf-8") as f:
+    BASE_CONFIG = json.load(f)
+
+PAIRS     = ["EURUSD", "USDJPY", "GBPUSD"]
+DATA_DIR  = "data/m5_xm"
+DATE_FROM = datetime(2024, 11, 5, tzinfo=timezone.utc)
+DATE_TO   = datetime(2026, 2, 27, tzinfo=timezone.utc)
+
+
+def build_config(extra_enabled_setups=None):
+    import copy
+    cfg = copy.deepcopy(BASE_CONFIG)
+
+    # Always-disabled list (bleeders + junk)
+    cfg["disabled_setups"] = [
+        "PIN_BAR",
+        "LH_LL_CONTINUATION",
+        "HH_HL_CONTINUATION",
+        "LIQUIDITY_GRAB_CONTINUATION",
+        "FVG_CONTINUATION",
+        "CONTINUATION_OB",
+    ]
+    # Disable the extra setups by default, then selectively re-enable
+    always_off = ["FVG_ENTRY", "ORDER_BLOCK"]
+    for s in always_off:
+        if s not in (extra_enabled_setups or []):
+            cfg["disabled_setups"].append(s)
+
+    # Corrected session times — London Open + London Close ONLY
+    if "ict" not in cfg:    cfg["ict"] = {}
+    if "kill_zones" not in cfg["ict"]: cfg["ict"]["kill_zones"] = {}
+    cfg["ict"]["kill_zones"]["london_open"]  = {"start": "06:00", "end": "09:00", "tz": "UTC"}
+    cfg["ict"]["kill_zones"]["london_close"] = {"start": "15:00", "end": "17:00", "tz": "UTC"}
+    # Disable NY_OPEN — it bleeds in all configs
+    cfg["ict"]["kill_zones"]["ny_open"] = {"start": "13:30", "end": "13:30", "tz": "UTC"}
+
+    if "hybrid" not in cfg: cfg["hybrid"] = {}
+    cfg["hybrid"]["allowed_kill_zones"] = ["LONDON_OPEN", "LONDON_CLOSE"]
+
+    # Trade management — Personality B settings
+    if "trade_management" not in cfg: cfg["trade_management"] = {}
+    cfg["trade_management"]["partials"] = {
+        "enabled": True,
+        "tp1_r": 1.0,
+        "tp1_close_pct": 0.6,
+        "tp1_sl_mode": "BE_PLUS",
+        "tp1_be_plus_r": 0.5,
+        "trail_only_after_tp1": True,
+    }
+    cfg["trade_management"]["giveback_guard"] = {
+        "enabled": True,
+        "activate_at_r": 0.5,
+        "max_giveback_pct": 0.01,
+    }
+
+    if "risk" not in cfg: cfg["risk"] = {}
+    cfg["risk"]["risk_per_trade_pct"]   = 1.0
+    cfg["risk"]["daily_loss_limit_pct"] = 3.0   # Personality B has this
+
+    if "execution" not in cfg: cfg["execution"] = {}
+    cfg["execution"]["min_rr"]            = 1.5
+    cfg["execution"]["enforce_killzones"] = True
+
+    return cfg
+
+
+def run_config(label, cfg, pairs):
+    from backtester import BacktestEngine
+    all_trades = []
+    print(f"\n  [{label}] Disabled: {cfg['disabled_setups']}")
+    for pair in pairs:
+        print(f"  [{label}] {pair} @ {datetime.now().strftime('%H:%M:%S')}", end="", flush=True)
+        engine = BacktestEngine(
+            config=cfg,
+            data_dir=DATA_DIR,
+            use_sniper_filter=False,
+            max_open_trades=2,
+            one_trade_per_symbol=True,
+            signal_cooldown_bars=6,
+            disabled_setups=cfg["disabled_setups"],
+            killzone_only=True,
+            use_trailing=True,
+        )
+        trades = engine.run(
+            symbols=[pair],
+            start_date=DATE_FROM,
+            end_date=DATE_TO,
+            progress_every=3000,
+        )
+        closed = [t for t in trades if t.exit_price is not None]
+        print(f" → {len(closed)} trades")
+        all_trades.extend(closed)
+        del engine, trades
+        gc.collect()
+    return all_trades
+
+
+def summarize(trades, label):
+    if not trades:
+        print(f"\n  {label}: 0 trades — nothing to show")
+        return {}
+
+    weeks    = (DATE_TO - DATE_FROM).days / 7
+    wins     = [t for t in trades if float(t.pnl_pips or 0) > 0]
+    losses   = [t for t in trades if float(t.pnl_pips or 0) <= 0]
+    total_p  = sum(float(t.pnl_pips or 0) for t in trades)
+    gw       = sum(float(t.pnl_pips or 0) for t in wins)
+    gl       = abs(sum(float(t.pnl_pips or 0) for t in losses))
+    pf       = gw / gl if gl > 0 else float("inf")
+    wr       = len(wins) / len(trades) * 100
+
+    print(f"\n{'='*60}")
+    print(f"  {label}")
+    print(f"{'='*60}")
+    print(f"  Trades:    {len(trades)} ({len(trades)/weeks:.1f}/week)")
+    print(f"  Win Rate:  {wr:.1f}%  ({len(wins)}W / {len(losses)}L)")
+    print(f"  PF:        {pf:.2f}")
+    print(f"  Pips:      {total_p:+.1f}")
+    print(f"  Avg Win:   +{gw/len(wins):.1f}p  |  Avg Loss: -{gl/len(losses):.1f}p")
+
+    # Per setup
+    by_setup = defaultdict(list)
+    for t in trades:
+        by_setup[getattr(t, "setup_type", "?")].append(t)
+    print(f"\n  By Setup:")
+    for s, st in sorted(by_setup.items(), key=lambda x: -sum(float(t.pnl_pips or 0) for t in x[1])):
+        sw  = [t for t in st if float(t.pnl_pips or 0) > 0]
+        sp  = sum(float(t.pnl_pips or 0) for t in st)
+        sgw = sum(float(t.pnl_pips or 0) for t in sw)
+        sgl = abs(sum(float(t.pnl_pips or 0) for t in st if float(t.pnl_pips or 0) <= 0))
+        spf = sgw / sgl if sgl > 0 else float("inf")
+        icon = "✅" if spf >= 1.2 else "⚠️ " if spf >= 1.0 else "❌"
+        print(f"  {icon} {s:<35} {len(st):>3}tr | WR {len(sw)/len(st)*100:.0f}% | PF {spf:.2f} | {sp:+.1f}p")
+
+    # Monthly
+    by_month = defaultdict(list)
+    for t in trades:
+        by_month[str(getattr(t, "entry_time", ""))[:7]].append(t)
+    print(f"\n  Monthly:")
+    for m in sorted(by_month):
+        mt  = by_month[m]
+        mw  = [t for t in mt if float(t.pnl_pips or 0) > 0]
+        mp  = sum(float(t.pnl_pips or 0) for t in mt)
+        mgw = sum(float(t.pnl_pips or 0) for t in mw)
+        mgl = abs(sum(float(t.pnl_pips or 0) for t in mt if float(t.pnl_pips or 0) <= 0))
+        mpf = mgw / mgl if mgl > 0 else float("inf")
+        icon = "✅" if mp > 0 else "❌"
+        print(f"    {icon} {m}  {len(mt):>3}tr | WR {len(mw)/len(mt)*100:.0f}% | PF {mpf:.2f} | {mp:+.1f}p")
+
+    print(f"{'='*60}")
+    return {"label": label, "trades": len(trades), "wr": wr, "pf": pf,
+            "pips": total_p, "tpw": len(trades)/weeks}
+
+
+def main():
+    print("\n" + "="*60)
+    print("  PASS 14A — FVG & ORDER_BLOCK WIRED-IN TEST")
+    print("="*60)
+    print(f"  Pairs:    {PAIRS}  (no GBPJPY/AUDUSD)")
+    print(f"  Sessions: London Open + London Close only")
+    print(f"  Range:    {DATE_FROM.date()} → {DATE_TO.date()}")
+    print()
+
+    configs = [
+        ("A — Personality B baseline (CHOCH+LSR)",       build_config([])),
+        ("B — Personality B + FVG_ENTRY",                build_config(["FVG_ENTRY"])),
+        ("C — Personality B + ORDER_BLOCK",              build_config(["ORDER_BLOCK"])),
+        ("D — Personality B + FVG_ENTRY + ORDER_BLOCK",  build_config(["FVG_ENTRY", "ORDER_BLOCK"])),
+    ]
+
+    results = []
+    for label, cfg in configs:
+        print(f"\n\n>>> {label}\n")
+        assert "CHOCH" not in cfg["disabled_setups"], "CHOCH must stay enabled!"
+        trades = run_config(label, cfg, PAIRS)
+        summary = summarize(trades, label)
+        results.append(summary)
+
+        # Save CSV
+        safe = label.split("—")[0].strip().replace(" ", "_")
+        fname = f"pass14a_{safe}.csv"
+        if trades:
+            fields = ["symbol","setup_type","direction","kill_zone",
+                      "entry_time","exit_time","pnl_pips","exit_reason"]
+            with open(fname, "w", newline="") as f:
+                w = csv.DictWriter(f, fieldnames=fields, extrasaction="ignore")
+                w.writeheader()
+                for t in trades:
+                    row = {fld: getattr(t, fld, "") for fld in fields}
+                    if not row["kill_zone"]:
+                        row["kill_zone"] = getattr(t, "killzone", "")
+                    w.writerow(row)
+            print(f"  Saved → {fname}")
+
+    # Final comparison table
+    print("\n\n" + "="*60)
+    print("  COMPARISON — DOES FVG/OB ADD VALUE?")
+    print("="*60)
+    baseline_pf   = results[0]["pf"]   if results else 0
+    baseline_pips = results[0]["pips"] if results else 0
+    print(f"\n  {'Config':<45} {'Trades':>7} {'WR':>7} {'PF':>7} {'Pips':>9}")
+    print(f"  {'-'*45} {'-'*7} {'-'*7} {'-'*7} {'-'*9}")
+    for r in results:
+        pf_delta   = r["pf"]   - baseline_pf
+        pip_delta  = r["pips"] - baseline_pips
+        pf_tag     = f"(+{pf_delta:.2f})" if pf_delta > 0 else f"({pf_delta:.2f})" if pf_delta != 0 else ""
+        print(f"  {r['label']:<45} {r['trades']:>7} {r['wr']:>6.1f}% {r['pf']:>7.2f}{pf_tag:<8} {r['pips']:>+9.1f}")
+
+    print()
+    for r in results[1:]:
+        added = r["pips"] - baseline_pips
+        if r["pf"] >= 1.5 and added > 0:
+            print(f"  ✅ {r['label']} — ADDS VALUE (PF {r['pf']:.2f}, +{added:.0f} pips vs baseline)")
+        elif r["pf"] >= baseline_pf:
+            print(f"  ⚠️  {r['label']} — NEUTRAL (PF unchanged or marginal gain)")
+        else:
+            print(f"  ❌ {r['label']} — DEGRADES SYSTEM (PF drops {baseline_pf-r['pf']:.2f})")
+
+    print("\n" + "="*60)
+    print("  Pass 14A complete.")
+    print("="*60 + "\n")
+
+
+if __name__ == "__main__":
+    main()

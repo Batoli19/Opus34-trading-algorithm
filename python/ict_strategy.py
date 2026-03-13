@@ -935,7 +935,6 @@ class ICTStrategy:
             candles_m15=candles_m15,
             candles_m5=candles_m5,
             symbol=symbol,
-            session_start=kz_start,
         )
         
         for adv_signal in adv_signals:

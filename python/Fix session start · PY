@@ -1,0 +1,44 @@
+"""
+fix_session_start.py — Remove session_start kwarg from scan_all_setups() call
+Run from project root: python fix_session_start.py
+"""
+import re
+from pathlib import Path
+
+target = Path("python/ict_strategy.py")
+text = target.read_text(encoding="utf-8")
+
+# Find and remove the session_start=kz_start line from the scan_all_setups call
+old = re.compile(
+    r'(self\.advanced_setups\.scan_all_setups\([^)]*?)'   # start of call
+    r'\s*session_start\s*=\s*\w+\s*,?\s*'                 # session_start= line
+    r'(\))',                                                # closing paren
+    re.DOTALL
+)
+
+if 'session_start' not in text:
+    print("✅ No session_start found — file is already clean, nothing to do.")
+else:
+    # Simple targeted replacement
+    new_text = text.replace(
+        "            session_start=kz_start,\n", ""
+    ).replace(
+        "        session_start=kz_start,\n", ""
+    ).replace(
+        "            session_start=kz_start\n", ""
+    ).replace(
+        "        session_start=kz_start\n", ""
+    )
+    
+    if 'session_start' in new_text:
+        # Fallback: regex strip
+        new_text = re.sub(r'\s*session_start\s*=\s*kz_start,?\s*\n', '\n', text)
+    
+    if 'session_start' not in new_text:
+        target.write_text(new_text, encoding="utf-8")
+        print(f"✅ Fixed — session_start removed from scan_all_setups() call")
+        print(f"   File: {target}")
+    else:
+        print("❌ Could not auto-fix — please manually remove the line:")
+        print("       session_start=kz_start,")
+        print("   from the scan_all_setups() call in python/ict_strategy.py")

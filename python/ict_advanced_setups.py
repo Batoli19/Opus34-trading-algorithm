@@ -245,6 +245,203 @@ class ICTSetupsLibrary:
                     )
         return None
 
+    def detect_fvg_entry(self, candles_m5: list, candles_m15: list, symbol: str) -> Optional[ICTSetupSignal]:
+        """
+        FVG Entry (Reversal/Premium-Discount) — NEW SETUP.
+        Price returns into an unfilled M5 Fair Value Gap that is aligned
+        with the M15 structural trend. Enter at FVG midpoint.
+
+        Logic:
+          1. Determine M15 trend (bullish = HH+HL, bearish = LH+LL)
+          2. Find unfilled FVGs on M5 (using existing _find_fvgs helper)
+          3. If current M5 price is trading INSIDE a gap aligned with trend → entry
+          4. SL: beyond the gap + 2-pip buffer
+          5. TP: 2.5R minimum
+        """
+        if len(candles_m5) < 20 or len(candles_m15) < 30:
+            return None
+
+        # M15 trend for bias
+        trend = self._determine_trend(candles_m15)
+        if trend == "RANGING":
+            return None
+
+        pip = self._get_pip_size(symbol)
+        buffer = pip * 2
+        current = candles_m5[-1]['close']
+
+        # Find recent unfilled FVGs on M5 (last 40 candles only)
+        recent_m5 = candles_m5[-40:]
+        fvgs = [f for f in self._find_fvgs(recent_m5) if not f.filled]
+
+        if not fvgs:
+            return None
+
+        # Walk from newest to oldest — find first FVG price is inside
+        for fvg in reversed(fvgs):
+            if trend == "BULLISH" and fvg.direction == "BULLISH":
+                # Price should be dropping into the gap (mitigation)
+                if fvg.low <= current <= fvg.high:
+                    sl    = fvg.low - buffer
+                    risk  = current - sl
+                    if risk <= 0:
+                        continue
+                    tp    = current + risk * 2.5
+                    mid   = (fvg.low + fvg.high) / 2.0
+                    return ICTSetupSignal(
+                        setup_type=SetupType.FVG_ENTRY,
+                        direction="BUY",
+                        entry_price=current,
+                        sl_price=sl,
+                        tp_price=tp,
+                        confidence=0.76,
+                        reason=f"M5 Bullish FVG mitigation {fvg.low:.5f}-{fvg.high:.5f} | M15 trend: BULLISH",
+                        timeframe="M5",
+                        symbol=symbol,
+                        detected_at=datetime.utcnow(),
+                        structure_context={'fvg_high': fvg.high, 'fvg_low': fvg.low,
+                                           'fvg_mid': mid, 'trend': trend},
+                    )
+
+            elif trend == "BEARISH" and fvg.direction == "BEARISH":
+                # Price should be rallying into the gap (mitigation)
+                if fvg.low <= current <= fvg.high:
+                    sl    = fvg.high + buffer
+                    risk  = sl - current
+                    if risk <= 0:
+                        continue
+                    tp    = current - risk * 2.5
+                    mid   = (fvg.low + fvg.high) / 2.0
+                    return ICTSetupSignal(
+                        setup_type=SetupType.FVG_ENTRY,
+                        direction="SELL",
+                        entry_price=current,
+                        sl_price=sl,
+                        tp_price=tp,
+                        confidence=0.76,
+                        reason=f"M5 Bearish FVG mitigation {fvg.low:.5f}-{fvg.high:.5f} | M15 trend: BEARISH",
+                        timeframe="M5",
+                        symbol=symbol,
+                        detected_at=datetime.utcnow(),
+                        structure_context={'fvg_high': fvg.high, 'fvg_low': fvg.low,
+                                           'fvg_mid': mid, 'trend': trend},
+                    )
+
+        return None
+
+    def detect_order_block_entry(self, candles_m5: list, candles_m15: list, symbol: str) -> Optional[ICTSetupSignal]:
+        """
+        Order Block Entry — NEW SETUP.
+        Price returns to the last bearish candle before a bullish impulse (bullish OB)
+        or the last bullish candle before a bearish impulse (bearish OB), aligned with
+        M15 trend.
+
+        Logic:
+          1. Determine M15 trend
+          2. Scan M5 for OB pattern: last opposing candle before a 3+ candle impulse
+          3. Impulse must be >= 15 pips to qualify
+          4. Price must have returned to the OB body (not just a wick touch)
+          5. SL: beyond OB high/low, TP: 3R
+        """
+        if len(candles_m5) < 25 or len(candles_m15) < 30:
+            return None
+
+        trend = self._determine_trend(candles_m15)
+        if trend == "RANGING":
+            return None
+
+        pip     = self._get_pip_size(symbol)
+        min_imp = pip * 15   # minimum impulse size to qualify as displacement
+        buffer  = pip * 2
+        current = candles_m5[-1]['close']
+
+        # Scan recent M5 bars for OB pattern (look back 50 bars)
+        lookback = candles_m5[-50:]
+
+        if trend == "BULLISH":
+            # Look for: bearish candle → bullish impulse (3+ consecutive bull candles)
+            for i in range(len(lookback) - 5, 3, -1):
+                ob_candle = lookback[i]
+                # OB must be a bearish candle
+                if ob_candle['close'] >= ob_candle['open']:
+                    continue
+                # Next candles must form a bullish impulse
+                impulse_candles = lookback[i + 1:i + 4]
+                if len(impulse_candles) < 3:
+                    continue
+                bull_count = sum(1 for c in impulse_candles if c['close'] > c['open'])
+                if bull_count < 2:
+                    continue
+                impulse_size = impulse_candles[-1]['high'] - ob_candle['low']
+                if impulse_size < min_imp:
+                    continue
+                # Price must have returned into OB body
+                ob_lo, ob_hi = ob_candle['low'], ob_candle['high']
+                if ob_lo <= current <= ob_hi:
+                    sl   = ob_lo - buffer
+                    risk = current - sl
+                    if risk <= 0:
+                        continue
+                    tp   = current + risk * 3.0
+                    mid  = (ob_lo + ob_hi) / 2.0
+                    return ICTSetupSignal(
+                        setup_type=SetupType.ORDER_BLOCK,
+                        direction="BUY",
+                        entry_price=current,
+                        sl_price=sl,
+                        tp_price=tp,
+                        confidence=0.80,
+                        reason=f"M5 Bullish OB reaction {ob_lo:.5f}-{ob_hi:.5f} | impulse {impulse_size/pip:.0f}p",
+                        timeframe="M5",
+                        symbol=symbol,
+                        detected_at=datetime.utcnow(),
+                        structure_context={'ob_high': ob_hi, 'ob_low': ob_lo, 'ob_mid': mid,
+                                           'impulse_pips': round(impulse_size / pip, 1)},
+                    )
+
+        elif trend == "BEARISH":
+            # Look for: bullish candle → bearish impulse (3+ consecutive bear candles)
+            for i in range(len(lookback) - 5, 3, -1):
+                ob_candle = lookback[i]
+                # OB must be a bullish candle
+                if ob_candle['close'] <= ob_candle['open']:
+                    continue
+                # Next candles must form a bearish impulse
+                impulse_candles = lookback[i + 1:i + 4]
+                if len(impulse_candles) < 3:
+                    continue
+                bear_count = sum(1 for c in impulse_candles if c['close'] < c['open'])
+                if bear_count < 2:
+                    continue
+                impulse_size = ob_candle['high'] - impulse_candles[-1]['low']
+                if impulse_size < min_imp:
+                    continue
+                # Price must have returned into OB body
+                ob_lo, ob_hi = ob_candle['low'], ob_candle['high']
+                if ob_lo <= current <= ob_hi:
+                    sl   = ob_hi + buffer
+                    risk = sl - current
+                    if risk <= 0:
+                        continue
+                    tp   = current - risk * 3.0
+                    mid  = (ob_lo + ob_hi) / 2.0
+                    return ICTSetupSignal(
+                        setup_type=SetupType.ORDER_BLOCK,
+                        direction="SELL",
+                        entry_price=current,
+                        sl_price=sl,
+                        tp_price=tp,
+                        confidence=0.80,
+                        reason=f"M5 Bearish OB reaction {ob_lo:.5f}-{ob_hi:.5f} | impulse {impulse_size/pip:.0f}p",
+                        timeframe="M5",
+                        symbol=symbol,
+                        detected_at=datetime.utcnow(),
+                        structure_context={'ob_high': ob_hi, 'ob_low': ob_lo, 'ob_mid': mid,
+                                           'impulse_pips': round(impulse_size / pip, 1)},
+                    )
+
+        return None
+
     def detect_liquidity_grab_continuation(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
         if len(candles) < 20: return None
         trend = self._determine_trend(candles)
@@ -276,7 +473,7 @@ class ICTSetupsLibrary:
                 )
         return None
 
-    def detect_choch(self, candles: list, symbol: str, session_start: datetime = None) -> Optional[ICTSetupSignal]:
+    def detect_choch(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
         """
         Change of Character (CHOCH) — ENHANCED NARRATIVE.
         Uptrend: price sweeps liquidity upward, then breaks BELOW previous HL → bearish CHOCH.
@@ -284,12 +481,6 @@ class ICTSetupsLibrary:
         *Must be preceded by a liquidity sweep to be valid.*
         """
         if len(candles) < self.structure_lookback: return None
-        
-        # SESSION ISOLATION: Filter out candles before session start if provided
-        if session_start:
-            candles = [c for c in candles if c.get('time', datetime.utcnow()) >= session_start]
-            if len(candles) < 10: return None # Need enough data within session
-
         swings = self._find_swing_points(candles)
         highs = [s for s in swings if s.swing_type == "HIGH"]
         lows  = [s for s in swings if s.swing_type == "LOW"]
@@ -333,14 +524,8 @@ class ICTSetupsLibrary:
             )
         return None
 
-    def detect_liquidity_sweep_reversal(self, candles: list, symbol: str, session_start: datetime = None) -> Optional[ICTSetupSignal]:
+    def detect_liquidity_sweep_reversal(self, candles: list, symbol: str) -> Optional[ICTSetupSignal]:
         if len(candles) < 20: return None
-        
-        # SESSION ISOLATION
-        if session_start:
-            candles = [c for c in candles if c.get('time', datetime.utcnow()) >= session_start]
-            if len(candles) < 5: return None
-
         recent_highs = [c['high'] for c in candles[-20:-2]]
         max_high = max(recent_highs)
         equal_highs = [h for h in recent_highs if abs(h - max_high) / max_high < self.equal_level_tol]
@@ -354,7 +539,6 @@ class ICTSetupsLibrary:
                 liquidity_context={'sweep_level': max_high, 'sweep_type': 'BUY_SIDE', 'equal_highs_count': len(equal_highs)}
             )
         recent_lows = [c['low'] for c in candles[-20:-2]]
-        if not recent_lows: return None
         min_low = min(recent_lows)
         equal_lows = [l for l in recent_lows if abs(l - min_low) / min_low < self.equal_level_tol]
         if len(equal_lows) >= 2 and last['low'] < min_low and last['close'] > min_low * 1.001:
@@ -375,11 +559,10 @@ class ICTSetupsLibrary:
         symbol: str,
         prev_day_high: float = None,
         prev_day_low: float  = None,
-        session_start: datetime = None,
     ) -> List[ICTSetupSignal]:
         signals = []
         enabled = self.enabled_setups
- 
+
         run_map = [
             (SetupType.HH_HL_CONTINUATION,          lambda: self.detect_hh_hl_continuation(candles_m15, symbol)),
             (SetupType.LH_LL_CONTINUATION,          lambda: self.detect_lh_ll_continuation(candles_m15, symbol)),
@@ -387,8 +570,11 @@ class ICTSetupsLibrary:
             (SetupType.CONTINUATION_OB,             lambda: self.detect_continuation_ob(candles_m15, symbol, "SELL")),
             (SetupType.FVG_CONTINUATION,            lambda: self.detect_fvg_continuation(candles_m15, symbol)),
             (SetupType.LIQUIDITY_GRAB_CONTINUATION, lambda: self.detect_liquidity_grab_continuation(candles_m15, symbol)),
-            (SetupType.CHOCH,                       lambda: self.detect_choch(candles_m15, symbol, session_start)),
-            (SetupType.LIQUIDITY_SWEEP_REVERSAL,    lambda: self.detect_liquidity_sweep_reversal(candles_m15, symbol, session_start)),
+            (SetupType.CHOCH,                       lambda: self.detect_choch(candles_m15, symbol)),
+            (SetupType.LIQUIDITY_SWEEP_REVERSAL,    lambda: self.detect_liquidity_sweep_reversal(candles_m15, symbol)),
+            # ── NEW: FVG_ENTRY and ORDER_BLOCK now wired in (use M5 for precision) ──
+            (SetupType.FVG_ENTRY,                   lambda: self.detect_fvg_entry(candles_m5, candles_m15, symbol)),
+            (SetupType.ORDER_BLOCK,                 lambda: self.detect_order_block_entry(candles_m5, candles_m15, symbol)),
         ]
 
         for setup_type, detector in run_map:
