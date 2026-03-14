@@ -1,0 +1,51 @@
+FEATURE EXTRACTION SUMMARY — CLEAN VERSION
+==================================================
+Total trades:        1784
+Overall win rate:    61.7%
+Features extracted:  34
+Target variables:    TARGET_outcome_binary, TARGET_outcome_pips
+
+CONTAMINATION CHECK:
+  exit_reason used as feature:  NO (dropped)
+  exit_time used as feature:    NO (dropped)
+  pnl_pips used as feature:     NO (target only)
+
+TRAIN/TEST SPLIT:
+  Train: 39 trades (2024-11 to 2025-08)
+  Test:  0 trades  (2025-09 to 2026-02)
+
+INPUT FEATURES:
+  day_of_week
+  direction_BUY
+  direction_SELL
+  direction_aligned
+  hour_utc
+  is_choch
+  is_eurusd_buy
+  is_eurusd_sell
+  is_friday
+  is_gbpusd_buy
+  is_gbpusd_sell
+  is_lc_early
+  is_lo_early
+  is_lsr
+  is_monday
+  is_month_end
+  is_usdjpy_buy
+  is_usdjpy_sell
+  kill_zone_LONDON_CLOSE
+  kill_zone_LONDON_OPEN
+  kill_zone_NAN
+  kill_zone_NY_OPEN
+  setup_type_CHOCH
+  setup_type_FVG_ENTRY
+  setup_type_HH_HL_CONTINUATION
+  setup_type_LH_LL_CONTINUATION
+  setup_type_LIQUIDITY_GRAB_CONTINUATION
+  setup_type_LIQUIDITY_SWEEP_REVERSAL
+  setup_type_ORDER_BLOCK
+  symbol_AUDUSD
+  symbol_EURUSD
+  symbol_GBPUSD
+  symbol_USDJPY
+  week_of_month

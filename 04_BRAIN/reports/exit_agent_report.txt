@@ -1,0 +1,16 @@
+EXIT AGENT TRAINING REPORT
+==========================
+Algorithm: Tabular Q-Learning (Batch Offline)
+
+Q-Table (Expected Value of Action):
+                                 10         20         30         40         50
+CHOCH                     -1.485877   1.101262  -1.775841  -5.497296  -8.125000
+LIQUIDITY_SWEEP_REVERSAL  -0.680566  -3.103855  -8.131393  -9.331235  -9.988198
+FVG_ENTRY                -13.234984 -14.631191 -15.000000 -15.000000 -15.000000
+ORDER_BLOCK              -12.373188 -14.524457 -15.000000 -15.000000 -15.000000
+
+Optimal Take-Profit Actions per Setup:
+CHOCH                       20
+LIQUIDITY_SWEEP_REVERSAL    10
+FVG_ENTRY                   10
+ORDER_BLOCK                 10

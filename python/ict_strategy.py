@@ -20,6 +20,18 @@ ENHANCED ADDITIONS:
 """
 
 import logging
+# ── BRAIN GATE IMPORT ─────────────────────────────────────────────────────
+import sys as _sys
+_sys.path.insert(0, str(__import__('pathlib').Path(__file__).parent))
+try:
+    from brain_gate import should_take_trade as _brain_take, get_win_probability as _brain_prob
+    _BRAIN_ENABLED = True
+except ImportError:
+    _BRAIN_ENABLED = False
+    def _brain_take(*a, **kw): return True
+    def _brain_prob(*a, **kw): return 0.5
+# ──────────────────────────────────────────────────────────────────────────
+
 from dataclasses import dataclass, field
 from datetime import datetime, time as dtime, timezone
 from enum import Enum
@@ -1011,4 +1023,21 @@ class ICTStrategy:
             f"{best.direction.value} | Conf: {best.confidence:.0%} | "
             f"RR: {best.rr} | {best.reason}"
         )
+        # ── BRAIN GATE ────────────────────────────────────────────────
+        if _BRAIN_ENABLED:
+            import datetime as _dt
+            _dir  = best.direction.value
+            _st   = getattr(best.setup_type, 'value', str(best.setup_type))
+            _kz   = kz_name or 'NONE'
+            _hour = _dt.datetime.utcnow().hour
+            _dow  = _dt.datetime.utcnow().weekday()
+            _prob = _brain_prob(symbol, _dir, _st, _kz, _hour, _dow)
+            best.confidence = round((_prob + best.confidence) / 2.0, 3)
+            if not _brain_take(symbol, _dir, _st, _kz, _hour, _dow):
+                logger.info(
+                    f'BRAIN GATE SKIP: {symbol} {_dir} {_st} '
+                    f'kz={_kz} h={_hour} prob={_prob:.1%}'
+                )
+                return None
+        # ──────────────────────────────────────────────────────────────────
         return best

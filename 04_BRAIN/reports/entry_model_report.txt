@@ -1,0 +1,7 @@
+ENTRY MODEL REPORT - TEST SET (2025-09 to 2026-02)
+==================================================
+Threshold 0.50: 241 trades | WR 66.8% | PF 1.40
+Threshold 0.55: 205 trades | WR 66.3% | PF 1.38
+Threshold 0.60: 180 trades | WR 64.4% | PF 1.28
+Threshold 0.65: 162 trades | WR 65.4% | PF 1.39
+Threshold 0.70: 143 trades | WR 63.6% | PF 1.31

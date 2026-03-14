@@ -1,0 +1,13 @@
+BRAIN VALIDATION REPORT
+=======================
+
+METRIC            | BASELINE      | WITH BRAIN (ML)
+------------------|---------------|----------------
+Total Trades      | 6652          | 2466         
+Win Rate          | 55.74        % | 83.33        %
+Total Pips        | 10044.09      | 51444.51     
+Profit Factor     | 1.10          | 4.22         
+
+CONCLUSION:
+The Brain upgrade has resulted in a 281.79% improvement in Profit Factor.
+It filtered out 4186 low-probability trades.

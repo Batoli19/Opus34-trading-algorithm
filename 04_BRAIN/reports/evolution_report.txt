@@ -1,0 +1,15 @@
+PARAMETER EVOLUTION REPORT
+==========================
+Algorithm: Genetic Algorithm (Evolutionary Strategy)
+Generations: 20
+Population Size: 50
+
+BEST PARAMETERS FOUND:
+{
+    "tp_r_multiple": 1.9864562860520039,
+    "sl_pips": 10,
+    "trail_trigger_r": 0.45989002452500394,
+    "risk_percent": 2.9351667504662537
+}
+
+Estimated Performance Score: 3142.95
