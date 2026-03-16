@@ -27,7 +27,7 @@
 ## 📸 Dashboard
 
 <div align="center">
-![Trading Algo Command Centerhttps://github.com/Batoli19/ict-trading-algorithm/commit/cc8e143ac759d229d12dc069c7599499bea10049
+![Trading Algo Command Center](Screenshot 2026-03-16 114111.png)
 
 ![Trading Algo Command Center](https://github.com/user-attachments/assets/245eb0e9-8e6e-429f-ad14-71a3c2106bba)
 
