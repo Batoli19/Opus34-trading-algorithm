@@ -33,7 +33,7 @@
 <img src="https://raw.githubusercontent.com/Batoli19/ict-trading-algorithm/cc8e143ac759d229d12dc069c7599499bea10049/Screenshot%202026-03-16%20114111.png" width="100%" alt="ICT Trading Bot Dashboard"/>
 </div>
 
-div align="center">
+<div align="center">
 
 ![Trading Algo Command Center](https://github.com/user-attachments/assets/245eb0e9-8e6e-429f-ad14-71a3c2106bba)
 
