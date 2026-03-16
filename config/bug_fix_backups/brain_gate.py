@@ -47,12 +47,8 @@ def _vec(symbol, direction, setup_type, kill_zone, hour_utc, day_of_week):
         "is_eurusd_buy":  int(sym=="EURUSD" and d=="BUY"),
         "is_eurusd_sell": int(sym=="EURUSD" and d=="SELL"),
         "direction_aligned": int(
-            (sym=="USDJPY" and d=="BUY") or
-            (sym=="GBPUSD" and d=="SELL") or
-            (sym=="EURUSD" and d=="SELL") or
-            (sym=="AUDUSD" and d=="BUY")
-            # EURUSD BUY removed — not a confirmed strong combo
-            # EURUSD SELL confirmed strong combo kept
+            (sym=="USDJPY" and d=="BUY") or (sym=="GBPUSD" and d=="SELL") or
+            (sym=="EURUSD" and d=="BUY") or (sym=="EURUSD" and d=="SELL")
         ),
         "is_choch": int(st=="CHOCH"),
         "is_lsr":   int(st=="LIQUIDITY_SWEEP_REVERSAL"),

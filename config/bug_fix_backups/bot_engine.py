@@ -28,7 +28,7 @@ import asyncio
 import logging
 import time
 from collections import deque
-from datetime import datetime, timedelta, timezone, time as dt_time
+from datetime import datetime, timedelta, timezone, time
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -909,8 +909,8 @@ class TradingEngine:
 
         # HARD ENTRY GATE — Block Judas Swing (11:00 - 13:30 UTC)
         now_utc = datetime.now(timezone.utc).time()
-        gate_start = dt_time(11, 0)
-        gate_end = dt_time(13, 30)
+        gate_start = time(11, 0)
+        gate_end = time(13, 30)
         # Check if symbol is a NY pair impacted by this window
         ny_pairs = ["GBPUSD", "AUDUSD", "XAUUSD", "US30", "NAS100"]
         

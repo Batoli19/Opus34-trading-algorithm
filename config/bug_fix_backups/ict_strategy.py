@@ -1029,12 +1029,10 @@ class ICTStrategy:
             _dir  = best.direction.value
             _st   = getattr(best.setup_type, 'value', str(best.setup_type))
             _kz   = kz_name or 'NONE'
-            _now  = _dt.datetime.now(_dt.timezone.utc)
-            _hour = _now.hour
-            _dow  = _now.weekday()
+            _hour = _dt.datetime.utcnow().hour
+            _dow  = _dt.datetime.utcnow().weekday()
             _prob = _brain_prob(symbol, _dir, _st, _kz, _hour, _dow)
-            # Use brain probability for logging only — do NOT mutate confidence
-            # Confidence drives risk sizing; brain prob is a separate binary gate
+            best.confidence = round((_prob + best.confidence) / 2.0, 3)
             if not _brain_take(symbol, _dir, _st, _kz, _hour, _dow):
                 logger.info(
                     f'BRAIN GATE SKIP: {symbol} {_dir} {_st} '
