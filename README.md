@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="https://github.com/user-attachments/assets/245eb0e9-8e6e-429f-ad14-71a3c2106bba" width="100%" alt="ICT Trading Bot Dashboard"/>
+
 
 # ICT Trading Algorithm
 
