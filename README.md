@@ -2,7 +2,7 @@
 
 
 
-# 🤖 ICT Trading Algorithm
+# 🤖 OPUS34 Trading Algorithm
 
 **A fully automated Forex trading bot powered by ICT Smart Money Concepts —**  
 **validated across 16 months of data and enhanced with a trained ML brain.**
