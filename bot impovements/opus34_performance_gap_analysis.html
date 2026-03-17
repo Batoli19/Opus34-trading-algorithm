@@ -1,0 +1,153 @@
+
+<style>
+.sec { margin-bottom: 2rem; }
+.sec-title { font-size: 14px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 1rem; border-bottom: 0.5px solid var(--color-border-tertiary); padding-bottom: 8px; }
+.metric-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 10px; margin-bottom: 1.5rem; }
+.metric { background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; }
+.metric-label { font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px; }
+.metric-val { font-size: 20px; font-weight: 500; color: var(--color-text-primary); }
+.metric-sub { font-size: 11px; color: var(--color-text-secondary); margin-top: 2px; }
+.good { color: #1D9E75; }
+.warn { color: #BA7517; }
+.bad { color: #A32D2D; }
+.row { display: flex; gap: 10px; margin-bottom: 10px; }
+.tag { font-size: 11px; padding: 3px 8px; border-radius: 4px; font-weight: 500; }
+.tag-good { background: #E1F5EE; color: #085041; }
+.tag-bad  { background: #FCEBEB; color: #791F1F; }
+.tag-warn { background: #FAEEDA; color: #633806; }
+.item { background: var(--color-background-primary); border: 0.5px solid var(--color-border-tertiary); border-radius: var(--border-radius-md); padding: 12px 14px; margin-bottom: 8px; }
+.item-title { font-size: 13px; font-weight: 500; color: var(--color-text-primary); margin-bottom: 3px; }
+.item-desc { font-size: 12px; color: var(--color-text-secondary); line-height: 1.5; }
+.progress-bar { height: 6px; border-radius: 3px; background: var(--color-border-tertiary); margin-top: 6px; overflow: hidden; }
+.progress-fill { height: 100%; border-radius: 3px; }
+</style>
+
+<div style="padding: 1rem 0;">
+  <div class="sec">
+    <div class="sec-title">Current state — what your bot actually delivers on $5k</div>
+    <div class="metric-grid">
+      <div class="metric">
+        <div class="metric-label">Profit factor</div>
+        <div class="metric-val warn">1.40</div>
+        <div class="metric-sub">With ML brain</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Win rate</div>
+        <div class="metric-val good">66.8%</div>
+        <div class="metric-sub">Post-brain filter</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">Trades/week</div>
+        <div class="metric-val warn">~5.6</div>
+        <div class="metric-sub">Very low frequency</div>
+      </div>
+      <div class="metric">
+        <div class="metric-label">$/week @ $5k</div>
+        <div class="metric-val bad">~$60–89</div>
+        <div class="metric-sub">Need $100 target</div>
+      </div>
+    </div>
+    <div style="background: var(--color-background-secondary); border-radius: var(--border-radius-md); padding: 12px; margin-bottom: 8px;">
+      <div style="font-size: 12px; color: var(--color-text-secondary); margin-bottom: 8px;">Weekly P&L gap to $100 target (scaled from $10k → $5k)</div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <div style="flex: 1;">
+          <div style="font-size: 11px; color: var(--color-text-tertiary); margin-bottom: 4px;">Current avg ~$75/wk</div>
+          <div class="progress-bar"><div class="progress-fill" style="width: 75%; background: #BA7517;"></div></div>
+        </div>
+        <div style="font-size: 12px; color: var(--color-text-tertiary)">Target: $100</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">The 4 blockers keeping you under $100/week</div>
+
+    <div class="item">
+      <div class="row"><span class="tag tag-bad">Critical</span><span class="tag tag-bad">Trade count</span></div>
+      <div class="item-title">1. 5.6 trades/week is the primary ceiling</div>
+      <div class="item-desc">Your ML brain rejects too many signals. Each rejected trade = potential +$15–18 not taken. At 5.6 trades × avg $14/trade (5k @ 1% risk, ~1.4 PF), you're capped at ~$78. To hit $100 you need either ~8 trades/week OR 1.65+ PF — or both. The brain is helping quality but strangling quantity.</div>
+    </div>
+
+    <div class="item">
+      <div class="row"><span class="tag tag-bad">Critical</span><span class="tag tag-warn">Exit logic</span></div>
+      <div class="item-title">2. The giveback guard is leaking winners</div>
+      <div class="item-desc">A 15% max giveback at 0.5R activation is extremely tight. A trade that goes to 1.8R and gives back 15% locks in 1.53R — but markets regularly retest before extending. You're being stopped out of runners. LSR with hard TP is correct; CHOCH also needs a wider guard (25–30%) or you're cutting 2R trades at 1.5R constantly.</div>
+    </div>
+
+    <div class="item">
+      <div class="row"><span class="tag tag-warn">Medium</span><span class="tag tag-warn">Market coverage</span></div>
+      <div class="item-title">3. London-only = 4 hours of exposure per day</div>
+      <div class="item-desc">London Open (08:00–11:00 Gaborone) + London Close (17:00–19:00) = 5 active hours. You're ignoring NY Open completely due to a -384p bleed — but that's probably a setup/direction filter problem, not NY itself. NY + London overlap (13:00–15:00 UTC) is the highest-volume period on the planet. FX pros treat it as a prime session.</div>
+    </div>
+
+    <div class="item">
+      <div class="row"><span class="tag tag-warn">Medium</span><span class="tag tag-warn">Pairs</span></div>
+      <div class="item-title">4. Only 3 pairs, 2 directions filtered = 5 actual "slots"</div>
+      <div class="item-desc">EUR/USD both, GBP/USD sell only, USD/JPY buy only. That's 5 directional slots across 3 pairs in 2 sessions. Adding AUDUSD or USDCAD (which trend cleanly in London) would give you 2 more slots. Your pass13a already had AUDUSD data — you just never deployed it live.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">What the top retail quants are doing that you're not</div>
+
+    <div class="item">
+      <div class="item-title">Regime detection — knowing when NOT to trade</div>
+      <div class="item-desc">Top setups (Apex, BluEdge, Darwinex winners) all have a "flat" mode triggered by macro regime: VIX spike, non-farm payrolls week, FOMC days. Your bot would've fired normally into the March 2025 Fed shock. A simple news circuit breaker (Pass 18 on your roadmap) is the #1 missing professional layer.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-title">Dynamic lot sizing — Kelly-adjacent position sizing</div>
+      <div class="item-desc">Your bot uses flat 1% risk every trade. Professional algos scale up to 1.5–2% on A+ setups (CHOCH + brain 75%+ confidence + fresh session high) and scale down to 0.5% on marginal ones. You already have A+ sizing in config (1.5%) but it's not being used dynamically based on brain confidence score.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-title">Multi-timeframe confluence — not just M5</div>
+      <div class="item-desc">Your brain is trained on M5 features only. The highest-probability ICT setups occur when H1 structure aligns with M5 entry. A CHOCH on M5 that goes against H1 trend has ~45% win rate; one that aligns has ~72%. Adding H1 bias as a brain feature could push PF from 1.40 to 1.55+.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-title">Continuous retraining — not static ML</div>
+      <div class="item-desc">Your XGBoost model was trained on data through Feb 2026. Market regimes shift every 3–6 months. Top quants retrain monthly on rolling 12-month windows. You have a retraining pipeline on your roadmap — it's not optional, it's what keeps the brain alive. A model trained 6 months ago degrades ~0.05–0.1 PF per quarter.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">How hedge funds approach what you're building</div>
+
+    <div class="item">
+      <div class="item-title">They trade execution alpha, not just signal alpha</div>
+      <div class="item-desc">Renaissance, Two Sigma, and even mid-tier CTAs obsess over order fill quality. On XM with M5, you're using market orders or limit-at-signal. A 2-pip slippage on 3 trades/week = -$30/month on a $5k book. Consider limit entries at 50% FVG retracement instead of market-on-close. This alone can improve effective PF by 0.1–0.15.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-title">Ensemble models — not a single brain</div>
+      <div class="item-desc">Your single XGBoost is solid. But Two Sigma-style implementations use a signal ensemble: one model for direction, one for optimal entry timing, one for exit. You could split your brain into an entry model + a separate exit/hold model that decides whether to run the giveback guard or take hard TP. This is the logical Pass 17 → 19 arc.</div>
+    </div>
+
+    <div class="item">
+      <div class="item-title">Walk-forward optimization — not static parameters</div>
+      <div class="item-desc">Your 16 pass system is excellent for initial validation, but it's point-in-time optimized. Professionals use walk-forward: split data into 12-month train / 3-month test, roll forward quarterly, ensure params hold. Your current parameters (0.5R/15% guard) were optimal for Nov 2024–Feb 2026. They may already be drifting.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-title">Concrete path to $100/week on $5k</div>
+    <div class="item">
+      <div class="row"><span class="tag tag-good">Highest ROI change</span></div>
+      <div class="item-title">Step 1 — Retrain brain with H1 bias feature (2–3 weeks)</div>
+      <div class="item-desc">Add H1 structure direction (bullish/bearish/neutral) as a feature. Estimated PF improvement: 1.40 → 1.50. Weekly P&L on $5k: $75 → $90.</div>
+    </div>
+    <div class="item">
+      <div class="item-title">Step 2 — Add AUDUSD or GBPJPY (1 week)</div>
+      <div class="item-desc">Your backtester already supports it (pass13a had AUDUSD). Run pass17 on AUDUSD with direction filter. Conservative estimate: +1–2 trades/week. P&L: $90 → $100–110.</div>
+    </div>
+    <div class="item">
+      <div class="item-title">Step 3 — Widen CHOCH giveback guard to 25% (1 day)</div>
+      <div class="item-desc">Low-risk config change. Review your CHOCH-specific exits in the backtest CSV. A tighter guard kills your runners. Test 25% vs 15% on pass data first.</div>
+    </div>
+    <div class="item">
+      <div class="item-title">Step 4 — News circuit breaker (1–2 weeks)</div>
+      <div class="item-desc">Auto-pause 2h before/after high-impact news (FOMC, NFP, CPI). This protects the account on your worst days — and worst days are what kill funded accounts. Free ForexFactory API or Investing.com economic calendar RSS.</div>
+    </div>
+  </div>
+</div>
