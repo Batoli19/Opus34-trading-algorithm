@@ -4,7 +4,7 @@
 
 # 🤖 OPUS34 Trading Algorithm
 
-**A fully automated Stock, Crypto and  Futures trading bot powered by Price Action and Smart Money Concepts —**  
+**A fully automated Stock, Crypto and  Futures trading Quant Algorithm powered by Price Action and Smart Money Concepts —**  
 **validated across 16 months of data and enhanced with a trained ML brain.**
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
