@@ -1,10 +1,8 @@
 <div align="center">
 
-
-
 # 🤖 OPUS34 Trading Algorithm
 
-**A fully automated Stock, Crypto and  Futures trading Quant Algorithm powered by Price Action and Smart Money Concepts —**  
+**A fully automated Stock, Crypto and Futures trading Quant Algorithm powered by Price Action and Smart Money Concepts —**
 **validated across 16 months of data and enhanced with a trained ML brain.**
 
 [![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
@@ -27,7 +25,6 @@
 ---
 
 ## 📸 Dashboard
-
 
 <div align="center">
 <img src="https://raw.githubusercontent.com/Batoli19/ict-trading-algorithm/cc8e143ac759d229d12dc069c7599499bea10049/Screenshot%202026-03-16%20114111.png" width="100%" alt="ICT Trading Bot Dashboard"/>
@@ -96,13 +93,13 @@ Win probability ≥ 50%  →  trade opens normally
 
 **Results on 6 months of completely unseen data (Sep 2025 – Feb 2026):**
 
-| | No Brain | With Brain |
+|  | No Brain | With Brain |
 |--|---------|-----------|
 | **Profit Factor** | 1.23 | **1.40** |
 | **Win Rate** | 64.7% | **66.8%** |
 | **$/week @ $10K** | ~$119 | **~$140** |
 
-The brain independently learned the same patterns the manual autopsy found:  
+The brain independently learned the same patterns the manual autopsy found:
 direction alignment, early London Open hour, Monday bias, GBPUSD SELL, EURUSD SELL.
 
 ---
@@ -155,30 +152,226 @@ ict_trading_bot/
 
 ---
 
-## 🔄 System Workflow
+## 🔄 Full System Pipeline
+
+*Every component, every gate, every data flow — from market tick to closed trade.*
 
 ```
-Every 10 seconds during kill zones:
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    INFRASTRUCTURE LAYER                                  ║
+║  ┌─────────────────┐  ┌──────────────────┐  ┌────────────────────────┐  ║
+║  │  Windows VPS    │  │  MetaTrader 5    │  │  settings.json         │  ║
+║  │  24/7 uptime    │  │  XM Broker       │  │  login · server · risk │  ║
+║  │  watcher.ps1    │  │  Live tick feed  │  │  (gitignored)          │  ║
+║  └────────┬────────┘  └────────┬─────────┘  └────────────────────────┘  ║
+╚═══════════╪════════════════════╪════════════════════════════════════════╝
+            │                    │
+            ▼                    ▼
+╔══════════════════════════════════════════════════════════════════════════╗
+║               MASTER LOOP — bot_engine.py                                ║
+║                                                                          ║
+║   ┌─────────────────────────────────────────────────────────────────┐   ║
+║   │  Every 10 seconds:  EUR/USD  ──┐                                │   ║
+║   │                     GBP/USD  ──┼──► Signal Pipeline (below)     │   ║
+║   │                     USD/JPY  ──┘                                │   ║
+║   └─────────────────────────────────────────────────────────────────┘   ║
+╚══════════════════════════════════════════════════════════════════════════╝
+            │
+            ▼
+```
 
-  Market data arrives
-       ↓
-  Kill zone check ──── Outside LO/LC? → Sleep
-       ↓
-  CHOCH + LSR scan
-       ↓
-  Direction filter ─── GBPUSD BUY? → Skip
-                  ─── USDJPY SELL? → Skip
-       ↓
-  Brain gate ─────── Win prob < 50%? → Skip
-       ↓
-  Risk check ─────── Daily loss > 3.5%? → Stop for day
-                  ── 3 consecutive losses? → Pause 2hrs
-       ↓
-  Enter trade (1% risk, hard SL)
-       ↓
-  Manage with giveback guard (0.5R activation, 15% max giveback)
-       ↓
-  Exit + log to CSV + update brain training data
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  SIGNAL PIPELINE  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ GATE 1 ── KILL ZONE CHECK ─────────────────────────────────────────────
+ │
+ │  London Open  06:00–09:00 UTC  (08:00–11:00 Gaborone)
+ │  London Close 15:00–17:00 UTC  (17:00–19:00 Gaborone)
+ │
+ │  OUTSIDE window? ──► 💤 SLEEP  — no scan, no compute, wait
+ │  INSIDE window?  ──► proceed ↓
+ │
+ GATE 2 ── ICT SIGNAL DETECTION ─────────────────────────────────────────
+ │         ict_strategy.py + ict_advanced_setups.py
+ │
+ │  MT5 pulls last 200 M5 bars per pair
+ │
+ │  ┌─────────────────────────┐    ┌──────────────────────────────────┐
+ │  │  🔴 CHOCH Detector      │    │  🟡 LSR Detector                 │
+ │  │  Change of Character    │    │  Liquidity Sweep Reversal        │
+ │  │  · Broken swing H/L     │    │  · Stop hunt at key level        │
+ │  │  · Confirmation bar     │    │  · Fade the sweep move           │
+ │  │  · Returns: dir/entry/SL│    │  · Returns: dir/entry/SL/mag     │
+ │  └─────────────────────────┘    └──────────────────────────────────┘
+ │
+ │  NO SIGNAL found? ──► ⏭ END CYCLE  — wait 10s, repeat
+ │  SIGNAL found?    ──► proceed ↓
+ │
+ GATE 3 ── DIRECTION FILTER ──────────────────────────────────────────────
+ │         Hard-coded rules from 16 months of backtest data
+ │
+ │  EUR/USD  BUY  ──► ✅ PASS     EUR/USD  SELL ──► ✅ PASS
+ │  GBP/USD  BUY  ──► ❌ SKIP  (BUY bleeds -454 pips)
+ │  GBP/USD  SELL ──► ✅ PASS
+ │  USD/JPY  BUY  ──► ✅ PASS
+ │  USD/JPY  SELL ──► ❌ SKIP  (SELL bleeds -492 pips)
+ │
+ │  WRONG direction? ──► ❌ HARD SKIP  — reason logged
+ │  ALIGNED?         ──► proceed ↓
+ │
+ GATE 4 ── ML BRAIN GATE ────────────────────────────────────────────────
+ │         brain_gate.py  ·  XGBoost  ·  04_BRAIN/models/entry_model.pkl
+ │
+ │  28 features assembled:
+ │  symbol · direction · setup type · session · hour · day of week
+ │  sweep magnitude · structural context · pair-specific bias · more
+ │
+ │  xgboost.predict_proba() ──► win probability score (0.0 → 1.0)
+ │
+ │  prob < 0.50 ──► 🔇 SILENT SKIP  — not counted as a trade
+ │  prob ≥ 0.50 ──► proceed ↓
+ │
+ │  [fail-safe: if entry_model.pkl missing → gate disabled, all pass]
+ │
+ GATE 5 ── RISK MANAGER CHECK ───────────────────────────────────────────
+ │         risk_manager.py
+ │
+ │  ① Daily loss > 3.5%? ──────────────────► 🛑 STOP FOR DAY
+ │  ② 3 consecutive losses? ──────────────► ⏸ PAUSE 2 HOURS
+ │  ③ Open positions = 3? ─────────────────► ⏭ SKIP  (queue full)
+ │
+ │  ALL CLEAR? ──► proceed ↓
+ │
+ GATE 6 ── POSITION SIZING ───────────────────────────────────────────────
+           risk_manager.py
+ 
+   Standard signal ──► 1.0% risk  →  lot = risk$ ÷ (SL pips × pip value)
+   A+ signal       ──► 1.5% risk  →  larger lot, same formula
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  TRADE EXECUTION  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  mt5.order_send()
+  ├── symbol      (EURUSD / GBPUSD / USDJPY)
+  ├── volume      (calculated lot size)
+  ├── type        (BUY_MARKET / SELL_MARKET)
+  ├── price       (current ask/bid)
+  ├── sl          (signal stop loss level)
+  ├── tp          (setup-dependent — see below)
+  └── comment     ("OPUS34_CHOCH" or "OPUS34_LSR")
+
+  Take-profit logic splits by setup:
+  ┌─────────────────────────────────────────────────────────────┐
+  │  LSR trades  ──► Hard TP at 1.5–2R  (clean, fast reversals) │
+  │  CHOCH trades ─► No hard TP — giveback guard manages exit    │
+  └─────────────────────────────────────────────────────────────┘
+
+  Order confirmed → ticket ID stored → position monitored every 10s
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  TRADE MANAGEMENT  ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  trade_manager.py  ·  runs every 10 seconds alongside new signal scan
+
+  GIVEBACK GUARD:
+  ┌──────────────────────────────────────────────────────────────────┐
+  │  Trade unrealised P&L tracked continuously                       │
+  │  Activates at   +0.5R profit  (position moving in your favor)    │
+  │  Peak equity    tracked and updated every cycle                  │
+  │  Exit trigger   if price gives back > 15% of peak unrealised     │
+  │                                                                  │
+  │  Example: Trade hits +2.0R peak  →  guard locks at +1.7R        │
+  │           Price retraces to +1.6R →  CLOSE immediately           │
+  └──────────────────────────────────────────────────────────────────┘
+
+  DAILY GUARDRAILS (checked every cycle):
+  ├── Daily profit ≥ 3.0%  ──► 🔒 LOCK  — no new trades, protect day
+  ├── Daily loss   ≥ 3.5%  ──► 🛑 STOP  — session over
+  └── Total drawdown ≥ 8%  ──► 🚨 HALT  — account protection mode
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  POST-TRADE PIPELINE  ━━━━━━━━━━━━━━━━━━━━━━━━
+
+  Trade closes (TP hit / SL hit / giveback guard / daily limit)
+       │
+       ├──► 07_LOGS/  CSV append
+       │    timestamp · pair · setup · entry · SL · TP · P&L · duration
+       │    brain score · win/loss · session · hour · day
+       │
+       ├──► 04_BRAIN/training_data/features_clean.csv  append
+       │    new row added to brain training dataset
+       │    used in monthly retrain cycle
+       │
+       ├──► trading_memory.db  (SQLite)
+       │    session stats updated · streak counter · daily totals
+       │
+       └──► CHECK_PERFORMANCE.py  (on-demand)
+            prints: win rate · P&L · drawdown · trades · brain accept rate
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  ML BRAIN PIPELINE  ━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+  04_BRAIN/  ·  run monthly
+
+  features_clean.csv
+       │
+       ▼
+  step1_extract_features.py
+  Reads trade logs → engineers 28 features → outputs clean dataset
+       │
+       ▼
+  step2_train_entry_model.py
+  XGBoost · time-series walk-forward CV · no data leakage
+  Trains on oldest 75% → validates on newest 25% of each fold
+       │
+       ▼
+  entry_model.pkl  (replaces previous model)
+       │
+       ▼
+  brain_gate.py loads new pkl on next bot restart
+  Inference: < 1ms per signal  ·  fails safe if pkl missing
+
+  run_full_brain_pipeline.py  ──►  runs all steps in one command
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━  BACKTESTING PIPELINE  ━━━━━━━━━━━━━━━━━━━━━━━
+
+  05_DATA/  (16 months · M5 OHLCV · XM broker · 5 pairs)
+       │
+       ▼
+  02_BACKTESTER/  ·  run_passXX.py
+  Simulates every signal, filter, guard combination historically
+       │
+       ▼
+  analyze_run.py  /  analyze_months.py
+  Profit factor · win rate · trades/week · per-pair · per-session
+       │
+       ▼
+  03_BACKTEST_RESULTS/
+  Every pass CSV archived  ·  optimization_report.txt written
+  pass README explains what each pass tested and found
+```
+
+---
+
+## ⏱️ What Happens Inside One 10-Second Cycle
+
+```
+t = 0ms    ── Scheduler wakes · 3 pairs queued
+t ≈ 5ms    ── Kill zone check (UTC time vs LO/LC windows)
+t ≈ 20ms   ── MT5 data pull (last 200 M5 bars per pair)
+t ≈ 30ms   ── CHOCH + LSR scan runs on bar data
+t ≈ 35ms   ── Direction filter (instant lookup, no compute)
+t ≈ 36ms   ── Brain gate (28 features → predict_proba < 1ms)
+t ≈ 38ms   ── Risk check + lot size calculation
+t ≈ 60ms   ── mt5.order_send() · network round-trip to broker
+t ≈ 65ms   ── Log write (CSV + SQLite)
+t = 10,000ms ── Next cycle begins · open positions also checked
 ```
 
 ---
