@@ -30,3 +30,6 @@ env/
 # Logs
 logs/
 *.log
+ 
+#folders 
+junk/
