@@ -28,7 +28,7 @@ import asyncio
 import logging
 import time
 from collections import deque
-from datetime import datetime, timedelta, timezone, time as dt_time
+from datetime import datetime, timedelta, timezone, time
 from pathlib import Path
 from typing import Optional
 from zoneinfo import ZoneInfo
@@ -443,32 +443,16 @@ class TradingEngine:
         )
 
         if signal and signal.valid:
-                # ── DIRECTION FILTER ──────────────────────────────────────
-            _dir_filters = self.cfg.get("direction_filters", {})
-            _sig_dir = str(getattr(signal.direction, "value", signal.direction)).upper()
-            if symbol in _dir_filters:
-                _allowed = [d.upper() for d in _dir_filters[symbol]]
-                if _sig_dir not in _allowed:
-                    logger.info(
-                        f"SKIP_DIRECTION_FILTER: {symbol} {_sig_dir} not in {_allowed}"
-                    )
-                    self._record_skip(symbol, "DIRECTION_FILTER")
+            # DIRECTION FILTER
+            _dir_f = self.cfg.get('direction_filters', {})
+            _sig_d = str(getattr(signal.direction, 'value', signal.direction)).upper()
+            if symbol in _dir_f:
+                _ok = [x.upper() for x in _dir_f[symbol]]
+                if _sig_d not in _ok:
+                    logger.info(f'SKIP_DIR: {symbol} {_sig_d} blocked, allowed={_ok}')
+                    self._record_skip(symbol, 'DIRECTION_FILTER')
                     return False
-                # ──────────────────────────────────────────────────────────
-            # ── DIRECTION FILTER ──────────────────────────────────────
-            _dir_filters = self.cfg.get("direction_filters", {})
-            _sig_dir = str(getattr(signal.direction, "value", signal.direction)).upper()
-            if symbol in _dir_filters:
-                _allowed = [d.upper() for d in _dir_filters[symbol]]
-                if _sig_dir not in _allowed:
-                    logger.info(
-                        f"SKIP_DIRECTION_FILTER: {symbol} {_sig_dir} "
-                        f"not in allowed={_allowed}"
-                    )
-                    self._record_skip(symbol, "DIRECTION_FILTER")
-                    return False
-            # ──────────────────────────────────────────────────────────
-             str(getattr(signal.setup_type, "value", signal.setup_type))
+            setup_name = str(getattr(signal.setup_type, "value", signal.setup_type))
             passed, reason, metrics = self._sniper_filter(signal, symbol, candles_m5, candles_m15, candles_h4, candles_h1)
             if not passed:
                 log_msg = (
@@ -934,8 +918,8 @@ class TradingEngine:
 
         # HARD ENTRY GATE — Block Judas Swing (11:00 - 13:30 UTC)
         now_utc = datetime.now(timezone.utc).time()
-        gate_start = dt_time(11, 0)
-        gate_end = dt_time(13, 30)
+        gate_start = time(11, 0)
+        gate_end = time(13, 30)
         # Check if symbol is a NY pair impacted by this window
         ny_pairs = ["GBPUSD", "AUDUSD", "XAUUSD", "US30", "NAS100"]
         

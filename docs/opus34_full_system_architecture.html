@@ -1,0 +1,499 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);background:transparent;color:var(--color-text-primary)}
+.wrap{padding:1.5rem 0}
+.section-label{font-size:11px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--color-text-tertiary);margin-bottom:.75rem;padding-left:4px}
+.layer{border:0.5px solid var(--color-border-tertiary);border-radius:12px;padding:1rem 1rem .75rem;margin-bottom:.75rem;position:relative}
+.layer-title{font-size:11px;font-weight:500;color:var(--color-text-secondary);position:absolute;top:-9px;left:14px;background:var(--color-background-primary);padding:0 6px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.box{border-radius:8px;padding:8px 12px;font-size:12px;font-weight:500;flex:1;min-width:100px}
+.box-sub{font-size:10px;font-weight:400;margin-top:2px;opacity:.75}
+/* colors */
+.b-gray{background:#F1EFE8;color:#444441;border:0.5px solid #B4B2A9}
+.b-blue{background:#E6F1FB;color:#0C447C;border:0.5px solid #85B7EB}
+.b-purple{background:#EEEDFE;color:#3C3489;border:0.5px solid #AFA9EC}
+.b-teal{background:#E1F5EE;color:#085041;border:0.5px solid #5DCAA5}
+.b-amber{background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27}
+.b-green{background:#EAF3DE;color:#27500A;border:0.5px solid #97C459}
+.b-red{background:#FCEBEB;color:#791F1F;border:0.5px solid #F09595}
+.b-coral{background:#FAECE7;color:#712B13;border:0.5px solid #F0997B}
+@media(prefers-color-scheme:dark){
+.b-gray{background:#2C2C2A;color:#D3D1C7;border-color:#5F5E5A}
+.b-blue{background:#042C53;color:#B5D4F4;border-color:#185FA5}
+.b-purple{background:#26215C;color:#CECBF6;border-color:#534AB7}
+.b-teal{background:#04342C;color:#9FE1CB;border-color:#1D9E75}
+.b-amber{background:#412402;color:#FAC775;border-color:#BA7517}
+.b-green{background:#173404;color:#C0DD97;border-color:#639922}
+.b-red{background:#501313;color:#F7C1C1;border-color:#A32D2D}
+.b-coral{background:#4A1B0C;color:#F5C4B3;border-color:#D85A30}
+.layer-title{background:var(--color-background-primary)}
+}
+.arrow-down{text-align:center;font-size:13px;color:var(--color-text-tertiary);margin:-2px 0;line-height:1}
+.arrow-right{font-size:11px;color:var(--color-text-tertiary);align-self:center;flex:0 0 auto}
+.divider{border:none;border-top:0.5px solid var(--color-border-tertiary);margin:.75rem 0}
+.gate{border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px}
+.gate-icon{font-size:14px;flex:0 0 20px;margin-top:1px}
+.gate-body{}
+.gate-title{font-size:12px;font-weight:500}
+.gate-desc{font-size:11px;color:var(--color-text-secondary);margin-top:2px;line-height:1.4}
+.gate-result{font-size:10px;font-weight:500;margin-top:4px;padding:2px 7px;border-radius:3px;display:inline-block}
+.pass{background:#EAF3DE;color:#27500A}
+.skip{background:#FCEBEB;color:#791F1F}
+.hold{background:#FAEEDA;color:#633806}
+@media(prefers-color-scheme:dark){
+.pass{background:#173404;color:#C0DD97}
+.skip{background:#501313;color:#F7C1C1}
+.hold{background:#412402;color:#FAC775}
+}
+.flow-num{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:10px;font-weight:500;flex:0 0 18px;margin-top:1px}
+.n-blue{background:#E6F1FB;color:#0C447C}
+.n-purple{background:#EEEDFE;color:#3C3489}
+.n-teal{background:#E1F5EE;color:#085041}
+.n-amber{background:#FAEEDA;color:#633806}
+.n-green{background:#EAF3DE;color:#27500A}
+.n-red{background:#FCEBEB;color:#791F1F}
+@media(prefers-color-scheme:dark){
+.n-blue{background:#042C53;color:#B5D4F4}
+.n-purple{background:#26215C;color:#CECBF6}
+.n-teal{background:#04342C;color:#9FE1CB}
+.n-amber{background:#412402;color:#FAC775}
+.n-green{background:#173404;color:#C0DD97}
+.n-red{background:#501313;color:#F7C1C1}
+}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cols3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.stat{background:var(--color-background-secondary);border-radius:8px;padding:8px 10px;text-align:center}
+.stat-val{font-size:18px;font-weight:500}
+.stat-lbl{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
+.timeline{position:relative;padding-left:28px}
+.tl-item{position:relative;padding-bottom:14px}
+.tl-item:last-child{padding-bottom:0}
+.tl-dot{position:absolute;left:-22px;top:4px;width:10px;height:10px;border-radius:50%;border:2px solid}
+.tl-line{position:absolute;left:-18px;top:14px;bottom:0;width:1px;background:var(--color-border-tertiary)}
+.tl-item:last-child .tl-line{display:none}
+.tl-t{font-size:12px;font-weight:500}
+.tl-d{font-size:11px;color:var(--color-text-secondary);line-height:1.4;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- ═══ HEADER ═══ -->
+<div style="margin-bottom:1.25rem">
+  <div style="font-size:16px;font-weight:500;margin-bottom:4px">Opus34 — Full System Architecture</div>
+  <div style="font-size:12px;color:var(--color-text-secondary)">Signal detection → filtering → execution → management → logging. Every layer mapped.</div>
+</div>
+
+<!-- ═══ LAYER 1: INFRASTRUCTURE ═══ -->
+<div class="layer">
+  <div class="layer-title">Infrastructure layer</div>
+  <div class="row">
+    <div class="box b-gray" style="flex:2">
+      Windows VPS (24/7)
+      <div class="box-sub">Contabo / ForexVPS / AWS Lightsail · Python 3.10+ runtime</div>
+    </div>
+    <div class="box b-gray">
+      MetaTrader 5
+      <div class="box-sub">XM Broker · Live market feed · Order execution</div>
+    </div>
+    <div class="box b-gray">
+      settings.json
+      <div class="box-sub">Login · password · server · risk params</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box b-gray">
+      07_LOGS/ CSV
+      <div class="box-sub">Every trade logged with 28 features</div>
+    </div>
+    <div class="box b-gray">
+      trading_memory.db
+      <div class="box-sub">SQLite · persistent trade state</div>
+    </div>
+    <div class="box b-gray">
+      watcher.ps1
+      <div class="box-sub">PowerShell watchdog · auto-restart on crash</div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ LAYER 2: MASTER LOOP ═══ -->
+<div class="layer" style="border-color:#378ADD">
+  <div class="layer-title" style="color:#185FA5">01_LIVE_BOT · bot_engine.py — master loop</div>
+  <div class="row">
+    <div class="box b-blue" style="flex:2">
+      10-second scan cycle
+      <div class="box-sub">Polls MT5 every 10s · checks 3 pairs · routes to strategy module</div>
+    </div>
+    <div class="box b-blue">
+      MT5 connection guard
+      <div class="box-sub">Reconnects on drop · logs failures · never silently skips</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box b-blue">EUR/USD</div>
+    <div class="box b-blue">GBP/USD</div>
+    <div class="box b-blue">USD/JPY</div>
+  </div>
+</div>
+
+<div class="arrow-down">↓ for each pair, every 10s</div>
+
+<!-- ═══ GATE 1: KILL ZONE ═══ -->
+<div class="section-label" style="margin-top:.75rem">Signal pipeline — 6 sequential gates</div>
+
+<div class="gate b-blue">
+  <div class="flow-num n-blue">1</div>
+  <div class="gate-body">
+    <div class="gate-title">Kill zone check — bot_engine.py</div>
+    <div class="gate-desc">Current UTC time checked against active sessions. London Open 06:00–09:00 UTC · London Close 15:00–17:00 UTC. Outside these windows: thread sleeps, no scanning occurs.</div>
+    <div>
+      <span class="gate-result pass">INSIDE → proceed to gate 2</span>
+      <span class="gate-result skip" style="margin-left:6px">OUTSIDE → sleep, skip entire cycle</span>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ GATE 2: SIGNAL DETECTION ═══ -->
+<div class="gate b-purple">
+  <div class="flow-num n-purple">2</div>
+  <div class="gate-body">
+    <div class="gate-title">ICT signal detection — ict_strategy.py + ict_advanced_setups.py</div>
+    <div class="gate-desc">M5 OHLCV bars pulled from MT5. Two setup detectors run in parallel:</div>
+    <div class="cols" style="margin-top:6px">
+      <div class="box b-purple" style="flex:none">
+        CHOCH detector
+        <div class="box-sub">Change of Character — structural market shift. Looks for broken swing high/low + confirmation bar. Returns: direction, entry zone, SL level.</div>
+      </div>
+      <div class="box b-purple" style="flex:none">
+        LSR detector
+        <div class="box-sub">Liquidity Sweep Reversal — stop hunt at key level then fade. Returns: direction, entry zone, SL level, sweep magnitude.</div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <span class="gate-result pass">SIGNAL FOUND → proceed to gate 3</span>
+      <span class="gate-result skip" style="margin-left:6px">NO SIGNAL → end cycle, wait 10s</span>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ GATE 3: DIRECTION FILTER ═══ -->
+<div class="gate b-amber">
+  <div class="flow-num n-amber">3</div>
+  <div class="gate-body">
+    <div class="gate-title">Direction filter — ict_strategy.py (data-proven rules)</div>
+    <div class="gate-desc">Hard-coded pair/direction rules derived from 16 months of backtest data. Zero overrides.</div>
+    <div class="cols3" style="margin-top:6px">
+      <div class="box b-green" style="flex:none">
+        EUR/USD
+        <div class="box-sub">BUY ✓ · SELL ✓ · Both profitable</div>
+      </div>
+      <div class="box b-green" style="flex:none">
+        GBP/USD SELL
+        <div class="box-sub">SELL only ✓ · BUY bleeds −454p</div>
+      </div>
+      <div class="box b-green" style="flex:none">
+        USD/JPY BUY
+        <div class="box-sub">BUY only ✓ · SELL bleeds −492p</div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <span class="gate-result pass">ALIGNED → proceed to gate 4</span>
+      <span class="gate-result skip" style="margin-left:6px">WRONG DIRECTION → hard skip, log reason</span>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ GATE 4: ML BRAIN ═══ -->
+<div class="gate b-teal">
+  <div class="flow-num n-teal">4</div>
+  <div class="gate-body">
+    <div class="gate-title">ML brain gate — brain_gate.py · XGBoost classifier</div>
+    <div class="gate-desc">Signal features extracted and passed to trained model (04_BRAIN/models/entry_model.pkl). Model was trained on 1,123 trades with zero data leakage using time-series cross-validation.</div>
+    <div class="row" style="margin-top:6px">
+      <div class="box b-teal" style="flex:2">
+        28 input features
+        <div class="box-sub">symbol · direction · setup type · session · hour of day · day of week · sweep magnitude · structural context + more</div>
+      </div>
+      <div class="box b-teal">
+        Output
+        <div class="box-sub">Win probability 0.0 → 1.0. Threshold: 0.50</div>
+      </div>
+    </div>
+    <div style="margin-top:4px">
+      <span class="gate-result pass">prob ≥ 0.50 → proceed to gate 5</span>
+      <span class="gate-result skip" style="margin-left:6px">prob &lt; 0.50 → silently skipped, not logged as trade</span>
+    </div>
+    <div style="margin-top:4px;font-size:10px;color:var(--color-text-tertiary)">Fail-safe: if model file missing → brain gate disabled, all signals pass through</div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ GATE 5: RISK CHECK ═══ -->
+<div class="gate b-coral">
+  <div class="flow-num n-red">5</div>
+  <div class="gate-body">
+    <div class="gate-title">Risk manager check — risk_manager.py</div>
+    <div class="gate-desc">Three sequential checks before any position opens:</div>
+    <div class="cols3" style="margin-top:6px">
+      <div class="box b-coral" style="flex:none">
+        Daily loss limit
+        <div class="box-sub">−3.5% = $175 on $5k. Breached → bot stops for entire day</div>
+      </div>
+      <div class="box b-coral" style="flex:none">
+        Loss streak pause
+        <div class="box-sub">3 consecutive losses → 2hr forced pause. Resets on win.</div>
+      </div>
+      <div class="box b-coral" style="flex:none">
+        Max open trades
+        <div class="box-sub">3 simultaneous positions max. 4th signal → queue skip</div>
+      </div>
+    </div>
+    <div style="margin-top:6px">
+      <span class="gate-result pass">ALL CLEAR → proceed to gate 6</span>
+      <span class="gate-result hold" style="margin-left:6px">LIMIT HIT → signal dropped, reason logged</span>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓</div>
+
+<!-- ═══ GATE 6: POSITION SIZING ═══ -->
+<div class="gate b-green">
+  <div class="flow-num n-green">6</div>
+  <div class="gate-body">
+    <div class="gate-title">Position sizing — risk_manager.py</div>
+    <div class="gate-desc">Lot size calculated from account balance, risk %, and SL distance in pips. Dynamic between standard and A+ setup.</div>
+    <div class="cols" style="margin-top:6px">
+      <div class="box b-green" style="flex:none">
+        Standard signal — 1.0% risk
+        <div class="box-sub">$50 risk on $5k · lot = $50 ÷ (SL pips × pip value)</div>
+      </div>
+      <div class="box b-green" style="flex:none">
+        A+ signal — 1.5% risk
+        <div class="box-sub">$75 risk on $5k · triggered by setup quality score</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓ signal passed all 6 gates</div>
+
+<!-- ═══ EXECUTION ═══ -->
+<div class="layer" style="border-color:#1D9E75">
+  <div class="layer-title" style="color:#085041">Trade execution — MT5 order send</div>
+  <div class="row">
+    <div class="box b-teal" style="flex:2">
+      Market order placed via MT5 Python API
+      <div class="box-sub">mt5.order_send() · symbol · volume · type · price · sl · tp · comment="OPUS34_CHOCH" or "OPUS34_LSR"</div>
+    </div>
+    <div class="box b-teal">
+      Order confirmation
+      <div class="box-sub">Ticket ID returned · position opened · entry price recorded</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box b-teal">Hard SL set at signal level</div>
+    <div class="box b-teal">
+      TP — depends on setup
+      <div class="box-sub">LSR → hard TP at 1.5–2R · CHOCH → no hard TP, giveback guard manages</div>
+    </div>
+  </div>
+</div>
+
+<div class="arrow-down">↓ trade is live</div>
+
+<!-- ═══ TRADE MANAGEMENT ═══ -->
+<div class="layer" style="border-color:#534AB7">
+  <div class="layer-title" style="color:#3C3489">Trade management loop — trade_manager.py · runs every 10s</div>
+  <div class="row">
+    <div class="box b-purple" style="flex:2">
+      Giveback guard — 0.5R activation, 15% max giveback
+      <div class="box-sub">Activates when trade reaches +0.5R profit. Sets dynamic trailing threshold at 85% of peak. If price gives back &gt;15% of peak unrealised profit → close immediately.</div>
+    </div>
+    <div class="box b-purple">
+      Profit lock
+      <div class="box-sub">Daily profit target 3.0% = $150 on $5k. Hit → bot stops taking new trades for the day, protects good days.</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box b-purple">Max drawdown guard</div>
+    <div class="box b-purple">Position monitor every 10s</div>
+    <div class="box b-purple">Peak equity tracker</div>
+  </div>
+</div>
+
+<div class="arrow-down">↓ trade closed (TP / SL / guard / manual)</div>
+
+<!-- ═══ POST-TRADE ═══ -->
+<div class="layer" style="border-color:#639922">
+  <div class="layer-title" style="color:#3B6D11">Post-trade pipeline</div>
+  <div class="row">
+    <div class="box b-green">
+      Result logged to CSV
+      <div class="box-sub">07_LOGS/ · timestamp · pair · setup · entry · SL · TP · P&amp;L · duration · brain score</div>
+    </div>
+    <div class="box b-green">
+      training_data updated
+      <div class="box-sub">04_BRAIN/training_data/features_clean.csv · new row appended · used in monthly retrain</div>
+    </div>
+    <div class="box b-green">
+      trading_memory.db
+      <div class="box-sub">SQLite trade record written · session stats updated</div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="box b-green" style="flex:2">
+      CHECK_PERFORMANCE.py
+      <div class="box-sub">Run manually any time → prints today's win rate, P&amp;L, drawdown, trades taken, brain acceptance rate</div>
+    </div>
+    <div class="box b-green">
+      Brain retrain pipeline
+      <div class="box-sub">04_BRAIN/run_full_brain_pipeline.py · monthly · new model.pkl replaces old</div>
+    </div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ ML BRAIN DEEP DIVE ═══ -->
+<div style="font-size:13px;font-weight:500;margin-bottom:.75rem">ML brain pipeline — 04_BRAIN/</div>
+<div class="row">
+  <div class="box b-gray">
+    step1_extract_features.py
+    <div class="box-sub">Reads 07_LOGS/ CSV · engineers 28 features · outputs features_clean.csv</div>
+  </div>
+  <div class="arrow-right">→</div>
+  <div class="box b-purple">
+    step2_train_entry_model.py
+    <div class="box-sub">XGBoost · time-series walk-forward CV · no data leakage · outputs entry_model.pkl</div>
+  </div>
+  <div class="arrow-right">→</div>
+  <div class="box b-teal">
+    brain_gate.py (live)
+    <div class="box-sub">Loads pkl on startup · scores each signal in &lt;1ms · fail-safe if pkl missing</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ BACKTESTING PIPELINE ═══ -->
+<div style="font-size:13px;font-weight:500;margin-bottom:.75rem">Backtesting pipeline — 02_BACKTESTER/</div>
+<div class="row">
+  <div class="box b-gray">
+    05_DATA/ M5 OHLCV
+    <div class="box-sub">16 months · 5 pairs · XM broker tick data</div>
+  </div>
+  <div class="arrow-right">→</div>
+  <div class="box b-blue">
+    run_passXX.py
+    <div class="box-sub">16 validation passes · each tests one variable · results saved to pass_XX.csv</div>
+  </div>
+  <div class="arrow-right">→</div>
+  <div class="box b-amber">
+    analyze_run.py
+    <div class="box-sub">Profit factor · win rate · trades/wk · per-pair breakdown · written to optimization_report.txt</div>
+  </div>
+  <div class="arrow-right">→</div>
+  <div class="box b-green">
+    03_BACKTEST_RESULTS/
+    <div class="box-sub">Every pass archived · pass README explains what each pass found</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ TIMING SUMMARY ═══ -->
+<div style="font-size:13px;font-weight:500;margin-bottom:.75rem">What happens inside a single 10-second cycle</div>
+<div class="timeline">
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#E6F1FB;border-color:#378ADD"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t = 0ms · Cycle wakes</div>
+    <div class="tl-d">bot_engine.py scheduler fires · 3 pairs queued</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#E6F1FB;border-color:#378ADD"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 5ms · Kill zone check</div>
+    <div class="tl-d">UTC time vs LO/LC windows. Exit if outside.</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#EEEDFE;border-color:#7F77DD"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 20ms · MT5 data pull</div>
+    <div class="tl-d">mt5.copy_rates_from_pos() · last 200 M5 bars per pair · pandas DataFrame</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#EEEDFE;border-color:#7F77DD"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 30ms · CHOCH + LSR scan</div>
+    <div class="tl-d">ict_advanced_setups.py runs detection logic on the 200 bars · returns signal or None</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#FAEEDA;border-color:#EF9F27"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 35ms · Direction filter</div>
+    <div class="tl-d">Hard lookup: GBPUSD + BUY → reject. Instant, no computation.</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#E1F5EE;border-color:#1D9E75"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 36ms · Brain gate</div>
+    <div class="tl-d">28 features assembled · xgboost.predict_proba() · &lt;1ms inference · threshold 0.50</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#FAECE7;border-color:#D85A30"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 38ms · Risk check + sizing</div>
+    <div class="tl-d">Daily P&L pulled from trading_memory.db · lot size calculated · max positions checked</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#E1F5EE;border-color:#1D9E75"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 60ms · MT5 order send</div>
+    <div class="tl-d">mt5.order_send() · network round-trip to broker · confirmation received · position ticket stored</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#EAF3DE;border-color:#639922"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t ≈ 65ms · Log write</div>
+    <div class="tl-d">CSV row appended · SQLite updated · next pair starts its scan</div>
+  </div>
+  <div class="tl-item">
+    <div class="tl-dot" style="background:#F1EFE8;border-color:#888780"></div>
+    <div class="tl-line"></div>
+    <div class="tl-t">t = 10,000ms · Next cycle</div>
+    <div class="tl-d">Scheduler wakes again · open positions also checked by trade_manager.py for giveback guard</div>
+  </div>
+</div>
+
+<div class="divider"></div>
+
+<!-- ═══ STATS ═══ -->
+<div style="font-size:13px;font-weight:500;margin-bottom:.75rem">System numbers at a glance</div>
+<div class="cols3">
+  <div class="stat"><div class="stat-val" style="color:#0C447C">6</div><div class="stat-lbl">Sequential gates per signal</div></div>
+  <div class="stat"><div class="stat-val" style="color:#3C3489">28</div><div class="stat-lbl">Brain input features</div></div>
+  <div class="stat"><div class="stat-val" style="color:#085041">10s</div><div class="stat-lbl">Scan cycle interval</div></div>
+  <div class="stat"><div class="stat-val" style="color:#633806">5.6</div><div class="stat-lbl">Trades/week live</div></div>
+  <div class="stat"><div class="stat-val" style="color:#27500A">1.40</div><div class="stat-lbl">Profit factor (with brain)</div></div>
+  <div class="stat"><div class="stat-val" style="color:#791F1F">~65ms</div><div class="stat-lbl">Signal-to-order latency</div></div>
+</div>
+
+</div>
+</body>
+</html>
