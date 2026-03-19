@@ -141,12 +141,12 @@ class ICTStrategy:
         Score <= -2 -> BEARISH
         else        -> NEUTRAL
         """
-        if len(candles_h4) < 30:
+        if len(candles_h4) < 200:
             return Direction.NEUTRAL
 
-        closes = [c["close"] for c in candles_h4[-30:]]
-        highs = [c["high"] for c in candles_h4[-30:]]
-        lows = [c["low"] for c in candles_h4[-30:]]
+        closes = [c["close"] for c in candles_h4[-200:]]
+        highs  = [c["high"] for c in candles_h4[-200:]]
+        lows   = [c["low"] for c in candles_h4[-200:]]
 
         score = 0
 
@@ -158,8 +158,8 @@ class ICTStrategy:
                 result = v * k + result * (1 - k)
             return result
 
-        fast_ema = ema(closes, 8)
-        slow_ema = ema(closes, 21)
+        fast_ema = ema(closes, 50)
+        slow_ema = ema(closes, 200)
 
         if fast_ema > slow_ema * 1.0001:
             score += 1
