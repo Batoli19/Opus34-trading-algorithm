@@ -443,7 +443,32 @@ class TradingEngine:
         )
 
         if signal and signal.valid:
-            setup_name = str(getattr(signal.setup_type, "value", signal.setup_type))
+                # ── DIRECTION FILTER ──────────────────────────────────────
+            _dir_filters = self.cfg.get("direction_filters", {})
+            _sig_dir = str(getattr(signal.direction, "value", signal.direction)).upper()
+            if symbol in _dir_filters:
+                _allowed = [d.upper() for d in _dir_filters[symbol]]
+                if _sig_dir not in _allowed:
+                    logger.info(
+                        f"SKIP_DIRECTION_FILTER: {symbol} {_sig_dir} not in {_allowed}"
+                    )
+                    self._record_skip(symbol, "DIRECTION_FILTER")
+                    return False
+                # ──────────────────────────────────────────────────────────
+            # ── DIRECTION FILTER ──────────────────────────────────────
+            _dir_filters = self.cfg.get("direction_filters", {})
+            _sig_dir = str(getattr(signal.direction, "value", signal.direction)).upper()
+            if symbol in _dir_filters:
+                _allowed = [d.upper() for d in _dir_filters[symbol]]
+                if _sig_dir not in _allowed:
+                    logger.info(
+                        f"SKIP_DIRECTION_FILTER: {symbol} {_sig_dir} "
+                        f"not in allowed={_allowed}"
+                    )
+                    self._record_skip(symbol, "DIRECTION_FILTER")
+                    return False
+            # ──────────────────────────────────────────────────────────
+             str(getattr(signal.setup_type, "value", signal.setup_type))
             passed, reason, metrics = self._sniper_filter(signal, symbol, candles_m5, candles_m15, candles_h4, candles_h1)
             if not passed:
                 log_msg = (
