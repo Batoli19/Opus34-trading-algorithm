@@ -111,7 +111,8 @@ class TradingEngine:
         self._manage_interval = 5
         self._news_interval = 3600
         self._last_signals: dict[str, datetime] = {}
-        self._signal_cooldown = 300
+        exec_cfg = self.cfg.get("execution", {}) if isinstance(self.cfg.get("execution", {}), dict) else {}
+        self._signal_cooldown = int(exec_cfg.get("signal_cooldown_seconds", 300) or 300)
         self._tz = ZoneInfo("Africa/Gaborone")
         self._last_daily_metrics = {}
         self._last_guard_rails = {}
@@ -924,19 +925,19 @@ class TradingEngine:
                 adaptive_reason,
             )
 
-        # HARD ENTRY GATE — Block Judas Swing (11:00 - 13:30 UTC)
+        # Configurable Judas/manipulation window for NY pairs.
         now_utc = datetime.now(timezone.utc).time()
-        gate_start = time(11, 0)
-        gate_end = time(13, 30)
-        # Check if symbol is a NY pair impacted by this window
-        ny_pairs = ["GBPUSD", "AUDUSD"]
-        
-        if signal.symbol.upper() in ny_pairs:
+        judas_cfg = self._judas_gate_cfg()
+        if judas_cfg["enabled"] and signal.symbol.upper() in judas_cfg["symbols"]:
+            gate_start = judas_cfg["start"]
+            gate_end = judas_cfg["end"]
             if gate_start <= now_utc < gate_end:
                 logger.warning(
-                    "SKIP_ENTRY_HARDGATE_JUDAS: symbol=%s time=%s reason=MANIP_WINDOW_NR",
+                    "SKIP_ENTRY_HARDGATE_JUDAS: symbol=%s time=%s window=%s-%s reason=MANIP_WINDOW_NR",
                     signal.symbol,
                     now_utc.isoformat(),
+                    gate_start.isoformat(timespec="minutes"),
+                    gate_end.isoformat(timespec="minutes"),
                 )
                 self._skip_reasons.append(
                     {
@@ -944,7 +945,10 @@ class TradingEngine:
                         "symbol": signal.symbol,
                         "setup_type": signal.setup_type.value,
                         "reason": "HARDGATE_JUDAS",
-                        "detail": "Blocked between 11:00-13:30 UTC",
+                        "detail": (
+                            f"Blocked between {gate_start.isoformat(timespec='minutes')}"
+                            f"-{gate_end.isoformat(timespec='minutes')} UTC"
+                        ),
                     }
                 )
                 return
@@ -2290,6 +2294,33 @@ class TradingEngine:
         if "NY" in name:
             return "NY"
         return name or "OFF"
+
+    def _parse_utc_hhmm(self, value, default_hour: int, default_minute: int) -> time:
+        text = str(value or "").strip()
+        if not text:
+            return time(default_hour, default_minute)
+        try:
+            hh, mm = text.split(":", 1)
+            hour = max(0, min(23, int(hh)))
+            minute = max(0, min(59, int(mm)))
+            return time(hour, minute)
+        except Exception:
+            return time(default_hour, default_minute)
+
+    def _judas_gate_cfg(self) -> dict:
+        exec_cfg = self.cfg.get("execution", {}) if isinstance(self.cfg.get("execution", {}), dict) else {}
+        raw = exec_cfg.get("judas_hard_gate", {})
+        if not isinstance(raw, dict):
+            raw = {}
+        symbols = raw.get("symbols", ["GBPUSD", "AUDUSD"])
+        if not isinstance(symbols, list):
+            symbols = ["GBPUSD", "AUDUSD"]
+        return {
+            "enabled": bool(raw.get("enabled", True)),
+            "start": self._parse_utc_hhmm(raw.get("start_utc"), 11, 0),
+            "end": self._parse_utc_hhmm(raw.get("end_utc"), 13, 30),
+            "symbols": {str(sym).upper().strip() for sym in symbols if str(sym).strip()},
+        }
 
     def _daily_window_utc(self) -> tuple[datetime, datetime]:
         now_utc = datetime.now(timezone.utc)
