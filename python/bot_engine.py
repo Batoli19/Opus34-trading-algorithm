@@ -259,7 +259,7 @@ class TradingEngine:
         session_name = self._current_session_name()
 
         if self._is_hybrid_mode() and bool(self.cfg.get("mode", {}).get("session_pair_rules", False)):
-            preferred = "EURUSD" if session_name == "LONDON" else "XAUUSD" if session_name == "NY" else None
+            preferred = "EURUSD" if session_name == "LONDON" else None
             if preferred and preferred in scan_pairs:
                 preferred_signal = False
                 try:
@@ -438,20 +438,28 @@ class TradingEngine:
             self._record_skip(symbol, "INCOMPLETE_DATA")
             return False
 
+        # DIRECTION FILTER — before analyze() so brain gate never sees bad combos
+        _dir_f = self.cfg.get('direction_filters', {})
+        if symbol in _dir_f:
+            # We don't know direction yet — let analyze run but we'll check after
+            # For now just log that we'll filter
+            pass
+
         signal = self.strategy.analyze(
             symbol, candles_h4, candles_m15, candles_m5, candles_m1, spread, self.brain.get_adaptive_confidence
         )
 
+        # DIRECTION FILTER — immediately after signal, before anything else
         if signal and signal.valid:
-            # DIRECTION FILTER
-            _dir_f = self.cfg.get('direction_filters', {})
             _sig_d = str(getattr(signal.direction, 'value', signal.direction)).upper()
             if symbol in _dir_f:
                 _ok = [x.upper() for x in _dir_f[symbol]]
                 if _sig_d not in _ok:
-                    logger.info(f'SKIP_DIR: {symbol} {_sig_d} blocked, allowed={_ok}')
+                    logger.info(f'SKIP_DIR: {symbol} {_sig_d} not in {_ok}')
                     self._record_skip(symbol, 'DIRECTION_FILTER')
                     return False
+
+        if signal and signal.valid:
             setup_name = str(getattr(signal.setup_type, "value", signal.setup_type))
             passed, reason, metrics = self._sniper_filter(signal, symbol, candles_m5, candles_m15, candles_h4, candles_h1)
             if not passed:
@@ -921,7 +929,7 @@ class TradingEngine:
         gate_start = time(11, 0)
         gate_end = time(13, 30)
         # Check if symbol is a NY pair impacted by this window
-        ny_pairs = ["GBPUSD", "AUDUSD", "XAUUSD", "US30", "NAS100"]
+        ny_pairs = ["GBPUSD", "AUDUSD"]
         
         if signal.symbol.upper() in ny_pairs:
             if gate_start <= now_utc < gate_end:
@@ -2264,7 +2272,7 @@ class TradingEngine:
     def _get_scan_pairs(self) -> list[str]:
         if not self._is_hybrid_mode():
             return list(self.pairs)
-        focus = self.cfg.get("mode", {}).get("pairs_focus", ["XAUUSD", "EURUSD"])
+        focus = self.cfg.get("mode", {}).get("pairs_focus", ["EURUSD", "GBPUSD"])
         out = []
         for pair in focus:
             p = str(pair).upper()
