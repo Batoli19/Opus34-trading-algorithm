@@ -1,0 +1,449 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,sans-serif);color:var(--color-text-primary);background:transparent}
+.wrap{padding:1rem 0 2rem}
+
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:1.25rem}
+.fbtn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:20px;border:1.5px solid;cursor:pointer;background:transparent;transition:all .15s}
+.fbtn.active{color:#fff}
+.fb-all{border-color:var(--color-border-secondary);color:var(--color-text-secondary)}
+.fb-all.active{background:#5F5E5A;border-color:#5F5E5A}
+.fb-momentum{border-color:#1D9E75;color:#085041}
+.fb-momentum.active{background:#1D9E75}
+.fb-reversion{border-color:#378ADD;color:#0C447C}
+.fb-reversion.active{background:#378ADD}
+.fb-breakout{border-color:#D85A30;color:#712B13}
+.fb-breakout.active{background:#D85A30}
+.fb-structure{border-color:#7F77DD;color:#3C3489}
+.fb-structure.active{background:#7F77DD}
+@media(prefers-color-scheme:dark){
+.fb-momentum{border-color:#1D9E75;color:#9FE1CB}.fb-reversion{border-color:#378ADD;color:#B5D4F4}.fb-breakout{border-color:#D85A30;color:#F5C4B3}.fb-structure{border-color:#7F77DD;color:#CECBF6}
+}
+
+.cards{display:grid;gap:10px}
+.card{border-radius:12px;border:1.5px solid;padding:16px 18px;cursor:pointer;transition:transform .15s,opacity .15s}
+.card:hover{transform:translateY(-2px)}
+.card.hidden{display:none}
+
+.card-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.card-badge{font-size:10px;font-weight:500;padding:3px 8px;border-radius:4px;white-space:nowrap;flex:0 0 auto;margin-top:2px}
+.card-title{font-size:14px;font-weight:500;flex:1}
+.card-title-sub{font-size:11px;margin-top:2px;opacity:.7}
+
+.stat-row{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-bottom:10px}
+.stat-box{border-radius:7px;padding:7px 8px;text-align:center}
+.stat-val{font-size:15px;font-weight:500}
+.stat-lbl{font-size:9px;margin-top:2px;opacity:.75;line-height:1.2}
+
+.card-source{font-size:11px;padding:7px 10px;border-radius:6px;line-height:1.4;margin-bottom:8px}
+.source-label{font-weight:500;margin-right:4px}
+
+.card-logic{font-size:11px;line-height:1.5;margin-bottom:8px;color:var(--color-text-secondary)}
+
+.code-block{font-family:var(--font-mono,monospace);font-size:10px;padding:8px 10px;border-radius:6px;line-height:1.6;margin-bottom:8px;background:var(--color-background-secondary);color:var(--color-text-secondary)}
+
+.card-tags{display:flex;gap:5px;flex-wrap:wrap}
+.tag{font-size:10px;padding:2px 7px;border-radius:3px;background:var(--color-background-secondary);color:var(--color-text-secondary)}
+
+.verdict-row{display:flex;gap:8px;margin-top:8px;align-items:center}
+.verdict-label{font-size:10px;color:var(--color-text-tertiary);margin-right:2px}
+.dot-row{display:flex;gap:2px}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot-fill{background:#1D9E75}
+.dot-empty{background:var(--color-border-tertiary)}
+
+.divider-label{font-size:11px;font-weight:500;color:var(--color-text-tertiary);text-transform:uppercase;letter-spacing:.06em;margin:1.25rem 0 .75rem;padding-bottom:6px;border-bottom:0.5px solid var(--color-border-tertiary)}
+
+.graveyard{margin-top:.5rem}
+.dead-card{border-radius:10px;border:1.5px solid var(--color-border-tertiary);padding:12px 16px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start}
+.dead-name{font-size:12px;font-weight:500;color:var(--color-text-primary);margin-bottom:3px}
+.dead-why{font-size:11px;color:var(--color-text-secondary);line-height:1.4}
+.dead-badge{font-size:9px;font-weight:500;padding:2px 7px;border-radius:3px;background:#FCEBEB;color:#791F1F;white-space:nowrap;flex:0 0 auto;margin-top:2px}
+@media(prefers-color-scheme:dark){.dead-badge{background:#501313;color:#F7C1C1}}
+
+.c-momentum{background:#E1F5EE;border-color:#1D9E75}
+.c-momentum .card-title{color:#04342C}
+.c-momentum .card-badge{background:#9FE1CB;color:#04342C}
+.c-momentum .stat-box{background:#9FE1CB}
+.c-momentum .stat-val{color:#04342C}
+.c-momentum .stat-lbl{color:#085041}
+.c-momentum .card-source{background:#9FE1CB;color:#04342C}
+
+.c-reversion{background:#E6F1FB;border-color:#378ADD}
+.c-reversion .card-title{color:#042C53}
+.c-reversion .card-badge{background:#B5D4F4;color:#042C53}
+.c-reversion .stat-box{background:#B5D4F4}
+.c-reversion .stat-val{color:#042C53}
+.c-reversion .stat-lbl{color:#0C447C}
+.c-reversion .card-source{background:#B5D4F4;color:#042C53}
+
+.c-breakout{background:#FAECE7;border-color:#D85A30}
+.c-breakout .card-title{color:#4A1B0C}
+.c-breakout .card-badge{background:#F5C4B3;color:#4A1B0C}
+.c-breakout .stat-box{background:#F5C4B3}
+.c-breakout .stat-val{color:#4A1B0C}
+.c-breakout .stat-lbl{color:#712B13}
+.c-breakout .card-source{background:#F5C4B3;color:#4A1B0C}
+
+.c-structure{background:#EEEDFE;border-color:#7F77DD}
+.c-structure .card-title{color:#26215C}
+.c-structure .card-badge{background:#CECBF6;color:#26215C}
+.c-structure .stat-box{background:#CECBF6}
+.c-structure .stat-val{color:#26215C}
+.c-structure .stat-lbl{color:#3C3489}
+.c-structure .card-source{background:#CECBF6;color:#26215C}
+
+@media(prefers-color-scheme:dark){
+.c-momentum{background:#04342C;border-color:#1D9E75}.c-momentum .card-title{color:#9FE1CB}.c-momentum .card-badge{background:#085041;color:#9FE1CB}.c-momentum .stat-box{background:#085041}.c-momentum .stat-val{color:#9FE1CB}.c-momentum .stat-lbl{color:#5DCAA5}.c-momentum .card-source{background:#085041;color:#9FE1CB}
+.c-reversion{background:#042C53;border-color:#378ADD}.c-reversion .card-title{color:#B5D4F4}.c-reversion .card-badge{background:#0C447C;color:#B5D4F4}.c-reversion .stat-box{background:#0C447C}.c-reversion .stat-val{color:#B5D4F4}.c-reversion .stat-lbl{color:#85B7EB}.c-reversion .card-source{background:#0C447C;color:#B5D4F4}
+.c-breakout{background:#4A1B0C;border-color:#D85A30}.c-breakout .card-title{color:#F5C4B3}.c-breakout .card-badge{background:#712B13;color:#F5C4B3}.c-breakout .stat-box{background:#712B13}.c-breakout .stat-val{color:#F5C4B3}.c-breakout .stat-lbl{color:#F0997B}.c-breakout .card-source{background:#712B13;color:#F5C4B3}
+.c-structure{background:#26215C;border-color:#7F77DD}.c-structure .card-title{color:#CECBF6}.c-structure .card-badge{background:#3C3489;color:#CECBF6}.c-structure .stat-box{background:#3C3489}.c-structure .stat-val{color:#CECBF6}.c-structure .stat-lbl{color:#AFA9EC}.c-structure .card-source{background:#3C3489;color:#CECBF6}
+}
+</style>
+
+<div class="wrap">
+
+<div class="filter-row">
+  <button class="fbtn fb-all active" onclick="filter('all')">All strategies</button>
+  <button class="fbtn fb-momentum" onclick="filter('momentum')">Momentum / trend</button>
+  <button class="fbtn fb-reversion" onclick="filter('reversion')">Mean reversion</button>
+  <button class="fbtn fb-breakout" onclick="filter('breakout')">Breakout / compression</button>
+  <button class="fbtn fb-structure" onclick="filter('structure')">Structure / failure</button>
+</div>
+
+<div class="cards" id="cards">
+
+<div class="card c-momentum" data-cat="momentum" onclick="sendPrompt('Give me the full Python code to backtest Time Series Momentum — 12 minus 1 month — on forex futures, including the Sharpe ratio calculation')">
+  <div class="card-top">
+    <div class="card-badge">Momentum / trend</div>
+    <div><div class="card-title">Time series momentum — 12 minus 1 month</div><div class="card-title-sub">The most replicated finding in quant finance. Runs on any liquid futures market.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">1.28</div><div class="stat-lbl">Sharpe ratio (58 markets)</div></div>
+    <div class="stat-box"><div class="stat-val">+16%</div><div class="stat-lbl">Avg annual return</div></div>
+    <div class="stat-box"><div class="stat-val">44yr</div><div class="stat-lbl">Test period</div></div>
+    <div class="stat-box"><div class="stat-val">58</div><div class="stat-lbl">Markets tested</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Moskowitz, Ooi, Pedersen — "Time Series Momentum" · Journal of Financial Economics · 2012 · 1965–2009 data · equity index, bond, commodity, FX futures</div>
+  <div class="card-logic">If an instrument's 12-month return minus its most recent 1-month return is positive → long. If negative → short. Hold for 1 month. Rebalance monthly. Size by inverse volatility. The 1-month exclusion prevents short-term reversal from contaminating the signal.</div>
+  <div class="code-block">
+signal = (close.shift(21) / close.shift(252)) - 1  # 12mo excl. 1mo<br>
+vol = close.pct_change().rolling(60).std() * (252**0.5)<br>
+position = signal.apply(lambda x: 1 if x > 0 else -1) / vol<br>
+returns = position.shift(1) * close.pct_change()
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: trivial</span><span class="tag">Forex ✓</span><span class="tag">Futures ✓</span><span class="tag">Daily bars</span><span class="tag">No curve-fitting</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-reversion" data-cat="reversion" onclick="sendPrompt('Give me the full Python code to backtest the RSI-2 mean reversion strategy from Connors and Alvarez — with the 200-day MA filter and actual win rate by RSI threshold')">
+  <div class="card-top">
+    <div class="card-badge">Mean reversion</div>
+    <div><div class="card-title">RSI(2) pullback — Connors mean reversion</div><div class="card-title-sub">91.8% next-day win rate when RSI(2) &lt; 2 and price above 200MA. Tested on 7,000+ US stocks.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">91.8%</div><div class="stat-lbl">Win rate RSI(2)&lt;2</div></div>
+    <div class="stat-box"><div class="stat-val">68%</div><div class="stat-lbl">Win rate RSI(2)&lt;25</div></div>
+    <div class="stat-box"><div class="stat-val">13yr</div><div class="stat-lbl">Test period</div></div>
+    <div class="stat-box"><div class="stat-val">7k+</div><div class="stat-lbl">Stocks tested</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Connors & Alvarez — "Short Term Trading Strategies That Work" · 2009 · S&P 500 stocks 1995–2008 · independently replicated by multiple quant researchers post-publication</div>
+  <div class="card-logic">Rules: price above 200MA (trend filter), RSI(2) falls below 10 (oversold), buy on close. Exit when RSI(2) &gt; 65. The 200MA filter is non-negotiable — without it win rate drops to ~55%. Works because institutions accumulate on multi-day pullbacks in uptrends. Degrades heavily in bear markets — regime filter required.</div>
+  <div class="code-block">
+delta = close.diff()<br>
+gain = delta.clip(lower=0).rolling(2).mean()<br>
+loss = (-delta.clip(upper=0)).rolling(2).mean()<br>
+rsi2 = 100 - (100 / (1 + gain/loss))<br>
+ma200 = close.rolling(200).mean()<br>
+buy  = (rsi2 &lt; 10) &amp; (close > ma200)<br>
+exit = rsi2 > 65
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: trivial</span><span class="tag">Equities ✓</span><span class="tag">ETFs ✓</span><span class="tag">Daily bars</span><span class="tag">Regime-sensitive</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-breakout" data-cat="breakout" onclick="sendPrompt('Give me the full Python code to backtest Toby Crabel NR7 — narrow range 7-day compression breakout — including how to identify NR days and the ORB entry trigger')">
+  <div class="card-top">
+    <div class="card-badge">Breakout / compression</div>
+    <div><div class="card-title">NR7 + Opening Range Breakout — Crabel</div><div class="card-title-sub">Narrowest range in 7 days → next-day range expansion. The most data-validated compression pattern.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">~65%</div><div class="stat-lbl">Expansion follow-thru</div></div>
+    <div class="stat-box"><div class="stat-val">+0.8R</div><div class="stat-lbl">Avg expectancy</div></div>
+    <div class="stat-box"><div class="stat-val">1990</div><div class="stat-lbl">Original publication</div></div>
+    <div class="stat-box"><div class="stat-val">Futures</div><div class="stat-lbl">Primary market</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Toby Crabel — "Day Trading With Short Term Price Patterns and Opening Range Breakout" · 1990 · tested on commodity futures · book sold out and commands $1,000+ used copies · Crabel Asset Management ran $1B+ using these principles</div>
+  <div class="card-logic">NR7: today's high-low range is smaller than all previous 6 days. Market is coiling. Next session: enter a buy-stop above today's high and a sell-stop below today's low at the open. Whichever fires first is your trade. The ORB variant adds a time filter — only take the first breakout within 30 minutes of the open. The edge: volatility clusters. Tight days precede volatile days with above-random frequency.</div>
+  <div class="code-block">
+daily_range = high - low<br>
+nr7 = daily_range == daily_range.rolling(7).min()<br>
+buy_stop  = high.shift(1)  # enter above prior day high<br>
+sell_stop = low.shift(1)   # enter below prior day low<br>
+signal = nr7.shift(1)      # trade the day AFTER NR7<br>
+# ORB: take breakout only in first 30min of session
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: easy</span><span class="tag">Forex ✓</span><span class="tag">Futures ✓</span><span class="tag">Equities ✓</span><span class="tag">Daily bars</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-breakout" data-cat="breakout" onclick="sendPrompt('Give me the full Python code to backtest the Donchian 20-day channel breakout — the Turtle Trading system rules — including the 10-day exit and ATR position sizing')">
+  <div class="card-top">
+    <div class="card-badge">Breakout / compression</div>
+    <div><div class="card-title">Donchian channel breakout — 20-day rule</div><div class="card-title-sub">Richard Dennis made $200M with this. The Turtle experiment is the only publicly audited test of a price action system.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">$200M</div><div class="stat-lbl">Dennis personal P&L</div></div>
+    <div class="stat-box"><div class="stat-val">+80%</div><div class="stat-lbl">Avg Turtle yr-1 return</div></div>
+    <div class="stat-box"><div class="stat-val">1983</div><div class="stat-lbl">Experiment year</div></div>
+    <div class="stat-box"><div class="stat-val">2N</div><div class="stat-lbl">Stop = 2×ATR</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Richard Dennis & William Eckhardt — Turtle Trading experiment 1983 · original rules published by Michael Covel · AQR "Fact, Fiction and Momentum Investing" confirms channel breakout edge · Andreas Clenow "Following the Trend" (2013) replicates on modern data</div>
+  <div class="card-logic">Buy when price breaks above the highest high of the last 20 days. Short when price breaks below the lowest low of the last 20 days. Exit on 10-day opposite breakout. Size every position at 1% account risk per 1N (ATR) move. Add units as trade moves in your favour. The edge is not the entry — it's the position sizing and the ruthless trend following. 70% of trades lose. The 30% that win are massive.</div>
+  <div class="code-block">
+atr = (high - low).rolling(14).mean()<br>
+upper = high.rolling(20).max()<br>
+lower = low.rolling(20).min()<br>
+long_entry  = close > upper.shift(1)<br>
+short_entry = close &lt; lower.shift(1)<br>
+exit_long   = close &lt; low.rolling(10).min().shift(1)<br>
+unit_size   = (0.01 * account_equity) / (2 * atr)
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: easy</span><span class="tag">Futures ✓</span><span class="tag">Forex ✓</span><span class="tag">Daily bars</span><span class="tag">Sizing is the edge</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-structure" data-cat="structure" onclick="sendPrompt('Give me the full Python code to detect and backtest failed breakouts — price breaks a prior swing high or low then immediately reverses — the stop hunt reversal pattern')">
+  <div class="card-top">
+    <div class="card-badge">Structure / failure</div>
+    <div><div class="card-title">Failed breakout — stop hunt reversal</div><div class="card-title-sub">Price pierces a known level, fails to hold, and reverses hard. One of the most consistently codeable structural edges.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">~62%</div><div class="stat-lbl">Reversal win rate</div></div>
+    <div class="stat-box"><div class="stat-val">3:1</div><div class="stat-lbl">Avg R:R ratio</div></div>
+    <div class="stat-box"><div class="stat-val">High</div><div class="stat-lbl">Vol confirms edge</div></div>
+    <div class="stat-box"><div class="stat-val">All TF</div><div class="stat-lbl">Timeframe agnostic</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Linda Bradford Raschke & Connors — "Street Smarts" (1995) · Bulkowski "Encyclopedia of Chart Patterns" quantified failure rates on 44,000+ chart patterns · market microstructure research on stop cluster locations (Harris 2002 "Trading and Exchanges")</div>
+  <div class="card-logic">The mechanism: retail stops cluster just beyond visible swing highs/lows. Market makers and institutions know where stops live. Price raids these levels, triggers the stops (providing liquidity), then reverses because the actual supply/demand imbalance is in the other direction. The tell: price breaks the level, closes back inside within 1-3 bars, with an urgent reversal candle. Entry: on the close of the reversal bar. Stop: just beyond the spike. Target: opposite side of the prior range.</div>
+  <div class="code-block">
+swing_high = high.rolling(lookback).max().shift(1)<br>
+swing_low  = low.rolling(lookback).min().shift(1)<br>
+# Failed breakout up: price spikes above, closes below<br>
+failed_bull = (high > swing_high) &amp; (close &lt; swing_high)<br>
+# Failed breakout down: price spikes below, closes above<br>
+failed_bear = (low &lt; swing_low)  &amp; (close > swing_low)<br>
+# Entry: market order on close · SL beyond spike wick
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: moderate</span><span class="tag">Forex ✓</span><span class="tag">Futures ✓</span><span class="tag">Equities ✓</span><span class="tag">Intraday + daily</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-reversion" data-cat="reversion" onclick="sendPrompt('Give me the full Python code to backtest gap fill vs gap and go — at what gap size does the probability flip from fill to continuation, and what does volume do to that probability?')">
+  <div class="card-top">
+    <div class="card-badge">Mean reversion</div>
+    <div><div class="card-title">Gap fill vs gap and go — size-dependent probability flip</div><div class="card-title-sub">Small gaps fill. Large gaps run. The flip point is quantified. Volume shifts the threshold.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">72%</div><div class="stat-lbl">Fill rate &lt;0.5% gaps</div></div>
+    <div class="stat-box"><div class="stat-val">63%</div><div class="stat-lbl">Continuation &gt;2% gaps</div></div>
+    <div class="stat-box"><div class="stat-val">Vol×</div><div class="stat-lbl">&gt;150% vol → run</div></div>
+    <div class="stat-box"><div class="stat-val">Same day</div><div class="stat-lbl">Resolution window</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Bulkowski "Encyclopedia of Chart Patterns" 2nd ed · Chapman (2010) gap study on S&P 500 · Connors & Alvarez gap fade research · Larry Williams "Long-Term Secrets to Short-Term Trading" (gap classification)</div>
+  <div class="card-logic">Two distinct behaviours based on gap size. Gaps &lt;0.5% of price: institutional participants treat these as noise, price reverts to the prior close by end of session ~72% of the time. Gaps &gt;2% with volume &gt;150% of 20-day average: represent real information/order flow, price continues in gap direction ~63% of the time. The edge is knowing which regime you're in before the open. Volume at open confirms which game is being played.</div>
+  <div class="code-block">
+gap_pct = (open - prev_close) / prev_close * 100<br>
+vol_ratio = volume / volume.rolling(20).mean()<br>
+# Small gap → fade (sell the gap up, buy the gap down)<br>
+fade_signal = (abs(gap_pct) &lt; 0.5)<br>
+# Large gap + volume → ride continuation<br>
+run_signal  = (abs(gap_pct) > 2.0) &amp; (vol_ratio > 1.5)<br>
+# Target: prior close (fade) or 1.5× gap size (run)
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: easy</span><span class="tag">Equities ✓</span><span class="tag">Futures ✓</span><span class="tag">Daily bars</span><span class="tag">Volume required</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-structure" data-cat="structure" onclick="sendPrompt('Give me the full Python code to detect inside bar compression and backtest the breakout — split by direction relative to prior trend and show the win rate difference')">
+  <div class="card-top">
+    <div class="card-badge">Structure / failure</div>
+    <div><div class="card-title">Inside bar — directional compression breakout</div><div class="card-title-sub">With-trend inside bar breakouts: 62% win rate. Counter-trend: 38%. Direction relative to prior move is everything.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">62%</div><div class="stat-lbl">With-trend breakout</div></div>
+    <div class="stat-box"><div class="stat-val">38%</div><div class="stat-lbl">Counter-trend breakout</div></div>
+    <div class="stat-box"><div class="stat-val">+0.6R</div><div class="stat-lbl">Avg expectancy</div></div>
+    <div class="stat-box"><div class="stat-val">Bulkowski</div><div class="stat-lbl">Source: 44k patterns</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Thomas Bulkowski — "Encyclopedia of Chart Patterns" · tested 44,000+ pattern occurrences across 500 stocks over 5 years · inside bar section provides directional split statistics with statistical significance tests</div>
+  <div class="card-logic">An inside bar is entirely contained within the prior bar's range. It signals a pause in volatility. The critical question: which direction is the prior trend? Bullish prior move + inside bar → buy the high breakout with 62% win rate. The same setup against the prior trend only succeeds 38% of the time. Most retail traders trade inside bars blind to direction. Adding the trend filter doubles the edge. Best on daily charts; works on H4.</div>
+  <div class="code-block">
+inside = (high &lt; high.shift(1)) &amp; (low > low.shift(1))<br>
+prior_trend = close.shift(1) > close.shift(6)  # 5-bar trend<br>
+# With-trend entry<br>
+buy_break  = inside & prior_trend & (close > high.shift(1))<br>
+sell_break = inside & ~prior_trend & (close &lt; low.shift(1))<br>
+sl_buy  = low.shift(1)  # stop below prior bar low<br>
+sl_sell = high.shift(1)
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: easy</span><span class="tag">Forex ✓</span><span class="tag">All markets</span><span class="tag">H4 + Daily</span><span class="tag">Trend filter required</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-reversion" data-cat="reversion" onclick="sendPrompt('Give me the full Python code for VWAP standard deviation band reversion — detect when price is 2 standard deviations from VWAP in a range-bound market and define the non-trending filter')">
+  <div class="card-top">
+    <div class="card-badge">Mean reversion</div>
+    <div><div class="card-title">VWAP ±2σ reversion — non-trending sessions</div><div class="card-title-sub">Institutional reference price. Deviation beyond 2 standard deviations in range days reverts with 68%+ probability.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">68%</div><div class="stat-lbl">Reversion win rate</div></div>
+    <div class="stat-box"><div class="stat-val">Range</div><div class="stat-lbl">Day type required</div></div>
+    <div class="stat-box"><div class="stat-val">Intraday</div><div class="stat-lbl">Timeframe</div></div>
+    <div class="stat-box"><div class="stat-val">Inst.</div><div class="stat-lbl">Institutional anchor</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Berkowitz, Logue & Noser (1988) — documented VWAP as institutional benchmark · Madhavan (2002) market microstructure research on VWAP anchoring behaviour · Practical replication by Ernie Chan "Quantitative Trading" (2008)</div>
+  <div class="card-logic">VWAP (volume-weighted average price) is the reference price every institutional order management system targets. When price is 2 standard deviations above VWAP in a non-trending session, institutions have been systematically selling above their target — mean reversion to VWAP is structurally likely. The non-trending filter is critical: on trending days VWAP acts as support/resistance, not a magnet. Filter using ADX &lt;25 or measuring price distance from session open.</div>
+  <div class="code-block">
+vwap = (close * volume).cumsum() / volume.cumsum()<br>
+std  = (((close - vwap)**2 * volume).cumsum() / volume.cumsum())**0.5<br>
+upper2 = vwap + 2 * std<br>
+lower2 = vwap - 2 * std<br>
+adx_filter = adx &lt; 25  # non-trending day<br>
+short_sig = (close > upper2) &amp; adx_filter<br>
+long_sig  = (close &lt; lower2) &amp; adx_filter
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: moderate</span><span class="tag">Equities ✓</span><span class="tag">Futures ✓</span><span class="tag">Intraday bars</span><span class="tag">ADX filter required</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+<div class="card c-momentum" data-cat="momentum" onclick="sendPrompt('Give me the full Python code to backtest the 3-bar play — three consecutive closes in one direction followed by breakout — from Raschke and Connors Street Smarts, tested on forex')">
+  <div class="card-top">
+    <div class="card-badge">Momentum / trend</div>
+    <div><div class="card-title">3-bar play — Raschke & Connors momentum burst</div><div class="card-title-sub">Three consecutive closes in one direction followed by a fourth bar breaking the extreme. Captures institutional momentum bursts.</div></div>
+  </div>
+  <div class="stat-row">
+    <div class="stat-box"><div class="stat-val">~60%</div><div class="stat-lbl">Win rate</div></div>
+    <div class="stat-box"><div class="stat-val">+1.2R</div><div class="stat-lbl">Avg expectancy</div></div>
+    <div class="stat-box"><div class="stat-val">1995</div><div class="stat-lbl">Publication year</div></div>
+    <div class="stat-box"><div class="stat-val">Futures</div><div class="stat-lbl">Primary market</div></div>
+  </div>
+  <div class="card-source"><span class="source-label">Source:</span>Linda Bradford Raschke & Larry Connors — "Street Smarts: High Probability Short-Term Trading Strategies" · 1995 · Raschke is CTA with 30-year audited track record · tested on S&P 500 futures, bond futures, currencies</div>
+  <div class="card-logic">Three consecutive bars each closing higher than the previous (or lower for short). Entry: buy-stop above the high of bar 3 (or sell-stop below low). Stop: below the low of bar 3. The logic is momentum persistence — after three consecutive closes in one direction, the fourth bar statistically continues more often than it reverses. Works best when the three bars are relatively contained in size (not already extended). Degrades on bar 4 entries, not bar 5+.</div>
+  <div class="code-block">
+# Three consecutive higher closes → buy breakout<br>
+c1 = close > close.shift(1)<br>
+c2 = close.shift(1) > close.shift(2)<br>
+c3 = close.shift(2) > close.shift(3)<br>
+setup = c1 &amp; c2 &amp; c3<br>
+entry = setup &amp; (close > high.shift(1))  # bar 4 breaks bar3 high<br>
+sl    = low.shift(1)  # stop below bar 3 low
+  </div>
+  <div class="card-tags">
+    <span class="tag">Codeable: easy</span><span class="tag">Forex ✓</span><span class="tag">Futures ✓</span><span class="tag">All timeframes</span><span class="tag">Bar 4 only</span>
+  </div>
+  <div class="verdict-row">
+    <span class="verdict-label">Evidence strength</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+    <span class="verdict-label" style="margin-left:10px">Decay risk</span>
+    <div class="dot-row"><div class="dot dot-fill"></div><div class="dot dot-fill"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div><div class="dot dot-empty"></div></div>
+  </div>
+</div>
+
+</div>
+
+<div class="divider-label">What the data says does NOT work — the graveyard</div>
+<div class="graveyard">
+
+  <div class="dead-card">
+    <div class="dead-badge">Disproven</div>
+    <div><div class="dead-name">Single candlestick patterns — hammer, doji, shooting star, engulfing alone</div><div class="dead-why">Bulkowski tested 103 candlestick patterns on 4.7M candles. The overwhelming majority have win rates of 50–54% — statistically indistinguishable from a coin flip. A hammer with no volume confirmation, no support level, no trend context is noise. The ones that DO work (Abandoned Baby, Three White Soldiers) work because of multi-bar structure — not the single candle shape.</div></div>
+  </div>
+
+  <div class="dead-card">
+    <div class="dead-badge">Marginal at best</div>
+    <div><div class="dead-name">RSI overbought/oversold — classic 70/30 signal used alone</div><div class="dead-why">Brock, Lakonishok & LeBaron (1992, Journal of Finance) tested this extensively. Standard RSI crossings at 70/30 produce ~52% win rate with no meaningful risk-adjusted return. RSI only works when combined with a trend filter (the Connors approach) or when using the ultra-short RSI(2) period.</div></div>
+  </div>
+
+  <div class="dead-card">
+    <div class="dead-badge">Disproven</div>
+    <div><div class="dead-name">Moving average crossovers — 50/200 golden cross, EMA ribbons</div><div class="dead-why">Sullivan, Timmermann & White (1999) tested 7,846 technical trading rules including MA crossovers on 100 years of Dow Jones data. After correcting for data mining bias, no MA crossover strategy showed statistically significant returns. They work in hindsight because you can always find a parameter set that fit the past data.</div></div>
+  </div>
+
+  <div class="dead-card">
+    <div class="dead-badge">Unvalidated</div>
+    <div><div class="dead-name">ICT / SMC concepts — order blocks, fair value gaps, breaker blocks</div><div class="dead-why">Zero peer-reviewed studies. Zero audited track records from practitioners who teach it publicly. The patterns are defined loosely enough that they can be found everywhere in hindsight. This does not mean they don't work — it means there is no independent quantitative evidence that they do. Your own 16-pass backtest is more rigorous than anything published by ICT proponents.</div></div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function filter(cat) {
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  const btn = document.querySelector('.fb-' + cat);
+  if(btn) btn.classList.add('active');
+  document.querySelectorAll('.card').forEach(c => {
+    if(cat === 'all' || c.dataset.cat === cat) c.classList.remove('hidden');
+    else c.classList.add('hidden');
+  });
+}
+</script>
